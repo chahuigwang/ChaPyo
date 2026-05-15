@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+/* ============================================================
+ * Design Tokens (shadcn-vue 호환)
+ * 70 : 25 : 5  ─  neutral(light) : secondary(slate) : accent(brand)
+ * Brand accent: #00B7EB  ← 한 줄만 바꾸면 전체 톤이 바뀌도록 객체지향적으로 분리
+ * ============================================================ */
+:root {
+  /* 5% — Accent (브랜드 포인트) */
+  --brand-50:  #e6f8fd;
+  --brand-100: #b3eaf8;
+  --brand-200: #80dcf3;
+  --brand-300: #4dcfee;
+  --brand-400: #1ac1e9;
+  --brand-500: #00b7eb;   /* ← 핵심 */
+  --brand-600: #0093bc;
+  --brand-700: #006e8d;
+
+  /* 70% — Neutral surface */
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+
+  /* 25% — Secondary structure */
+  --secondary: #e2e8f0;
+  --secondary-foreground: #334155;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: var(--brand-500);
+
+  /* Semantic */
+  --primary: var(--brand-500);
+  --primary-foreground: #ffffff;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --success: #10b981;
+
+  --radius: 0.5rem;
+}
+
+/* Tailwind v4: @theme 에 토큰 매핑 → bg-brand-500, text-primary, border-border 등 유틸이 자동 생성됨 */
+@theme {
+  --color-brand-50:  var(--brand-50);
+  --color-brand-100: var(--brand-100);
+  --color-brand-200: var(--brand-200);
+  --color-brand-300: var(--brand-300);
+  --color-brand-400: var(--brand-400);
+  --color-brand-500: var(--brand-500);
+  --color-brand-600: var(--brand-600);
+  --color-brand-700: var(--brand-700);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  --font-sans: system-ui, "Segoe UI", "Pretendard", Roboto, sans-serif;
+}
+
+html, body, #app {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--background);
+  color: var(--foreground);
+  @apply font-sans antialiased;
+}

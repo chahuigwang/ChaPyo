@@ -1,12 +1,13 @@
 import { defineStore } from 'pinia'
-import { PERSONAS, findPersona } from '@/domain/persona'
-import { buildRecommendation } from '@/domain/recommendation'
+import { PERSONAS, findPersona, buildCustomPersona } from '@/types/persona'
+import { buildRecommendation } from '@/types/recommendation'
 
 let _seq = 0
 const nextId = () => `m_${Date.now()}_${++_seq}`
 
 export const useChatStore = defineStore('chat', {
   state: () => ({
+    personas: PERSONAS.map((p) => ({ ...p })),
     personaId: PERSONAS[0].id,
     threads: Object.fromEntries(
       PERSONAS.map((p) => [p.id, [{ id: nextId(), role: 'ai', content: p.greeting, ts: Date.now() }]])
@@ -14,13 +15,37 @@ export const useChatStore = defineStore('chat', {
     isTyping: false,
   }),
   getters: {
-    persona: (s) => findPersona(s.personaId),
+    persona: (s) => findPersona(s.personas, s.personaId),
     messages: (s) => s.threads[s.personaId] ?? [],
   },
   actions: {
     selectPersona(id) {
-      if (!findPersona(id)) return
+      if (!this.personas.find((p) => p.id === id)) return
       this.personaId = id
+    },
+    addPersona({ gender, ageGroup, mbti }) {
+      if (!gender || !ageGroup || !mbti) return null
+      const p = buildCustomPersona({ gender, ageGroup, mbti })
+      this.personas.push(p)
+      this.threads[p.id] = [{ id: nextId(), role: 'ai', content: p.greeting, ts: Date.now() }]
+      this.personaId = p.id
+      return p
+    },
+    updatePersona(id, { gender, ageGroup, mbti }) {
+      const p = this.personas.find((x) => x.id === id)
+      if (!p || p.builtIn) return
+      p.gender = gender
+      p.ageGroup = ageGroup
+      p.mbti = mbti
+      p.name = `${gender} · ${ageGroup} · ${mbti}`
+      p.tagline = `${gender}/${ageGroup}/${mbti} 맞춤 추천`
+    },
+    deletePersona(id) {
+      const p = this.personas.find((x) => x.id === id)
+      if (!p || p.builtIn) return
+      this.personas = this.personas.filter((x) => x.id !== id)
+      delete this.threads[id]
+      if (this.personaId === id) this.personaId = this.personas[0]?.id
     },
     async sendMessage(text) {
       const content = text?.trim()

@@ -1,0 +1,25 @@
+<script setup>
+import { storeToRefs } from 'pinia'
+import { useTripStore } from '@/stores/tripStore'
+import { ChevronLeft } from 'lucide-vue-next'
+import { Button } from '@/components/common'
+
+const trip = useTripStore()
+const { title } = storeToRefs(trip)
+</script>
+
+<template>
+  <div class="h-16 shrink-0 bg-white dark:bg-slate-900 shadow-sm flex items-center px-8 transition-colors">
+    <div class="flex items-center gap-3 min-w-0">
+      <Button variant="ghost" size="icon" @click="trip.exitTrip" title="목록으로">
+        <ChevronLeft :size="16" />
+      </Button>
+      <input
+        :value="title"
+        @input="trip.setTitle($event.target.value)"
+        class="text-[15px] font-semibold text-slate-900 dark:text-slate-100 bg-transparent outline-none
+               border-b border-transparent focus:border-slate-300 dark:focus:border-slate-600 min-w-0 px-1"
+      />
+    </div>
+  </div>
+</template>

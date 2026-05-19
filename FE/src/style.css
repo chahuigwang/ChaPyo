@@ -1,4 +1,7 @@
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css");
 @import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
 
 /* ============================================================
  * Design Tokens (shadcn-vue 호환)
@@ -39,6 +42,25 @@
   --success: #10b981;
 
   --radius: 0.5rem;
+}
+
+/* Dark mode token overrides — html.dark 가 붙으면 위 토큰들이 자동으로 어두운 톤으로 전환 */
+.dark {
+  --background: #020617;        /* slate-950 */
+  --foreground: #f1f5f9;        /* slate-100 */
+  --card: #0f172a;              /* slate-900 */
+  --card-foreground: #f1f5f9;
+  --muted: #1e293b;             /* slate-800 */
+  --muted-foreground: #94a3b8;  /* slate-400 */
+
+  --secondary: #1e293b;
+  --secondary-foreground: #cbd5e1;
+  --border: #1e293b;
+  --input: #1e293b;
+  --ring: var(--brand-400);
+
+  --primary: var(--brand-500);
+  --primary-foreground: #ffffff;
 }
 
 /* Tailwind v4: @theme 에 토큰 매핑 → bg-brand-500, text-primary, border-border 등 유틸이 자동 생성됨 */

@@ -1,7 +1,7 @@
 import { storeToRefs } from 'pinia'
 import { useChatStore } from '@/stores/chatStore'
 import { useTripStore } from '@/stores/tripStore'
-import { formatDayLabel } from '@/domain/itinerary'
+import { formatDayLabel } from '@/types/itinerary'
 
 // 사이드바 ↔ 워크스페이스 양방향 동기화 진입점.
 // 컴포넌트는 이 composable만 알면 두 store를 직접 import 하지 않아도 된다.

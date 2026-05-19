@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { createPlaceItem, enumerateDays } from '@/domain/itinerary'
+import { createPlaceItem, enumerateDays } from '@/types/itinerary'
 
 function todayISO(offset = 0) {
   const d = new Date()

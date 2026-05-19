@@ -13,25 +13,25 @@ const emit = defineEmits(['close'])
     <Transition name="fade">
       <div
         v-if="open"
-        class="fixed inset-0 z-50 bg-foreground/40 flex items-center justify-center p-4"
+        class="fixed inset-0 z-50 bg-slate-950/40 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
         @click.self="emit('close')"
       >
-        <div class="w-full max-w-md bg-card text-card-foreground rounded-md border border-border overflow-hidden">
-          <div class="flex items-center justify-between px-5 py-3 border-b border-border">
-            <h3 class="text-sm font-semibold text-foreground">{{ title }}</h3>
+        <div class="w-full max-w-md bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-xl shadow-xl overflow-hidden transition-colors">
+          <div class="flex items-center justify-between px-6 py-4">
+            <h3 class="text-base font-semibold text-slate-900 dark:text-slate-100">{{ title }}</h3>
             <button
-              class="p-1 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              class="p-1 rounded-md text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
               @click="emit('close')"
             >
-              <X :size="15" />
+              <X :size="16" />
             </button>
           </div>
-          <div class="p-5">
+          <div class="px-6 pb-6">
             <slot />
           </div>
           <div
             v-if="$slots.footer"
-            class="px-5 py-3 border-t border-border flex justify-end gap-2"
+            class="px-6 py-4 bg-slate-50 dark:bg-slate-950/40 flex justify-end gap-2"
           >
             <slot name="footer" />
           </div>

@@ -11,7 +11,7 @@ export function findCategory(id) {
 }
 
 // Itinerary 아이템 팩토리. role: 카드 단위 데이터
-export function createPlaceItem({ name, category = 'place', time = '', memo = '', cost = 0 }) {
+export function createPlaceItem({ name, category = 'place', time = '', memo = '', cost = 0, lat = null, lng = null }) {
   return {
     id: `i_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
     name,
@@ -19,6 +19,8 @@ export function createPlaceItem({ name, category = 'place', time = '', memo = ''
     time,
     memo,
     cost: Number(cost) || 0,
+    lat,
+    lng,
   }
 }
 

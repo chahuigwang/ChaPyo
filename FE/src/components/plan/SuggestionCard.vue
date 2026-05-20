@@ -1,8 +1,9 @@
 <script setup>
-import { Check, Plus } from 'lucide-vue-next'
+import { Check, Plus, GripVertical } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { findCategory } from '@/types/itinerary'
 import { Button } from '@/components/common'
+import { useStorageStore } from '@/stores/storageStore'
 
 const props = defineProps({
   suggestion: { type: Object, required: true },
@@ -11,15 +12,33 @@ const props = defineProps({
 const emit = defineEmits(['add'])
 
 const category = computed(() => findCategory(props.suggestion.category))
+const storage = useStorageStore()
+
+function onDragStart(e) {
+  storage.setDragging({ source: 'chat', item: { ...props.suggestion } })
+  try {
+    e.dataTransfer.effectAllowed = 'copy'
+    e.dataTransfer.setData('text/plain', props.suggestion.name)
+  } catch {}
+}
+function onDragEnd() {
+  storage.clearDragging()
+}
 </script>
 
 <template>
   <div
+    :draggable="!added"
+    @dragstart="onDragStart"
+    @dragend="onDragEnd"
     class="rounded-lg px-3 py-2.5 flex items-center gap-2.5 text-[11px] transition-all shadow-sm"
-    :class="added
-      ? 'bg-slate-50 dark:bg-slate-800/60'
-      : 'bg-white dark:bg-slate-800 hover:shadow-md'"
+    :class="[
+      added
+        ? 'bg-slate-50 dark:bg-slate-800/60'
+        : 'bg-white dark:bg-slate-800 hover:shadow-md cursor-grab active:cursor-grabbing',
+    ]"
   >
+    <GripVertical v-if="!added" :size="13" class="text-slate-300 dark:text-slate-600 shrink-0" />
     <span class="text-base shrink-0">{{ category.emoji }}</span>
     <div class="flex-1 min-w-0">
       <div class="flex items-center gap-1.5">

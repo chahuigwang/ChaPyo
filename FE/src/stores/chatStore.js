@@ -40,6 +40,14 @@ export const useChatStore = defineStore('chat', {
       p.name = `${gender} · ${ageGroup} · ${mbti}`
       p.tagline = `${gender}/${ageGroup}/${mbti} 맞춤 추천`
     },
+    reorderPersonas(fromId, toId) {
+      if (fromId === toId) return
+      const from = this.personas.findIndex((p) => p.id === fromId)
+      const to = this.personas.findIndex((p) => p.id === toId)
+      if (from < 0 || to < 0) return
+      const [moved] = this.personas.splice(from, 1)
+      this.personas.splice(to, 0, moved)
+    },
     deletePersona(id) {
       const p = this.personas.find((x) => x.id === id)
       if (!p || p.builtIn) return

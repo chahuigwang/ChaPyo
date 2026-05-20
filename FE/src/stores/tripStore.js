@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
-import { createPlaceItem, enumerateDays } from '@/types/itinerary'
+import { TripPlan, TravelItem, enumerateDays } from '@/models'
+import { tripService } from '@/api/tripService'
 
 function todayISO(offset = 0) {
   const d = new Date()
@@ -7,51 +8,45 @@ function todayISO(offset = 0) {
   return d.toISOString().slice(0, 10)
 }
 
-let _tripSeq = 0
-const nextTripId = () => `t_${Date.now()}_${++_tripSeq}`
-
-function newTrip({ title, startDate, endDate, itemsByDay = {} } = {}) {
-  const s = startDate ?? todayISO(0)
-  const e = endDate ?? todayISO(2)
-  const first = enumerateDays(s, e)[0] ?? ''
-  return {
-    id: nextTripId(),
-    title: title ?? '새 여행',
-    startDate: s,
-    endDate: e,
-    itemsByDay,
-    selectedDate: first,
-  }
-}
-
-// 로그인 시 보여줄 Mock 여행 목록 (Phase 5)
+// Mock 시드. 백엔드 연동 전 임시 데이터.
 function seedTrips() {
-  const t1 = newTrip({
+  const DAY = 86_400_000
+  const now = Date.now()
+  const t1 = new TripPlan({
     title: '서울 맛집 투어',
     startDate: todayISO(7),
     endDate: todayISO(9),
+    updatedAt: now - DAY * 1,
+    version: 1,
   })
   t1.itemsByDay[t1.startDate] = [
-    createPlaceItem({ name: '광장시장', category: 'food', time: '12:30', memo: '빈대떡, 마약김밥' }),
+    new TravelItem({ name: '경복궁', category: 'place', time: '09:30', memo: '수문장 교대식 관람', cost: 3000, lat: 37.579617, lng: 126.977041 }),
+    new TravelItem({ name: '북촌 한옥마을', category: 'place', time: '11:30', memo: '전통 한옥 골목 산책', cost: 0, lat: 37.582604, lng: 126.983998 }),
+    new TravelItem({ name: '광장시장', category: 'food', time: '13:00', memo: '빈대떡, 마약김밥', cost: 25000, lat: 37.570028, lng: 126.999595 }),
+    new TravelItem({ name: 'N서울타워', category: 'place', time: '17:30', memo: '서울 야경 명소', cost: 16000, lat: 37.551169, lng: 126.988227 }),
   ]
-  const t2 = newTrip({
+  const t2 = new TripPlan({
     title: '부산 주말 여행',
     startDate: todayISO(20),
     endDate: todayISO(21),
+    updatedAt: now - DAY * 5,
   })
-  const t3 = newTrip({
+  const t3 = new TripPlan({
     title: '제주 가족 일정',
     startDate: todayISO(45),
     endDate: todayISO(48),
+    updatedAt: now - DAY * 12,
   })
   return [t1, t2, t3]
 }
 
 export const useTripStore = defineStore('trip', {
   state: () => ({
-    trips: [],         // Trip[]
+    trips: [],          // TripPlan[]
     currentTripId: null,
     seeded: false,
+    syncing: false,     // 협업 폴링 진행 여부
+    lastError: null,
   }),
   getters: {
     currentTrip(state) {
@@ -72,6 +67,7 @@ export const useTripStore = defineStore('trip', {
     },
   },
   actions: {
+    // --- 라이프사이클 ---
     ensureSeed() {
       if (this.seeded) return
       this.trips = seedTrips()
@@ -82,8 +78,39 @@ export const useTripStore = defineStore('trip', {
       this.currentTripId = null
       this.seeded = false
     },
-    createTrip(payload) {
-      const t = newTrip(payload)
+
+    // --- 원격 동기 (백엔드 붙은 뒤 활성화) ---
+    async fetchTrips() {
+      try {
+        this.trips = await tripService.list()
+        this.seeded = true
+      } catch (err) {
+        this.lastError = err?.message ?? 'fetchTrips failed'
+      }
+    },
+    async syncCurrent() {
+      const t = this.currentTrip
+      if (!t || this.syncing) return
+      this.syncing = true
+      try {
+        const { plan } = await tripService.pollSync(t.id, t.lastSyncTime)
+        if (plan && plan.isStaleAgainst(t.version) === false) {
+          // 서버가 더 최신이면 교체
+          const idx = this.trips.findIndex((x) => x.id === t.id)
+          if (idx >= 0) this.trips[idx] = plan
+        }
+      } catch (err) {
+        this.lastError = err?.message ?? 'sync failed'
+      } finally {
+        this.syncing = false
+      }
+    },
+
+    // --- Trip 관리 ---
+    createTrip(payload = {}) {
+      const start = payload.startDate ?? todayISO(0)
+      const end = payload.endDate ?? todayISO(2)
+      const t = new TripPlan({ ...payload, startDate: start, endDate: end })
       this.trips.unshift(t)
       this.currentTripId = t.id
       return t
@@ -97,43 +124,87 @@ export const useTripStore = defineStore('trip', {
     },
     exitTrip() { this.currentTripId = null },
 
-    // --- 현재 trip 대상 액션 ---
-    setTitle(t) { if (this.currentTrip) this.currentTrip.title = t },
+    // --- 현재 trip 액션 ---
+    setTitle(t) {
+      const trip = this.currentTrip
+      if (!trip) return
+      trip.title = t
+      trip.touch()
+    },
     setRange(start, end) {
-      const t = this.currentTrip
-      if (!t) return
-      t.startDate = start
-      t.endDate = end
-      if (!this.days.includes(t.selectedDate)) {
-        t.selectedDate = this.days[0] ?? ''
+      const trip = this.currentTrip
+      if (!trip) return
+      trip.startDate = start
+      trip.endDate = end
+      if (!this.days.includes(trip.selectedDate)) {
+        trip.selectedDate = this.days[0] ?? ''
       }
+      trip.touch()
     },
     selectDate(date) {
-      const t = this.currentTrip
-      if (t && this.days.includes(date)) t.selectedDate = date
+      const trip = this.currentTrip
+      if (trip && this.days.includes(date)) trip.selectedDate = date
     },
     addItem(payload) {
-      const t = this.currentTrip
-      if (!t) return null
-      const item = createPlaceItem(payload)
-      if (!t.itemsByDay[t.selectedDate]) t.itemsByDay[t.selectedDate] = []
-      t.itemsByDay[t.selectedDate].push(item)
+      const trip = this.currentTrip
+      if (!trip) return null
+      const item = new TravelItem(payload)
+      if (!trip.itemsByDay[trip.selectedDate]) trip.itemsByDay[trip.selectedDate] = []
+      trip.itemsByDay[trip.selectedDate].push(item)
+      trip.touch()
+      return item
+    },
+    addItemToDate(date, payload) {
+      const trip = this.currentTrip
+      if (!trip || !date) return null
+      const days = enumerateDays(trip.startDate, trip.endDate)
+      if (!days.includes(date)) return null
+      const item = new TravelItem(payload)
+      if (!trip.itemsByDay[date]) trip.itemsByDay[date] = []
+      trip.itemsByDay[date].push(item)
+      trip.touch()
       return item
     },
     updateItem(id, patch) {
-      const t = this.currentTrip
-      if (!t) return
-      const list = t.itemsByDay[t.selectedDate]
+      const trip = this.currentTrip
+      if (!trip) return
+      const list = trip.itemsByDay[trip.selectedDate]
       if (!list) return
       const idx = list.findIndex((i) => i.id === id)
-      if (idx >= 0) list[idx] = { ...list[idx], ...patch }
+      if (idx >= 0) {
+        list[idx] = new TravelItem({ ...list[idx], ...patch })
+        trip.touch()
+      }
     },
     removeItem(id) {
-      const t = this.currentTrip
-      if (!t) return
-      const list = t.itemsByDay[t.selectedDate]
+      const trip = this.currentTrip
+      if (!trip) return
+      const list = trip.itemsByDay[trip.selectedDate]
       if (!list) return
-      t.itemsByDay[t.selectedDate] = list.filter((i) => i.id !== id)
+      trip.itemsByDay[trip.selectedDate] = list.filter((i) => i.id !== id)
+      trip.touch()
+    },
+    removeItemFromDate(date, id) {
+      const trip = this.currentTrip
+      if (!trip || !date) return null
+      const list = trip.itemsByDay[date]
+      if (!list) return null
+      const removed = list.find((i) => i.id === id) ?? null
+      trip.itemsByDay[date] = list.filter((i) => i.id !== id)
+      trip.touch()
+      return removed
+    },
+    reorderInDate(date, fromIdx, toIdx) {
+      const trip = this.currentTrip
+      if (!trip || !date) return
+      const list = trip.itemsByDay[date]
+      if (!list) return
+      if (fromIdx < 0 || fromIdx >= list.length) return
+      if (toIdx < 0 || toIdx > list.length) return
+      const [moved] = list.splice(fromIdx, 1)
+      const insertAt = toIdx > fromIdx ? toIdx - 1 : toIdx
+      list.splice(insertAt, 0, moved)
+      trip.touch()
     },
   },
 })

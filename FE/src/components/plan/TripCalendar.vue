@@ -3,23 +3,16 @@ import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import { useTripStore } from '@/stores/tripStore'
+import { useStorageStore } from '@/stores/storageStore'
+import { useChatStore } from '@/stores/chatStore'
 import { Card, CardHeader, CardTitle, CardContent, Button } from '@/components/common'
+import { formatDayLabel } from '@/types/itinerary'
 
 const trip = useTripStore()
+const storage = useStorageStore()
+const chat = useChatStore()
+const dropTarget = ref(null) // iso string when dragging over an in-range cell
 const { startDate, endDate, selectedDate, currentTrip } = storeToRefs(trip)
-
-function onStartChange(e) {
-  const v = e.target.value
-  if (!v) return
-  const end = v > endDate.value ? v : endDate.value
-  trip.setRange(v, end)
-}
-function onEndChange(e) {
-  const v = e.target.value
-  if (!v) return
-  if (v < startDate.value) return
-  trip.setRange(startDate.value, v)
-}
 
 const cursor = ref(null)
 
@@ -87,27 +80,40 @@ const weekdays = ['일', '월', '화', '수', '목', '금', '토']
 function pick(cell) {
   if (cell?.inRange) trip.selectDate(cell.iso)
 }
+
+function onCellDragOver(e, cell) {
+  if (!cell?.inRange || !storage.dragging) return
+  e.preventDefault()
+  e.dataTransfer.dropEffect = 'copy'
+  dropTarget.value = cell.iso
+}
+function onCellDragLeave(cell) {
+  if (dropTarget.value === cell?.iso) dropTarget.value = null
+}
+function onCellDrop(e, cell) {
+  if (!cell?.inRange) return
+  e.preventDefault()
+  const payload = storage.dragging
+  dropTarget.value = null
+  if (!payload?.item) return
+  if (payload.source === 'timeline' && payload.fromDate === cell.iso) {
+    storage.clearDragging()
+    return
+  }
+  const days = trip.days
+  const idx = days.indexOf(cell.iso)
+  const label = idx >= 0 ? formatDayLabel(cell.iso, idx) : cell.iso
+  trip.addItemToDate(cell.iso, payload.item)
+  if (payload.source === 'storage') storage.removeItem(payload.item.id)
+  else if (payload.source === 'timeline') trip.removeItemFromDate(payload.fromDate, payload.item.id)
+  chat.pushSystemNotice(`"${payload.item.name}"을(를) ${label}에 추가했어요.`)
+  storage.clearDragging()
+}
 </script>
 
 <template>
   <Card>
     <CardHeader>
-      <div class="mb-3 flex items-center gap-2 overflow-x-auto pb-1">
-        <input
-          type="date"
-          :value="startDate"
-          @change="onStartChange"
-          class="h-8 px-2 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-xs ring-1 ring-transparent focus:ring-primary outline-none shrink-0"
-        />
-        <span class="text-slate-400 dark:text-slate-500 shrink-0">→</span>
-        <input
-          type="date"
-          :value="endDate"
-          :min="startDate"
-          @change="onEndChange"
-          class="h-8 px-2 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-xs ring-1 ring-transparent focus:ring-primary outline-none shrink-0"
-        />
-      </div>
       <div class="flex items-center justify-between">
         <CardTitle>{{ monthLabel }}</CardTitle>
         <div class="flex gap-1">
@@ -132,14 +138,19 @@ function pick(cell) {
           <button
             v-else
             @click="pick(cell)"
+            @dragover="onCellDragOver($event, cell)"
+            @dragleave="onCellDragLeave(cell)"
+            @drop="onCellDrop($event, cell)"
             :disabled="!cell.inRange"
             :class="[
-              'h-8 rounded-md text-[12px] flex items-center justify-center transition-colors',
-              cell.selected
-                ? 'bg-primary text-primary-foreground font-semibold'
-                : cell.inRange
-                  ? 'text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer'
-                  : 'text-slate-300 dark:text-slate-600 cursor-not-allowed',
+              'h-8 rounded-md text-[12px] flex items-center justify-center transition-all',
+              dropTarget === cell.iso
+                ? 'ring-2 ring-primary ring-offset-1 ring-offset-white dark:ring-offset-slate-900 bg-primary/10 text-primary font-semibold scale-105'
+                : cell.selected
+                  ? 'bg-primary text-primary-foreground font-semibold'
+                  : cell.inRange
+                    ? 'text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer'
+                    : 'text-slate-300 dark:text-slate-600 cursor-not-allowed',
             ]"
           >
             {{ cell.day }}

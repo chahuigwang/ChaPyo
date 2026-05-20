@@ -23,9 +23,24 @@ watch(isAuthed, (v) => {
 <template>
   <div class="h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors">
     <LoginPage v-if="!isAuthed" />
-    <template v-else>
-      <PlanDetailPage v-if="currentTripId" />
-      <DashboardPage v-else />
-    </template>
+    <Transition v-else name="page-fade" mode="out-in">
+      <PlanDetailPage v-if="currentTripId" key="plan" />
+      <DashboardPage v-else key="dashboard" />
+    </Transition>
   </div>
 </template>
+
+<style>
+.page-fade-enter-active,
+.page-fade-leave-active {
+  transition: opacity 280ms ease, transform 280ms ease;
+}
+.page-fade-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+.page-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+</style>

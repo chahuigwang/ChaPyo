@@ -6,7 +6,21 @@
       "PowerShell(New-Item *)",
       "PowerShell(Remove-Item *)",
       "Bash(npx vite *)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(mkdir -p types pages utils components/common components/plan components/login components/home components/dashboard)",
+      "Bash(mv components/ui/Avatar.vue components/ui/Badge.vue components/ui/Button.vue components/ui/Card.vue components/ui/CardContent.vue components/ui/CardHeader.vue components/ui/CardTitle.vue components/ui/Input.vue components/ui/Separator.vue components/ui/index.js components/common/)",
+      "Bash(rmdir components/ui)",
+      "Bash(mv components/layout/AppHeader.vue components/common/)",
+      "Bash(rmdir components/layout)",
+      "Bash(git add *)",
+      "Bash(git reset *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(git pull *)",
+      "Bash(git stash *)",
+      "Bash(rm src/components/plan/AuthPanel.vue src/components/plan/DayItineraryPanel.vue src/components/plan/DayTabs.vue src/components/plan/PlaceCard.vue src/components/login/LoginModal.vue src/components/home/HeroSection.vue src/pages/Index.vue)",
+      "Bash(rmdir src/components/home)",
+      "Bash(node -e \"const v=require\\('vue/package.json'\\);console.log\\(v.version\\)\")"
     ]
   }
 }

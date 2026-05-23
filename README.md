@@ -127,10 +127,12 @@ AI가 각자의 취향(미식가 페르소나)을 반영해 추천 방문지를 
 
 ## ERD
 
+![ERD](./images/erd.png)
+
 ### users
 
 | 타입 | 컬럼명 | 제약 |
-|------|--------|------|
+| --- | --- | --- |
 | BIGINT | user_id | PK, NOT NULL, AUTO_INCREMENT |
 | VARCHAR(50) | nickname | NOT NULL |
 | VARCHAR(100) | email | NOT NULL, UNIQUE |
@@ -138,82 +140,93 @@ AI가 각자의 취향(미식가 페르소나)을 반영해 추천 방문지를 
 | ENUM | role | NOT NULL, DEFAULT 'USER' ('USER', 'ADMIN') |
 | DATETIME | created_at | NOT NULL, DEFAULT CURRENT_TIMESTAMP |
 | DATETIME | updated_at | NOT NULL, DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP |
+| DATETIME | deleted_at | DEFAULT NULL |
 
 ### trip_plans
 
 | 타입 | 컬럼명 | 제약 |
-|------|--------|------|
-| INT | plan_id | PK, AUTO_INCREMENT |
+| --- | --- | --- |
+| BIGINT | plan_id | PK, NOT NULL, AUTO_INCREMENT |
 | VARCHAR(100) | title | NOT NULL |
-| DATE | start_date | |
-| DATE | end_date | |
-| DATETIME | created_at | DEFAULT NOW() |
-| DATETIME | updated_at | DEFAULT NOW() |
+| DATE | start_date |  |
+| DATE | end_date |  |
+| DATETIME | created_at | NOT NULL, DEFAULT CURRENT_TIMESTAMP |
+| DATETIME | updated_at | NOT NULL, DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP |
 
 ### trip_plan_members
 
 | 타입 | 컬럼명 | 제약 |
-|------|--------|------|
-| INT | plan_id | PK, FK → trip_plans.plan_id |
-| VARCHAR(20) | user_id | PK, FK → users.user_id |
+| --- | --- | --- |
+| BIGINT | plan_id | PK, NOT NULL, FK → trip_plans.plan_id |
+| BIGINT | user_id | PK, NOT NULL, FK → users.user_id |
 
 ### trip_plan_items
 
 | 타입 | 컬럼명 | 제약 |
-|------|--------|------|
-| INT | item_id | PK, AUTO_INCREMENT |
-| INT | plan_id | NOT NULL, FK → trip_plans.plan_id |
-| VARCHAR(20) | added_by | FK → users.user_id |
-| INT | attraction_id | NOT NULL, FK → attractions.attraction_id |
-| INT | cost | |
-| INT | day_no | |
-| INT | item_order | |
-| TEXT | memo | |
+| --- | --- | --- |
+| BIGINT | item_id | PK, NOT NULL, AUTO_INCREMENT |
+| BIGINT | plan_id | NOT NULL, FK → trip_plans.plan_id |
+| BIGINT | place_id | NOT NULL, FK → places.place_id |
+| BIGINT | user_id | NOT NULL, FK → users.user_id |
+| DATE | visit_date | NOT NULL |
+| INT | item_order | NOT NULL |
+| TIME | visit_time |  |
+| INT | cost |  |
+| TEXT | memo |  |
+| DATETIME | created_at | NOT NULL, DEFAULT CURRENT_TIMESTAMP |
+| DATETIME | updated_at | NOT NULL, DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP |
 
-### attractions
-
-| 타입 | 컬럼명 | 제약 |
-|------|--------|------|
-| INT | attraction_id | PK, AUTO_INCREMENT |
-| INT | content_id | UNIQUE |
-| VARCHAR(500) | title | |
-| INT | content_type_id | FK → contenttypes.content_type_id |
-| INT | sido_code | FK → sidos.sido_code |
-| INT | gugun_code | FK → guguns.gugun_code |
-| VARCHAR(100) | first_image1 | |
-| VARCHAR(100) | first_image2 | |
-| INT | map_level | |
-| DECIMAL(20,17) | latitude | |
-| DECIMAL(20,17) | longitude | |
-| VARCHAR(20) | tel | |
-| VARCHAR(100) | addr1 | |
-| VARCHAR(100) | addr2 | |
-| VARCHAR(1000) | homepage | |
-| VARCHAR(10000) | overview | |
-
-### sidos
+### areas
 
 | 타입 | 컬럼명 | 제약 |
-|------|--------|------|
-| INT | sido_id | PK, AUTO_INCREMENT |
-| INT | sido_code | NOT NULL, UNIQUE |
-| VARCHAR(20) | sido_name | |
+| --- | --- | --- |
+| VARCHAR(10) | area_code | PK, NOT NULL |
+| VARCHAR(20) | name | NOT NULL |
 
-### guguns
-
-| 타입 | 컬럼명 | 제약 |
-|------|--------|------|
-| INT | gugun_id | PK, AUTO_INCREMENT |
-| INT | sido_code | NOT NULL, FK → sidos.sido_code |
-| INT | gugun_code | NOT NULL |
-| VARCHAR(20) | gugun_name | |
-
-### contenttypes
+### districts
 
 | 타입 | 컬럼명 | 제약 |
-|------|--------|------|
-| INT | content_type_id | PK |
-| VARCHAR(45) | content_type_name | |
+| --- | --- | --- |
+| VARCHAR(10) | area_code | PK, NOT NULL, FK → areas.area_code |
+| VARCHAR(10) | district_code | PK, NOT NULL |
+| VARCHAR(20) | name | NOT NULL |
+
+### categories
+
+| 타입 | 컬럼명 | 제약 |
+| --- | --- | --- |
+| VARCHAR(10) | code | PK, NOT NULL |
+| VARCHAR(20) | name | NOT NULL |
+| VARCHAR(10) | parent_code | FK → categories.code, DEFAULT NULL |
+
+### places
+
+| 타입 | 컬럼명 | 제약 |
+| --- | --- | --- |
+| BIGINT | place_id | PK, NOT NULL, AUTO_INCREMENT |
+| VARCHAR(20) | content_id | NOT NULL, UNIQUE |
+| VARCHAR(100) | title | NOT NULL |
+| VARCHAR(255) | addr1 |  |
+| VARCHAR(100) | addr2 |  |
+| DECIMAL(13, 10) | latitude |  |
+| DECIMAL(13, 10) | longitude |  |
+| VARCHAR(255) | first_image1 |  |
+| VARCHAR(255) | first_image2 |  |
+| VARCHAR(10) | area_code | NOT NULL, FK → areas.area_code, FK → districts.area_code |
+| VARCHAR(10) | district_code | NOT NULL, FK → districts.district_code (area_code와 복합) |
+| VARCHAR(10) | category_code1 | NOT NULL, FK → categories.code |
+| VARCHAR(10) | category_code2 | NOT NULL, FK → categories.code |
+| VARCHAR(10) | zipcode |  |
+| VARCHAR(20) | tel |  |
+| TEXT | overview |  |
+
+### place_likes
+
+| 타입 | 컬럼명 | 제약 |
+| --- | --- | --- |
+| BIGINT | place_id | PK, NOT NULL, FK → places.place_id |
+| BIGINT | user_id | PK, NOT NULL, FK → users.user_id |
+| DATETIME | created_at | NOT NULL, DEFAULT CURRENT_TIMESTAMP |
 
 ---
 

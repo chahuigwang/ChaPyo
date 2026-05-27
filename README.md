@@ -127,6 +127,7 @@ AI가 각자의 취향(미식가 페르소나)을 반영해 추천 방문지를 
 
 ## ERD
 
+[ERD](https://dbdiagram.io/d/chapyo-6a1167b4dfb20dafcdd6034e)
 ![ERD](./images/erd.png)
 
 ### users

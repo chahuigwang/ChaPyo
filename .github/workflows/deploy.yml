@@ -5,7 +5,7 @@ on:
     branches:
       - master
     paths:
-      - 'BE/**'         # BE 폴더 변경시에만 실행
+      - 'BE/**'
 
 jobs:
   # ── 1단계: 테스트 ──────────────────────────
@@ -100,6 +100,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: docker-compose.yml 전송
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.OCI_HOST }}
+          username: ${{ secrets.OCI_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "docker-compose.yml"
+          target: "~/chapyo/"
+
       - name: OCI 서버 배포
         uses: appleboy/ssh-action@v1
         with:
@@ -111,12 +120,3 @@ jobs:
             docker compose pull app
             docker compose up -d
             echo "Deploy complete"
-
-      - name: docker-compose.yml 전송
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.OCI_HOST }}
-          username: ${{ secrets.OCI_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "docker-compose.yml"
-          target: "~/chapyo/"

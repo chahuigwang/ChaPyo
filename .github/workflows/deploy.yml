@@ -6,6 +6,7 @@ on:
       - master
     paths:
       - 'BE/**'
+      - '.github/workflows/**'
 
 jobs:
   # ── 1단계: 테스트 ──────────────────────────

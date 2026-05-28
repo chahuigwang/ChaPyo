@@ -1,4 +1,4 @@
-package com.chapyo.common.place.entity;
+package com.chapyo.place.entity;
 
 import java.math.BigDecimal;
 

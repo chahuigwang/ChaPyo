@@ -4,7 +4,7 @@ import { useTripStore } from '@/stores/tripStore'
 import { useCollabStore } from '@/stores/collabStore'
 import { ChevronLeft, UserPlus, History } from 'lucide-vue-next'
 import { Button } from '@/components/common'
-import InviteModal from './InviteModal.vue'
+import InviteModal from '@/components/modal/InviteModal.vue'
 
 const trip = useTripStore()
 const collab = useCollabStore()

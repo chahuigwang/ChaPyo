@@ -9,7 +9,7 @@ mybatis:
   type-aliases-package: com.chapyo
   configuration:
     map-underscore-to-camel-case: true
-		
+
 # datasource 설정은 application-local.yml에서 관리
 #  datasource:
 #    url: jdbc:mysql://localhost:3306/{DB_NAME}?serverTimezone=Asia/Seoul

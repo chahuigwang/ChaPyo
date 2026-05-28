@@ -18,4 +18,8 @@ public class PlaceSearchRequest {
     public int getOffset() {
         return page * size;
     }
+    
+    public int getLimitSize() {
+        return size + 1;
+    }
 }

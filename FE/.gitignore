@@ -25,5 +25,9 @@ dist-ssr
 
 # PERSONAL
 CLAUDE.md
+.claude/*
+.claude
+claude
+vscode
 
 .env

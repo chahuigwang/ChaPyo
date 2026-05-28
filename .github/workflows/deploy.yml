@@ -6,6 +6,7 @@ on:
       - master
     paths:
       - 'BE/**'
+      - '.github/workflows/**'
 
 jobs:
   # ── 1단계: 테스트 ──────────────────────────
@@ -120,3 +121,18 @@ jobs:
             docker compose pull app
             docker compose up -d
             echo "Deploy complete"
+
+  # ── Discord 알림 ──────────────────────────
+      - name: Discord 성공 알림
+        if: success()
+        run: |
+          curl -X POST ${{ secrets.DISCORD_WEBHOOK_URL }} \
+            -H "Content-Type: application/json" \
+            -d "{\"content\": \"✅ 배포 성공\\ncommit: \`${{ github.sha }}\`\\n${{ github.event.head_commit.message }}\"}"
+
+      - name: Discord 실패 알림
+        if: failure()
+        run: |
+          curl -X POST ${{ secrets.DISCORD_WEBHOOK_URL }} \
+            -H "Content-Type: application/json" \
+            -d "{\"content\": \"❌ 배포 실패\\ncommit: \`${{ github.sha }}\`\\n${{ github.event.head_commit.message }}\"}"

@@ -14,10 +14,10 @@ import {
 } from 'lucide-vue-next'
 import { useUiStore } from '@/stores/uiStore'
 import { useTheme } from '@/composables/useTheme'
-import ChatFlyout from './ChatFlyout.vue'
-import ProfileFlyout from './ProfileFlyout.vue'
-import StorageFlyout from './StorageFlyout.vue'
-import SearchFlyout from './SearchFlyout.vue'
+import ChatFlyout from '@/components/sidebar/ChatFlyout.vue'
+import ProfileFlyout from '@/components/sidebar/ProfileFlyout.vue'
+import StorageFlyout from '@/components/sidebar/StorageFlyout.vue'
+import SearchFlyout from '@/components/sidebar/SearchFlyout.vue'
 
 const ui = useUiStore()
 const { activePanel, sidebarOpen } = storeToRefs(ui)

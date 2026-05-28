@@ -28,4 +28,7 @@ public class PlaceResponse {
 
     @Schema(description = "소분류 코드", example = "A0101")
     private String categoryCode2;
+    
+    @Schema(description = "좋아요 수", example = "5")
+    private Long likeCount;
 }

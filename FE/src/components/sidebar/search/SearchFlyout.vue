@@ -141,9 +141,10 @@ function clearAll() {
         class="w-full h-8 px-2 text-[11px] rounded-md bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-primary/30"
       >
         <option value="">카테고리 전체</option>
-        <optgroup v-for="group in PLACE_TYPE_GROUPS" :key="group.id" :label="group.label">
-          <option v-for="t in group.children" :key="t.id" :value="t.id">{{ t.label }}</option>
-        </optgroup>
+        <template v-for="group in PLACE_TYPE_GROUPS" :key="group.id">
+          <option :value="group.id" class="font-semibold">▸ {{ group.label }}</option>
+          <option v-for="t in group.children" :key="t.id" :value="t.id">&nbsp;&nbsp;ㄴ {{ t.label }}</option>
+        </template>
       </select>
     </section>
 

@@ -3,9 +3,14 @@ package com.chapyo.common.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import io.swagger.v3.oas.annotations.OpenAPIDefinition;
+import io.swagger.v3.oas.annotations.servers.Server;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 
+@OpenAPIDefinition(
+    servers = @Server(url = "https://chapyo.duckdns.org")
+)
 @Configuration
 public class SwaggerConfig {
 

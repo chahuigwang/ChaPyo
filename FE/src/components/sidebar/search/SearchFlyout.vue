@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import { Search, Plus, X, MapPin, Loader2 } from 'lucide-vue-next'
+import { Search, Plus, X, MapPin, Loader2, RotateCcw, Clock, Heart } from 'lucide-vue-next'
 import { useSearchStore, PROVINCES, PLACE_TYPE_GROUPS } from '@/stores/searchStore'
 import { useStorageStore } from '@/stores/storageStore'
 import { useChatStore } from '@/stores/chatStore'
@@ -75,6 +75,8 @@ function clearAll() {
   currentPage.value = 0
   search.resetFilters()
 }
+
+const detailItem = ref(null)
 </script>
 
 <template>
@@ -83,13 +85,6 @@ function clearAll() {
     <header class="px-5 pt-5 pb-3">
       <div class="flex items-center gap-2 mb-4">
         <h2 class="text-xl font-bold text-gray-900 dark:text-slate-100">장소 검색</h2>
-        <button
-          @click="clearAll"
-          class="ml-auto inline-flex items-center gap-1 px-2 h-7 rounded-md text-[11px] text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-          title="초기화"
-        >
-          <X :size="11" /> 초기화
-        </button>
       </div>
 
       <form @submit.prevent="onSubmit" class="flex items-center gap-2">
@@ -105,11 +100,19 @@ function clearAll() {
         <button
           type="submit"
           :disabled="loading"
-          class="inline-flex items-center gap-1 px-3 h-9 rounded-md bg-primary text-primary-foreground text-[12px] font-medium hover:bg-brand-600 disabled:opacity-60 transition-colors"
+          class="inline-flex items-center justify-center w-9 h-9 rounded-md bg-primary text-primary-foreground hover:bg-brand-600 disabled:opacity-60 transition-colors"
+          title="검색"
         >
-          <Loader2 v-if="loading" :size="12" class="animate-spin" />
-          <Search v-else :size="12" />
-          검색
+          <Loader2 v-if="loading" :size="16" class="animate-spin" />
+          <Search v-else :size="16" />
+        </button>
+        <button
+          type="button"
+          @click="clearAll"
+          class="inline-flex items-center justify-center w-9 h-9 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+          title="초기화"
+        >
+          <RotateCcw :size="15" />
         </button>
       </form>
     </header>
@@ -167,6 +170,7 @@ function clearAll() {
           :key="item.id"
           :item="item"
           @add="addToStorage"
+          @detail="detailItem = $event"
         />
 
         <div ref="observerTarget" class="h-4 w-full" />
@@ -189,5 +193,79 @@ function clearAll() {
         </div>
       </template>
     </div>     
+    <!-- Detail modal overlay -->
+    <Teleport to="body">
+      <Transition name="fade">
+        <div
+          v-if="detailItem"
+          class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          @click.self="detailItem = null"
+        >
+          <div class="w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden">
+            <!-- Image -->
+            <div class="relative w-full h-48 bg-slate-100 dark:bg-slate-800">
+              <img
+                v-if="detailItem.firstImage"
+                :src="detailItem.firstImage"
+                :alt="detailItem.name"
+                class="w-full h-full object-cover"
+              />
+              <div v-else class="w-full h-full flex items-center justify-center text-slate-300 dark:text-slate-600">
+                <MapPin :size="32" />
+              </div>
+              <button
+                @click="detailItem = null"
+                class="absolute top-3 right-3 p-1.5 rounded-full bg-black/30 hover:bg-black/60 text-white backdrop-blur-sm transition-colors"
+              >
+                <X :size="14" />
+              </button>
+            </div>
+
+            <!-- Content -->
+            <div class="p-5 space-y-3">
+              <div class="flex items-start gap-3">
+                <div class="text-2xl leading-none mt-0.5">{{ findCategory(detailItem.category)?.emoji }}</div>
+                <div class="min-w-0 flex-1">
+                  <h3 class="text-[16px] font-bold text-slate-900 dark:text-slate-100 leading-snug">{{ detailItem.name }}</h3>
+                  <p class="mt-0.5 text-[11px] text-slate-400 dark:text-slate-500">{{ findCategory(detailItem.category)?.label }}</p>
+                </div>
+              </div>
+
+              <div v-if="detailItem.overview || detailItem.description" class="text-[12px] text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-4">
+                {{ detailItem.overview ?? detailItem.description }}
+              </div>
+
+              <div class="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400">
+                <MapPin :size="12" class="shrink-0 text-slate-400" />
+                <span>{{ detailItem.address }}</span>
+              </div>
+
+              <div v-if="detailItem.likeCount > 0" class="flex items-center gap-1 text-[11px] text-slate-400">
+                <Heart :size="11" class="fill-red-400 text-red-400" />
+                {{ detailItem.likeCount.toLocaleString() }}
+              </div>
+
+              <button
+                @click="addToStorage(detailItem); detailItem = null"
+                class="w-full h-10 rounded-xl bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-brand-600 transition-colors flex items-center justify-center gap-2"
+              >
+                <Plus :size="15" /> 보관함에 담기
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>

@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import { Plus, Clock, Pencil, Trash2, GripVertical, Car, Sparkles } from 'lucide-vue-next'
+import { Clock, Pencil, Trash2, GripVertical, Car, Sparkles } from 'lucide-vue-next'
 import { useTripStore } from '@/stores/tripStore'
 import { useStorageStore } from '@/stores/storageStore'
 import { useChatStore } from '@/stores/chatStore'
@@ -197,10 +197,6 @@ const detail = ref(null)
 const autoComposeOpen = ref(false)
 
 
-function openAdd() {
-  editing.value = null
-  formOpen.value = true
-}
 function openEdit(item) {
   detail.value = null
   editing.value = item
@@ -248,31 +244,27 @@ const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
             <p class="mt-1 text-[12px] text-slate-500 dark:text-slate-400">{{ itemsOfSelectedDay.length }}건의 일정</p>
           </div>
         </div>
-        <div class="flex items-center gap-2">
-          <Button size="sm" :disabled="!selectedDate" @click="openAdd">
-            <Plus :size="13" /> 일정 추가
-          </Button>
         </div>
-      </div>
     </CardHeader>
 
     <CardContent
-      class="flex-1 overflow-x-auto overflow-y-hidden pt-2 rounded-lg transition-all"
+      class="flex-1 overflow-y-auto overflow-x-hidden pt-2 rounded-lg transition-all"
       :class="dropActive ? 'ring-2 ring-dashed ring-primary bg-primary/5' : ''"
       @dragover="onTimelineDragOver"
       @dragleave="onTimelineDragLeave"
       @drop="onTimelineDrop"
     >
-      <div v-if="itemsOfSelectedDay.length" class="flex items-stretch gap-2 min-w-max pb-2">
-        <!-- leading slot -->
+      <div v-if="itemsOfSelectedDay.length" class="flex flex-col pb-4">
+        <!-- leading drop slot -->
         <div
           @dragover="onSlotDragOver($event, 0)"
           :class="[
-            'self-stretch w-2 rounded-full transition-colors',
-            dropIndex === 0 ? 'bg-primary/70 w-1.5' : '',
+            'mx-4 rounded-full transition-all',
+            dropIndex === 0 ? 'h-1.5 bg-primary/70 mb-1' : 'h-1',
           ]"
         />
         <template v-for="(item, idx) in itemsOfSelectedDay" :key="item.id">
+          <!-- Card -->
           <div
             draggable="true"
             @dragstart="onCardDragStart($event, item, idx)"
@@ -280,8 +272,8 @@ const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
             @click="detail = item"
             @mouseenter="ui.setHoveredItem(item.id)"
             @mouseleave="ui.clearHoveredItem(item.id)"
-            class="place-card group relative w-56 shrink-0 text-left rounded-xl bg-slate-50 dark:bg-slate-800/60 p-5
-                   shadow-sm hover:shadow-md transition-all flex flex-col cursor-grab active:cursor-grabbing"
+            class="place-card group relative mx-4 text-left rounded-xl bg-slate-50 dark:bg-slate-800/60 p-4
+                   shadow-sm hover:shadow-md transition-all flex gap-3 cursor-grab active:cursor-grabbing"
             :class="[
               collab.isEditing(item.id) ? 'place-card--locked' : '',
               hoveredItemId === item.id ? 'place-card--hovered' : '',
@@ -289,11 +281,12 @@ const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
           >
             <!-- Sequence badge -->
             <span
-              class="absolute -top-2 -left-2 z-10 inline-flex items-center justify-center
+              class="shrink-0 inline-flex items-center justify-center
                      h-6 w-6 rounded-full bg-[#00B7EB] text-white text-[11px] font-bold shadow-sm
-                     ring-2 ring-white dark:ring-slate-900"
+                     ring-2 ring-white dark:ring-slate-900 mt-0.5"
             >{{ idx + 1 }}</span>
-            <!-- Soft Lock: faint primary border + tiny editor avatar -->
+
+            <!-- Soft Lock badge -->
             <div
               v-if="collab.editorOf(item.id)"
               class="absolute -top-1.5 -right-1.5 z-10 flex items-center gap-1
@@ -307,41 +300,51 @@ const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
               >{{ collab.editorOf(item.id).name.charAt(0) }}</span>
               <span class="pr-1">Editing…</span>
             </div>
+
             <GripVertical
               :size="13"
               class="absolute top-3 left-3 text-slate-300 dark:text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity"
             />
-            <div class="absolute top-2 right-2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button
-                @click.stop="openEdit(item)"
-                class="h-7 w-7 rounded-md flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-white dark:hover:bg-slate-900"
-                title="수정"
-              >
-                <Pencil :size="13" />
-              </button>
-              <button
-                @click.stop="remove(item)"
-                class="h-7 w-7 rounded-md flex items-center justify-center text-slate-500 hover:text-red-500 hover:bg-white dark:hover:bg-slate-900"
-                title="삭제"
-              >
-                <Trash2 :size="13" />
-              </button>
-            </div>
-            <div class="flex items-center justify-between">
-              <div class="inline-flex items-center justify-center h-9 w-9 rounded-md bg-white dark:bg-slate-900 text-base shadow-sm">
-                {{ findCategory(item.category).emoji }}
+
+            <!-- Content -->
+            <div class="flex-1 min-w-0">
+              <div class="flex items-start justify-between gap-2">
+                <div class="flex items-center gap-2 min-w-0">
+                  <span class="text-base leading-none">{{ findCategory(item.category).emoji }}</span>
+                  <h4 class="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">{{ item.name }}</h4>
+                </div>
+                <div class="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                  <button
+                    @click.stop="openEdit(item)"
+                    class="h-7 w-7 rounded-md flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-white dark:hover:bg-slate-900"
+                    title="수정"
+                  >
+                    <Pencil :size="13" />
+                  </button>
+                  <button
+                    @click.stop="remove(item)"
+                    class="h-7 w-7 rounded-md flex items-center justify-center text-slate-500 hover:text-red-500 hover:bg-white dark:hover:bg-slate-900"
+                    title="삭제"
+                  >
+                    <Trash2 :size="13" />
+                  </button>
+                </div>
               </div>
-              <span class="text-[11px] text-slate-500 dark:text-slate-400">{{ findCategory(item.category).label }}</span>
+
+              <div class="mt-1.5 flex items-center gap-3 flex-wrap">
+                <span class="text-[11px] text-slate-400 dark:text-slate-500">{{ findCategory(item.category).label }}</span>
+                <span v-if="item.time" class="inline-flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
+                  <Clock :size="11" /> {{ item.time }}
+                </span>
+              </div>
+
+              <p v-if="item.memo" class="mt-1.5 text-[12px] text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">{{ item.memo }}</p>
+              <div v-if="item.cost" class="mt-2 text-[12px] font-medium text-slate-900 dark:text-slate-100">
+                {{ won(item.cost) }}
+              </div>
             </div>
-            <h4 class="mt-4 text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">{{ item.name }}</h4>
-            <div v-if="item.time" class="mt-1.5 flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
-              <Clock :size="11" /> {{ item.time }}
-            </div>
-            <p v-if="item.memo" class="mt-2 text-[12px] text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">{{ item.memo }}</p>
-            <div v-if="item.cost" class="mt-auto pt-4 text-[12px] font-medium text-slate-900 dark:text-slate-100">
-              {{ won(item.cost) }}
-            </div>
-            <!-- Last edited by (mock, deterministic per item id) -->
+
+            <!-- Last edited avatar -->
             <span
               v-if="collab.lastEditorOf(item.id)"
               class="absolute bottom-2 right-2 inline-flex items-center justify-center
@@ -352,45 +355,45 @@ const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
             >{{ collab.lastEditorOf(item.id).name.charAt(0) }}</span>
           </div>
 
-          <!-- between/trailing slot -->
+          <!-- between/trailing connector -->
           <div
             @dragover="onSlotDragOver($event, idx + 1)"
-            :class="[
-              'self-stretch rounded-full transition-all flex items-center justify-center',
-              dropIndex === idx + 1
-                ? 'bg-primary/70 w-1.5'
-                : (idx < itemsOfSelectedDay.length - 1 ? 'w-auto px-1' : 'w-2'),
-            ]"
+            class="relative mx-4 flex flex-col items-center transition-all"
+            :class="dropIndex === idx + 1 ? 'py-0.5' : 'py-1'"
           >
-            <!-- Ghost slot (gap > 2h) -->
+            <!-- drop indicator bar -->
+            <div
+              v-if="dropIndex === idx + 1"
+              class="w-full h-1.5 rounded-full bg-primary/70"
+            />
+            <!-- Ghost slot -->
             <button
-              v-if="idx < itemsOfSelectedDay.length - 1 && dropIndex !== idx + 1 && ghostSlots[idx]"
+              v-else-if="idx < itemsOfSelectedDay.length - 1 && ghostSlots[idx]"
               type="button"
-              class="ghost-slot group/ghost w-40 self-stretch rounded-xl px-3 py-2
-                     flex flex-col items-center justify-center gap-1
-                     text-[11px] font-medium text-[#00B7EB]
-                     transition-all duration-300 hover:bg-[#00B7EB]/5"
+              class="ghost-slot w-full rounded-xl px-3 py-2 flex items-center justify-between gap-2
+                     text-[11px] font-medium text-[#00B7EB] transition-all duration-300 hover:bg-[#00B7EB]/5"
               :title="`${ghostSlots[idx].gapMins}분의 여유 — 일정을 추가하세요`"
               @click.stop="addGhost(idx, ghostSlots[idx].suggestedTime)"
             >
-              <span class="inline-flex items-center gap-1">
-                <Plus :size="13" /> 일정 추가
-              </span>
               <span class="text-[10px] text-slate-400 dark:text-slate-500 font-normal">
                 {{ ghostSlots[idx].suggestedTime }} · {{ Math.round(ghostSlots[idx].gapMins / 60) }}h 여유
               </span>
             </button>
-            <!-- Transit chip (no ghost slot here) -->
+            <!-- Transit chip -->
             <span
-              v-else-if="idx < itemsOfSelectedDay.length - 1 && dropIndex !== idx + 1 && transits[idx]"
-              class="inline-flex items-center gap-1 px-2 py-1 rounded-full
+              v-else-if="idx < itemsOfSelectedDay.length - 1 && transits[idx]"
+              class="inline-flex items-center gap-1 px-2 py-1 rounded-full my-0.5
                      bg-white dark:bg-slate-900 text-[10px] font-medium
-                     text-slate-500 dark:text-slate-400 shadow-sm whitespace-nowrap"
-              :title="`예상 이동 시간`"
+                     text-slate-500 dark:text-slate-400 shadow-sm"
             >
               <Car :size="11" class="text-[#00B7EB]" />
               {{ transits[idx].mins }}분 · {{ transits[idx].km }}km
             </span>
+            <!-- Plain connector line -->
+            <div
+              v-else-if="idx < itemsOfSelectedDay.length - 1"
+              class="w-px h-5 bg-slate-200 dark:bg-slate-700"
+            />
           </div>
         </template>
       </div>
@@ -442,7 +445,7 @@ const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
     0 4px 14px -6px rgba(0, 183, 235, 0.35);
 }
 .place-card--hovered {
-  transform: translateY(-2px);
+  transform: translateY(-1px);
   box-shadow:
     0 0 0 1px rgba(0, 183, 235, 0.55),
     0 8px 22px -6px rgba(0, 183, 235, 0.45);
@@ -453,7 +456,6 @@ const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
 }
 .ghost-slot:hover {
   border-color: #00B7EB;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 18px -8px rgba(0, 183, 235, 0.45);
+  box-shadow: 0 4px 12px -6px rgba(0, 183, 235, 0.35);
 }
 </style>

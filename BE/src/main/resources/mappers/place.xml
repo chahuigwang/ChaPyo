@@ -35,7 +35,7 @@
 		    AND p.addr1 IS NOT NULL AND p.addr1 != ''
 		</where>
         GROUP BY p.place_id
-        ORDER BY like_count DESC
+        ORDER BY like_count DESC, p.place_id
         LIMIT #{limitSize}
         OFFSET #{offset}
     </select>

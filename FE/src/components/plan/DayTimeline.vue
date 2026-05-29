@@ -10,7 +10,6 @@ import { useUiStore } from '@/stores/uiStore'
 import { findCategory, formatDayLabel } from '@/types/itinerary'
 import { dayColorFor } from '@/composables/useDayColor'
 import PlaceFormModal from '@/components/modal/PlaceFormModal.vue'
-import AutoComposeModal from './AutoComposeModal.vue'
 import BaseModal from '@/components/common/BaseModal.vue'
 import { Card, CardHeader, CardTitle, CardContent, Button } from '@/components/common'
 
@@ -197,23 +196,6 @@ const editing = ref(null)
 const detail = ref(null)
 const autoComposeOpen = ref(false)
 
-function openAutoCompose() {
-  if (!selectedDate.value) return
-  autoComposeOpen.value = true
-}
-function acceptAutoCompose(plan) {
-  if (!selectedDate.value || !plan?.length) {
-    autoComposeOpen.value = false
-    return
-  }
-  plan.forEach((it) => {
-    trip.addItemToDate(selectedDate.value, { ...it, time: it.time })
-    storage.removeItem(it.id)
-    collab.pushHistory({ type: 'add', itemName: it.name, byName: collab.me.name })
-  })
-  chat.pushSystemNotice(`AI가 ${plan.length}개의 일정을 자동으로 구성했어요.`)
-  autoComposeOpen.value = false
-}
 
 function openAdd() {
   editing.value = null
@@ -267,18 +249,6 @@ const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
           </div>
         </div>
         <div class="flex items-center gap-2">
-          <button
-            type="button"
-            :disabled="!selectedDate"
-            class="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-[12px] font-medium
-                   text-[#00B7EB] bg-[#00B7EB]/10 hover:bg-[#00B7EB] hover:text-white
-                   hover:-translate-y-0.5 hover:shadow-md transition-all duration-300
-                   disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-            title="보관함에서 자동 구성"
-            @click="openAutoCompose"
-          >
-            <Sparkles :size="13" /> 보관함에서 자동 구성
-          </button>
           <Button size="sm" :disabled="!selectedDate" @click="openAdd">
             <Plus :size="13" /> 일정 추가
           </Button>
@@ -434,12 +404,6 @@ const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
     </CardContent>
 
     <PlaceFormModal :open="formOpen" :initial="editing" @close="closeForm" @submit="submit" />
-    <AutoComposeModal
-      :open="autoComposeOpen"
-      :date="selectedDate"
-      @close="autoComposeOpen = false"
-      @accept="acceptAutoCompose"
-    />
 
     <BaseModal :open="!!detail" :title="detail?.name ?? ''" @close="detail = null">
       <div v-if="detail" class="space-y-4 text-sm">

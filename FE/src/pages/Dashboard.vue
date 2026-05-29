@@ -1,5 +1,5 @@
 <script setup>
-import TripListPanel from '@/components/dashboard/TripListPanel.vue'
+import TripListPanel from '@/components/tripList/TripListPanel.vue'
 </script>
 
 <template>

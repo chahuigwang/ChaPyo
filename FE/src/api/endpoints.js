@@ -1,7 +1,7 @@
 // API 엔드포인트 상수. 모든 호출은 이 파일을 통해서만 URI 를 알 수 있다.
 // 백엔드(Spring Boot) 와 협업 시 단일 소스 오브 트루스 역할.
 
-export const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api'
+export const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'https://chapyo.duckdns.org'
 
 export const ENDPOINTS = {
   auth: {
@@ -24,7 +24,7 @@ export const ENDPOINTS = {
   },
   tourism: {
     // 한국관광공사 API 프록시 경로 (백엔드 서버 경유)
-    areaBased: '/tourism/area',
+    places: '/api/v1/places',
     detail: (contentId) => `/tourism/detail/${contentId}`,
     keyword: '/tourism/search',
   },

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+	PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.chapyo.place.repository.PlaceMapper">
+
+    <select id="findByLocationAndCategory" resultType="PlaceResponse">
+        SELECT
+            p.place_id,
+            p.title,
+            p.addr1,
+            p.first_image1,
+            p.category_code1,
+            p.category_code2,
+            COUNT(pl.user_id) AS like_count
+        FROM places p
+        LEFT JOIN place_likes pl ON p.place_id = pl.place_id
+        <where>
+		    <if test="areaCode != null and areaCode != ''">
+		        AND p.area_code = #{areaCode}
+		    </if>
+		    <if test="districtCode != null and districtCode != ''">
+		        AND p.district_code = #{districtCode}
+		    </if>
+		    <if test="category1 != null and category1 != ''">
+		        AND p.category_code1 = #{category1}
+		    </if>
+		    <if test="category2 != null and category2 != ''">
+		        AND p.category_code2 = #{category2}
+		    </if>
+		    <if test="keyword != null and keyword != ''">
+		        AND p.title LIKE CONCAT('%', #{keyword}, '%')
+		    </if>
+		    AND p.addr1 IS NOT NULL AND p.addr1 != ''
+		</where>
+        GROUP BY p.place_id
+        ORDER BY like_count DESC, p.place_id
+        LIMIT #{limitSize}
+        OFFSET #{offset}
+    </select>
+
+</mapper>

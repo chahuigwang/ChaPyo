@@ -3,3 +3,8 @@
 .DS_Store
 
 .idea
+
+# ===========================
+# Docker (local dev only)
+# ===========================
+docker-compose.local.yml

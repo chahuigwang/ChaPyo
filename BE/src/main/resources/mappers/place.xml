@@ -17,19 +17,23 @@
         FROM places p
         LEFT JOIN place_likes pl ON p.place_id = pl.place_id
         <where>
-            <if test="areaCode != null and areaCode != ''">
-                AND p.area_code = #{areaCode}
-            </if>
-            <if test="districtCode != null and districtCode != ''">
-                AND p.district_code = #{districtCode}
-            </if>
-            <if test="category1 != null and category1 != ''">
-                AND p.category_code1 = #{category1}
-            </if>
-            <if test="category2 != null and category2 != ''">
-                AND p.category_code2 = #{category2}
-            </if>
-        </where>
+		    <if test="areaCode != null and areaCode != ''">
+		        AND p.area_code = #{areaCode}
+		    </if>
+		    <if test="districtCode != null and districtCode != ''">
+		        AND p.district_code = #{districtCode}
+		    </if>
+		    <if test="category1 != null and category1 != ''">
+		        AND p.category_code1 = #{category1}
+		    </if>
+		    <if test="category2 != null and category2 != ''">
+		        AND p.category_code2 = #{category2}
+		    </if>
+		    <if test="keyword != null and keyword != ''">
+		        AND p.title LIKE CONCAT('%', #{keyword}, '%')
+		    </if>
+		    AND p.addr1 IS NOT NULL AND p.addr1 != ''
+		</where>
         GROUP BY p.place_id
         ORDER BY like_count DESC
         LIMIT #{limitSize}

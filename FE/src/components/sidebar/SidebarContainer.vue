@@ -14,10 +14,10 @@ import {
 } from 'lucide-vue-next'
 import { useUiStore } from '@/stores/uiStore'
 import { useTheme } from '@/composables/useTheme'
-import ChatFlyout from '@/components/sidebar/ChatFlyout.vue'
+import ChatFlyout from '@/components/sidebar/chat/ChatFlyout.vue'
 import ProfileFlyout from '@/components/sidebar/ProfileFlyout.vue'
-import StorageFlyout from '@/components/sidebar/StorageFlyout.vue'
-import SearchFlyout from '@/components/sidebar/SearchFlyout.vue'
+import StorageFlyout from '@/components/sidebar/storage/StorageFlyout.vue'
+import SearchFlyout from '@/components/sidebar/search/SearchFlyout.vue'
 
 const ui = useUiStore()
 const { activePanel, sidebarOpen } = storeToRefs(ui)
@@ -98,7 +98,7 @@ function isActive(name) {
       :class="[
         'h-full border-l border-slate-100 dark:border-slate-800 flex flex-col min-h-0 bg-white dark:bg-slate-900 overflow-hidden',
         'transition-[width] duration-300 ease-in-out',
-        sidebarOpen ? 'w-[340px]' : 'w-0',
+        sidebarOpen ? 'w-100' : 'w-0',
       ]"
     >
       <ChatFlyout v-if="activePanel === 'chat'" />

@@ -6,7 +6,6 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
-@AllArgsConstructor
 public class District {
     private String areaCode;
     private String districtCode;

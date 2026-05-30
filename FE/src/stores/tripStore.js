@@ -180,9 +180,10 @@ export const useTripStore = defineStore('trip', {
       const trip = this.currentTrip
       if (!trip) return
       for (const list of Object.values(trip.itemsByDay)) {
-        const idx = list.findIndex((i) => i.id === id)
-        if (idx >= 0) {
-          list[idx] = { ...list[idx], lat, lng }
+        const item = list.find((i) => i.id === id)
+        if (item) {
+          item.lat = lat
+          item.lng = lng
           return
         }
       }

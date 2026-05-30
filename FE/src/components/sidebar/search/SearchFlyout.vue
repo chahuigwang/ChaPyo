@@ -36,6 +36,8 @@ function onLoadMore() {
 // IntersectionObserver 설정
 onMounted(() => {
   document.addEventListener('mousedown', onCategoryOutside)
+  document.addEventListener('mousedown', onProvinceOutside)
+  document.addEventListener('mousedown', onDistrictOutside)
   observer = new IntersectionObserver((entries) => {
     const target = entries[0]
     if (target.isIntersecting && hasNext.value && !loading.value) {
@@ -61,6 +63,8 @@ watch(observerTarget, (newVal) => {
 
 onUnmounted(() => {
   document.removeEventListener('mousedown', onCategoryOutside)
+  document.removeEventListener('mousedown', onProvinceOutside)
+  document.removeEventListener('mousedown', onDistrictOutside)
   if (observer) observer.disconnect()
 })
 
@@ -72,7 +76,8 @@ function addToItinerary(item) {
   trip.addItemToDate(date, {
     name: item.name,
     category: item.category,
-    memo: item.address || '',
+    memo: item.memo || '',
+    address: item.address || '',
     cost: item.cost ?? 0,
     lat: item.lat,
     lng: item.lng,
@@ -86,7 +91,25 @@ function clearAll() {
 
 const detailItem = ref(null)
 
-// Category custom dropdown
+// ── Province custom dropdown ─────────────────────────────────
+const provinceOpen = ref(false)
+const provinceRef = ref(null)
+const provinceTriggerRef = ref(null)
+const selectedProvinceLabel = computed(() =>
+  PROVINCES.find((p) => p.id === provinceId.value)?.label ?? '시/도 전체',
+)
+function selectProvince(id) { search.setProvince(id); provinceOpen.value = false }
+
+// ── District custom dropdown ─────────────────────────────────
+const districtOpen = ref(false)
+const districtRef = ref(null)
+const districtTriggerRef = ref(null)
+const selectedDistrictLabel = computed(() =>
+  districts.value.find((d) => d.id === districtId.value)?.label ?? '구/군 전체',
+)
+function selectDistrict(id) { search.setDistrict(id); districtOpen.value = false }
+
+// ── Category custom dropdown ─────────────────────────────────
 const categoryOpen = ref(false)
 const categoryRef = ref(null)
 const categoryTriggerRef = ref(null)
@@ -106,11 +129,21 @@ function selectType(id) {
   categoryOpen.value = false
 }
 
+function onOutside(e, open, triggerRef, panelRef, cb) {
+  if (!open.value) return
+  if (triggerRef.value?.contains(e.target)) return
+  if (panelRef.value?.contains(e.target)) return
+  cb()
+}
+
 function onCategoryOutside(e) {
-  if (!categoryOpen.value) return
-  if (categoryTriggerRef.value?.contains(e.target)) return
-  if (categoryRef.value?.contains(e.target)) return
-  categoryOpen.value = false
+  onOutside(e, categoryOpen, categoryTriggerRef, categoryRef, () => { categoryOpen.value = false })
+}
+function onProvinceOutside(e) {
+  onOutside(e, provinceOpen, provinceTriggerRef, provinceRef, () => { provinceOpen.value = false })
+}
+function onDistrictOutside(e) {
+  onOutside(e, districtOpen, districtTriggerRef, districtRef, () => { districtOpen.value = false })
 }
 </script>
 
@@ -155,23 +188,44 @@ function onCategoryOutside(e) {
     <!-- Middle: Filters -->
     <section class="px-5 pb-3 space-y-2">
       <div class="grid grid-cols-2 gap-2">
-        <select
-          :value="provinceId"
-          @change="search.setProvince($event.target.value)"
-          class="h-8 px-2 text-[11px] rounded-md bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-primary/30"
-        >
-          <option value="">시/도 전체</option>
-          <option v-for="p in PROVINCES" :key="p.id" :value="p.id">{{ p.label }}</option>
-        </select>
-        <select
-          :value="districtId"
-          @change="search.setDistrict($event.target.value)"
-          :disabled="!provinceId"
-          class="h-8 px-2 text-[11px] rounded-md bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-50"
-        >
-          <option value="">구/군 전체</option>
-          <option v-for="d in districts" :key="d.id" :value="d.id">{{ d.label }}</option>
-        </select>
+        <!-- Province custom dropdown -->
+        <div class="relative">
+          <button
+            ref="provinceTriggerRef"
+            type="button"
+            @click="provinceOpen = !provinceOpen"
+            class="w-full h-8 px-2.5 text-[11px] rounded-xl bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-1 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          >
+            <span class="truncate">{{ selectedProvinceLabel }}</span>
+            <ChevronDown :size="10" class="shrink-0 text-slate-400 transition-transform duration-200" :class="provinceOpen ? 'rotate-180' : ''" />
+          </button>
+          <Transition enter-active-class="transition-all duration-200 ease-out" enter-from-class="opacity-0 scale-95 -translate-y-1" enter-to-class="opacity-100 scale-100 translate-y-0" leave-active-class="transition-all duration-150 ease-in" leave-from-class="opacity-100 scale-100 translate-y-0" leave-to-class="opacity-0 scale-95 -translate-y-1">
+            <div v-if="provinceOpen" ref="provinceRef" class="absolute left-0 top-full mt-1 z-50 w-48 max-h-52 overflow-y-auto bg-white dark:bg-slate-900 rounded-xl shadow-xl py-1">
+              <button type="button" @click="selectProvince('')" class="w-full text-left px-3 py-1.5 text-[11px] transition-colors" :class="!provinceId ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'">시/도 전체</button>
+              <button v-for="p in PROVINCES" :key="p.id" type="button" @click="selectProvince(p.id)" class="w-full text-left px-3 py-1.5 text-[11px] transition-colors" :class="provinceId === p.id ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'">{{ p.label }}</button>
+            </div>
+          </Transition>
+        </div>
+
+        <!-- District custom dropdown -->
+        <div class="relative">
+          <button
+            ref="districtTriggerRef"
+            type="button"
+            @click="provinceId && (districtOpen = !districtOpen)"
+            class="w-full h-8 px-2.5 text-[11px] rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-1 transition-colors"
+            :class="provinceId ? 'text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer' : 'text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-50'"
+          >
+            <span class="truncate">{{ selectedDistrictLabel }}</span>
+            <ChevronDown :size="10" class="shrink-0 text-slate-400 transition-transform duration-200" :class="districtOpen ? 'rotate-180' : ''" />
+          </button>
+          <Transition enter-active-class="transition-all duration-200 ease-out" enter-from-class="opacity-0 scale-95 -translate-y-1" enter-to-class="opacity-100 scale-100 translate-y-0" leave-active-class="transition-all duration-150 ease-in" leave-from-class="opacity-100 scale-100 translate-y-0" leave-to-class="opacity-0 scale-95 -translate-y-1">
+            <div v-if="districtOpen" ref="districtRef" class="absolute left-0 top-full mt-1 z-50 w-48 max-h-52 overflow-y-auto bg-white dark:bg-slate-900 rounded-xl shadow-xl py-1">
+              <button type="button" @click="selectDistrict('')" class="w-full text-left px-3 py-1.5 text-[11px] transition-colors" :class="!districtId ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'">구/군 전체</button>
+              <button v-for="d in districts" :key="d.id" type="button" @click="selectDistrict(d.id)" class="w-full text-left px-3 py-1.5 text-[11px] transition-colors" :class="districtId === d.id ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'">{{ d.label }}</button>
+            </div>
+          </Transition>
+        </div>
       </div>
       <!-- Category custom dropdown -->
       <div class="relative">
@@ -317,12 +371,12 @@ function onCategoryOutside(e) {
                 <button
                   @click="storage.toggleLike(detailItem)"
                   class="flex-1 h-10 rounded-xl text-[13px] font-semibold transition-colors flex items-center justify-center gap-2"
-                  :class="storage.isLiked(detailItem.sourceId ?? detailItem.id)
+                  :class="storage.isLiked(detailItem)
                     ? 'bg-red-50 dark:bg-red-900/20 text-red-500 hover:bg-red-100'
                     : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'"
                 >
-                  <Heart :size="14" :class="storage.isLiked(detailItem.sourceId ?? detailItem.id) ? 'fill-red-500' : ''" />
-                  {{ storage.isLiked(detailItem.sourceId ?? detailItem.id) ? '좋아요 취소' : '좋아요' }}
+                  <Heart :size="14" :class="storage.isLiked(detailItem) ? 'fill-red-500' : ''" />
+                  {{ storage.isLiked(detailItem) ? '좋아요 취소' : '좋아요' }}
                 </button>
                 <button
                   @click="addToItinerary(detailItem); detailItem = null"

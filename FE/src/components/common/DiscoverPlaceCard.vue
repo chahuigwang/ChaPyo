@@ -20,7 +20,7 @@ const chat = useChatStore()
 
 
 
-const liked = computed(() => storage.isLiked(props.item.sourceId ?? props.item.id))
+const liked = computed(() => storage.isLiked(props.item))
 
 function toggleLike(e) {
   e.stopPropagation()
@@ -34,7 +34,8 @@ function addToItinerary(e) {
   trip.addItemToDate(date, {
     name: props.item.name,
     category: props.item.category,
-    memo: props.item.address || props.item.memo || '',
+    memo: props.item.memo || '',
+    address: props.item.address || '',
     cost: props.item.cost ?? 0,
     lat: props.item.lat,
     lng: props.item.lng,
@@ -82,17 +83,22 @@ function onDragEnd(e) {
         <GripVertical :size="13" />
       </div>
 
-      <!-- Heart toggle button -->
-      <button
-        @click="toggleLike"
-        class="absolute top-2.5 right-2.5 p-1.5 rounded-full backdrop-blur-md transition-all duration-200"
-        :class="liked
-          ? 'bg-red-500/80 hover:bg-red-600/90 text-white'
-          : 'bg-black/20 hover:bg-black/50 text-white'"
-        title="좋아요"
-      >
-        <Heart :size="14" :class="liked ? 'fill-white' : ''" />
-      </button>
+      <!-- Heart toggle button + like count -->
+      <div class="absolute top-2.5 right-2.5 flex flex-col items-center gap-0.5">
+        <button
+          @click="toggleLike"
+          class="p-1.5 rounded-full backdrop-blur-md transition-all duration-200"
+          :class="liked
+            ? 'bg-red-500/80 hover:bg-red-600/90 text-white'
+            : 'bg-black/20 hover:bg-black/50 text-white'"
+          title="좋아요"
+        >
+          <Heart :size="14" :class="liked ? 'fill-white' : ''" />
+        </button>
+        <span v-if="item.likeCount > 0" class="text-[10px] font-semibold text-white drop-shadow leading-none">
+          {{ item.likeCount }}
+        </span>
+      </div>
 
       <!-- Category badge -->
       <span class="absolute bottom-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/30 backdrop-blur-sm text-white text-[10px] font-medium">

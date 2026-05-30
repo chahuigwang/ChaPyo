@@ -69,24 +69,24 @@ function goDaily(iso) {
 <template>
   <div class="flex-1 h-full flex flex-col min-h-0 relative">
 
-    <!-- Daily view: 3:7 grid (timeline left, map right) -->
-    <div v-if="currentView === 'daily'" class="flex-1 grid grid-cols-10 min-h-0 overflow-hidden">
-      <div class="col-span-3 h-full overflow-y-auto bg-slate-50 dark:bg-slate-950 px-4 py-4 transition-colors">
+    <!-- Daily view: flex (timeline fixed-width left, map fluid right) -->
+    <div v-if="currentView === 'daily'" class="flex-1 flex min-h-0 overflow-hidden">
+      <div class="w-96 shrink-0 h-full overflow-y-auto bg-slate-50 dark:bg-slate-950 px-4 py-4 transition-colors">
         <!-- Bento navigator -->
         <div class="mb-3">
           <DateNavigator />
         </div>
         <DayTimeline />
       </div>
-      <div class="col-span-7 h-full overflow-hidden bg-slate-50 dark:bg-slate-950 p-4 transition-colors">
+      <div class="flex-1 h-full overflow-hidden bg-slate-50 dark:bg-slate-950 p-4 transition-colors">
         <TripMap class="h-full w-full rounded-2xl shadow-sm overflow-hidden" />
       </div>
     </div>
 
-    <!-- Total view: 3:7 grid (all-days accordion left, full-trip map right) -->
-    <div v-else class="flex-1 grid grid-cols-10 min-h-0 overflow-hidden">
+    <!-- Total view: flex (accordion fixed-width left, map fluid right) -->
+    <div v-else class="flex-1 flex min-h-0 overflow-hidden">
       <!-- Left: scrollable accordion itinerary -->
-      <div class="col-span-3 h-full overflow-y-auto bg-slate-50 dark:bg-slate-950 px-4 py-4 transition-colors">
+      <div class="w-96 shrink-0 h-full overflow-y-auto bg-slate-50 dark:bg-slate-950 px-4 py-4 transition-colors">
         <div class="flex flex-col gap-3">
         <!-- Bento navigator -->
         <div class="shrink-0">
@@ -176,8 +176,8 @@ function goDaily(iso) {
         </div>
       </div>
 
-      <!-- Right: map showing ALL trip pins (continuous numbering) -->
-      <div class="col-span-7 h-full overflow-hidden bg-slate-50 dark:bg-slate-950 p-4 transition-colors">
+      <!-- Right: map showing ALL trip pins (fluid) -->
+      <div class="flex-1 h-full overflow-hidden bg-slate-50 dark:bg-slate-950 p-4 transition-colors">
         <TripMap class="h-full w-full rounded-2xl shadow-sm overflow-hidden" :show-all="true" />
       </div>
     </div>

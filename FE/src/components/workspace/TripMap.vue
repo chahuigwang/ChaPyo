@@ -90,7 +90,8 @@ async function resolveCoords(items) {
   geocoding.value = true
   await Promise.allSettled(
     unresolved.map(async (item) => {
-      const addr = item.address || item.memo || ''
+      const addr = (item.address && item.address.trim()) || ''
+      if (!addr) return
       try {
         const coords = await geocodeAddress(addr)
         if (coords) trip.patchItemCoords(item.id, coords.lat, coords.lng)

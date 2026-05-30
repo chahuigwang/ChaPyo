@@ -129,7 +129,7 @@ function isActive(name) {
         'h-full flex flex-col min-h-0 bg-white dark:bg-slate-900 overflow-hidden',
         'transition-[width] duration-300 ease-in-out',
         'border-l border-slate-100 dark:border-slate-800',
-        sidebarOpen ? 'w-100 border-r border-gray-200/80 dark:border-slate-700/60' : 'w-0 border-r-0',
+        sidebarOpen ? 'w-80 border-r border-gray-200/80 dark:border-slate-700/60' : 'w-0 border-r-0',
       ]"
     >
       <ChatFlyout v-if="activePanel === 'chat'" />

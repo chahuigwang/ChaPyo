@@ -62,7 +62,7 @@ const row =
     <!-- Collaborators section -->
     <section class="flex flex-col gap-3">
       <div class="flex items-center justify-between">
-        <span class="text-[12px] font-semibold text-slate-600 dark:text-slate-300">현재 참여 인원</span>
+        <span class="text-[12px] font-semibold text-slate-600 dark:text-slate-300">멤버</span>
         <button
           @click="collab.openInvite"
           class="inline-flex items-center gap-1.5 px-3 h-7 rounded-full text-[11px] font-medium text-[#00B7EB] bg-[#00B7EB]/10 hover:bg-[#00B7EB] hover:text-white hover:-translate-y-0.5 hover:shadow-md transition-all duration-300"
@@ -71,36 +71,28 @@ const row =
         </button>
       </div>
 
-      <div class="flex flex-col gap-2">
+      <div class="grid grid-cols-2 gap-2">
         <!-- Me -->
-        <div class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60">
+        <div class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60">
           <div
-            class="h-8 w-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[12px] font-semibold shrink-0 ring-2 ring-white dark:ring-slate-900"
+            class="h-8 w-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[12px] font-semibold shrink-0"
           >나</div>
           <div class="min-w-0">
-            <div class="text-[12px] font-semibold text-slate-900 dark:text-slate-100">나 (본인)</div>
-            <div class="flex items-center gap-1 text-[10px] text-emerald-500">
-              <span class="h-1.5 w-1.5 rounded-full bg-emerald-500 inline-block"></span>
-              편집 중
-            </div>
+            <div class="text-[12px] font-semibold text-slate-900 dark:text-slate-100 truncate">나 (본인)</div>
           </div>
         </div>
 
         <div
           v-for="peer in peers"
           :key="peer.id"
-          class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60"
+          class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60"
         >
           <div
-            class="h-8 w-8 rounded-full flex items-center justify-center text-[12px] font-semibold text-white shrink-0 ring-2 ring-white dark:ring-slate-900"
+            class="h-8 w-8 rounded-full flex items-center justify-center text-[12px] font-semibold text-white shrink-0"
             :style="{ backgroundColor: peer.color }"
           >{{ initialOf(peer.name) }}</div>
           <div class="min-w-0">
-            <div class="text-[12px] font-semibold text-slate-900 dark:text-slate-100">{{ peer.name }}</div>
-            <div class="flex items-center gap-1 text-[10px] text-emerald-500">
-              <span class="h-1.5 w-1.5 rounded-full bg-emerald-500 inline-block"></span>
-              참여 중
-            </div>
+            <div class="text-[12px] font-semibold text-slate-900 dark:text-slate-100 truncate">{{ peer.name }}</div>
           </div>
         </div>
       </div>

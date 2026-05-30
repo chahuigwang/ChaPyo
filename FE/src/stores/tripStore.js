@@ -184,6 +184,18 @@ export const useTripStore = defineStore('trip', {
       trip.itemsByDay[trip.selectedDate] = list.filter((i) => i.id !== id)
       trip.touch()
     },
+    updateTransit(id, patch) {
+      const trip = this.currentTrip
+      if (!trip) return
+      for (const list of Object.values(trip.itemsByDay)) {
+        const item = list.find((i) => i.id === id)
+        if (item) {
+          item.transitAfter = { ...item.transitAfter, ...patch }
+          trip.touch()
+          return
+        }
+      }
+    },
     removeItemFromDate(date, id) {
       const trip = this.currentTrip
       if (!trip || !date) return null

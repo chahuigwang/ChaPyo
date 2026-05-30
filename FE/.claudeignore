@@ -1,0 +1,27 @@
+# 의존성 및 빌드 파일
+node_modules/
+.next/
+dist/
+build/
+
+# 환경 변수 및 시크릿
+.env
+.env.local
+.env.*
+
+# 미디어 및 폰트 파일
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.ico
+*.mp4
+*.woff
+*.woff2
+
+# 로그 및 기타 무거운 파일
+*.log
+package-lock.json
+yarn.lock
+pnpm-lock.yaml

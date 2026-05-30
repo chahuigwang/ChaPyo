@@ -5,12 +5,14 @@ import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import { useTripStore } from '@/stores/tripStore'
 import { useStorageStore } from '@/stores/storageStore'
 import { useChatStore } from '@/stores/chatStore'
+import { useUiStore } from '@/stores/uiStore'
 import { Card, CardHeader, CardTitle, CardContent, Button } from '@/components/common'
 import { formatDayLabel } from '@/types/itinerary'
 
 const trip = useTripStore()
 const storage = useStorageStore()
 const chat = useChatStore()
+const ui = useUiStore()
 const dropTarget = ref(null) // iso string when dragging over an in-range cell
 const { startDate, endDate, selectedDate, currentTrip } = storeToRefs(trip)
 
@@ -78,7 +80,10 @@ const cells = computed(() => {
 const weekdays = ['일', '월', '화', '수', '목', '금', '토']
 
 function pick(cell) {
-  if (cell?.inRange) trip.selectDate(cell.iso)
+  if (cell?.inRange) {
+    trip.selectDate(cell.iso)
+    ui.setCurrentView('daily')
+  }
 }
 
 function onCellDragOver(e, cell) {

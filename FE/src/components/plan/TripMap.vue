@@ -1,21 +1,31 @@
 <script setup>
 import { computed, onMounted, onBeforeUnmount, ref, watch, nextTick } from 'vue'
 import { storeToRefs } from 'pinia'
-import { Maximize2, Minimize2 } from 'lucide-vue-next'
 import { useTripStore } from '@/stores/tripStore'
 import { useUiStore } from '@/stores/uiStore'
 import { dayColorFor } from '@/composables/useDayColor'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/common'
+
+const props = defineProps({ showAll: { type: Boolean, default: false } })
 
 const trip = useTripStore()
 const ui = useUiStore()
-const { itemsOfSelectedDay, selectedDate } = storeToRefs(trip)
+const { itemsOfSelectedDay, selectedDate, currentTrip } = storeToRefs(trip)
 const { hoveredItemId } = storeToRefs(ui)
 
 const dayColor = computed(() => {
   const days = trip.days || []
   const idx = days.indexOf(selectedDate.value)
   return dayColorFor(idx >= 0 ? idx : 0)
+})
+
+// All items across all days for total view (flat, enriched with dayIndex for coloring)
+const allDayItems = computed(() => {
+  const t = currentTrip.value
+  if (!t) return []
+  const days = trip.days || []
+  return days.flatMap((iso, dayIdx) =>
+    (t.itemsByDay[iso] ?? []).map((item) => ({ ...item, _dayIdx: dayIdx, _dayIso: iso }))
+  )
 })
 
 // .env 의 VITE_KAKAO_MAP_APP_KEY 값만 채우면 자동으로 동작합니다.
@@ -34,7 +44,10 @@ let sdkPromise = null
 const sortedItems = computed(() =>
   [...itemsOfSelectedDay.value].sort((a, b) => (a.time || '99:99').localeCompare(b.time || '99:99')),
 )
-const positionedItems = computed(() => sortedItems.value.filter((i) => i.lat != null && i.lng != null))
+const positionedItems = computed(() => {
+  if (props.showAll) return allDayItems.value.filter((i) => i.lat != null && i.lng != null)
+  return sortedItems.value.filter((i) => i.lat != null && i.lng != null)
+})
 
 function loadKakaoSdk() {
   if (sdkPromise) return sdkPromise
@@ -75,10 +88,10 @@ async function initMap() {
 }
 
 function clearOverlays() {
-  overlays.forEach(({ overlay }) => overlay.setMap(null))
+  overlays.forEach(({ overlay }) => { try { overlay.setMap(null) } catch {} })
   overlays = []
   if (polyline) {
-    polyline.setMap(null)
+    try { polyline.setMap(null) } catch {}
     polyline = null
   }
 }
@@ -104,28 +117,43 @@ function renderRoute() {
   const items = positionedItems.value
   const pts = items.map((i) => new kakao.maps.LatLng(i.lat, i.lng))
   if (!pts.length) return
-  const pinColor = dayColor.value.pin
-  items.forEach((it, idx) => {
-    const el = buildPinEl(idx + 1, it.name, it.id, pinColor)
-    const overlay = new kakao.maps.CustomOverlay({
-      position: pts[idx],
-      content: el,
-      yAnchor: 1,
-      xAnchor: 0.5,
-      zIndex: 3,
+
+  // In showAll mode: continuous global numbering, per-day polylines with per-day color
+  if (props.showAll) {
+    const byDay = {}
+    items.forEach((it, globalIdx) => {
+      const key = it._dayIso ?? 'unknown'
+      if (!byDay[key]) byDay[key] = { dayIdx: it._dayIdx ?? 0, items: [], pts: [], startNum: globalIdx + 1 }
+      byDay[key].items.push({ ...it, _globalNum: globalIdx + 1 })
+      byDay[key].pts.push(pts[globalIdx])
     })
-    overlay.setMap(mapInstance)
-    overlays.push({ itemId: it.id, overlay, el })
-  })
-  if (pts.length >= 2) {
-    polyline = new kakao.maps.Polyline({
-      path: pts,
-      strokeWeight: 3,
-      strokeColor: pinColor,
-      strokeOpacity: 0.9,
-      strokeStyle: 'shortdash',
+    Object.values(byDay).forEach(({ dayIdx, items: dItems, pts: dPts }) => {
+      const color = dayColorFor(dayIdx)
+      dItems.forEach((it, i) => {
+        const el = buildPinEl(it._globalNum, it.name, it.id, color.pin)
+        const ov = new kakao.maps.CustomOverlay({ position: dPts[i], content: el, yAnchor: 1, xAnchor: 0.5, zIndex: 3 })
+        ov.setMap(mapInstance)
+        overlays.push({ itemId: it.id, overlay: ov, el })
+      })
+      if (dPts.length >= 2) {
+        const pl = new kakao.maps.Polyline({ path: dPts, strokeWeight: 3, strokeColor: color.pin, strokeOpacity: 0.85, strokeStyle: 'shortdash' })
+        pl.setMap(mapInstance)
+        if (!polyline) polyline = pl
+        else overlays.push({ itemId: `pl_${dayIdx}`, overlay: pl, el: null })
+      }
     })
-    polyline.setMap(mapInstance)
+  } else {
+    const pinColor = dayColor.value.pin
+    items.forEach((it, idx) => {
+      const el = buildPinEl(idx + 1, it.name, it.id, pinColor)
+      const overlay = new kakao.maps.CustomOverlay({ position: pts[idx], content: el, yAnchor: 1, xAnchor: 0.5, zIndex: 3 })
+      overlay.setMap(mapInstance)
+      overlays.push({ itemId: it.id, overlay, el })
+    })
+    if (pts.length >= 2) {
+      polyline = new kakao.maps.Polyline({ path: pts, strokeWeight: 3, strokeColor: dayColor.value.pin, strokeOpacity: 0.9, strokeStyle: 'shortdash' })
+      polyline.setMap(mapInstance)
+    }
   }
   if (pts.length === 1) {
     mapInstance.setCenter(pts[0])
@@ -155,102 +183,42 @@ onBeforeUnmount(() => {
 
 watch(positionedItems, renderRoute, { deep: true })
 watch(selectedDate, renderRoute)
+watch(allDayItems, () => { if (props.showAll) renderRoute() }, { deep: true })
 watch(hoveredItemId, (id) => applyHoverHighlight(id))
 
-const expanded = ref(false)
-function toggleExpanded() {
-  expanded.value = !expanded.value
-  // Kakao map needs a relayout when its container size changes.
+function onRelayout() {
   nextTick(() => {
     if (!mapInstance || !window.kakao?.maps) return
     mapInstance.relayout()
     renderRoute()
   })
 }
-function onOverlayKeydown(e) {
-  if (e.key === 'Escape' && expanded.value) toggleExpanded()
-}
 </script>
 
 <template>
-  <Card class="h-full flex flex-col">
-    <CardHeader>
-      <div class="flex items-center justify-between">
-        <CardTitle>동선 지도</CardTitle>
-        <div class="flex items-center gap-2">
-          <span class="text-[12px] text-slate-500 dark:text-slate-400">{{ selectedDate || '—' }}</span>
-          <button
-            type="button"
-            class="inline-flex items-center gap-1 h-7 px-2.5 rounded-md text-[11px] font-medium
-                   text-[#00B7EB] bg-[#00B7EB]/10 hover:bg-[#00B7EB] hover:text-white
-                   hover:-translate-y-0.5 hover:shadow-md transition-all duration-300"
-            title="지도 크게 보기"
-            @click="toggleExpanded"
-          >
-            <Maximize2 :size="12" /> 크게 보기
-          </button>
-        </div>
-      </div>
-    </CardHeader>
-
-    <CardContent class="flex-1 min-h-[260px]" @keydown="onOverlayKeydown">
-      <!--
-        Kakao Map 마운트 영역.
-        .env 의 VITE_KAKAO_MAP_APP_KEY 에 발급받은 JavaScript 키를 입력하면 즉시 표시됩니다.
-      -->
-      <Teleport to="#map-expand-target" :disabled="!expanded">
-      <div
-        :class="expanded
-          ? 'pointer-events-auto absolute inset-4 lg:inset-6 rounded-2xl overflow-hidden bg-white dark:bg-slate-900 shadow-2xl flex flex-col ring-1 ring-slate-200/70 dark:ring-slate-700/70'
-          : 'relative w-full h-full min-h-[260px] rounded-md overflow-hidden bg-slate-50 dark:bg-slate-800/50'"
-      >
-        <div
-          v-if="expanded"
-          class="h-12 shrink-0 flex items-center justify-between px-4 bg-white dark:bg-slate-900"
-        >
-          <div class="flex items-center gap-2 text-[13px] font-semibold text-slate-900 dark:text-slate-100">
-            동선 지도
-            <span class="text-[11px] font-normal text-slate-500 dark:text-slate-400">{{ selectedDate || '—' }}</span>
-          </div>
-          <button
-            type="button"
-            class="inline-flex items-center gap-1 h-7 px-2.5 rounded-md text-[11px] font-medium
-                   text-slate-500 dark:text-slate-400
-                   hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            title="닫기"
-            @click="toggleExpanded"
-          >
-            <Minimize2 :size="12" /> 작게 보기
-          </button>
-        </div>
-        <div :class="expanded ? 'relative flex-1' : 'absolute inset-0'">
-          <div v-if="hasKey" ref="mapEl" class="absolute inset-0 w-full h-full" />
-          <div
-            v-else
-            class="absolute inset-0 flex flex-col items-center justify-center gap-1 text-[12px] text-slate-400 dark:text-slate-500 px-4 text-center"
-          >
-            <span class="font-medium text-slate-500 dark:text-slate-400">Kakao Map 키가 필요합니다</span>
-            <span>.env 의 <code class="text-primary">VITE_KAKAO_MAP_APP_KEY</code> 값을 채워주세요.</span>
-          </div>
-          <div
-            v-if="hasKey && sdkError"
-            class="absolute inset-0 flex flex-col items-center justify-center gap-1 text-[12px] text-red-500 px-4 text-center bg-white/90 dark:bg-slate-900/80"
-          >
-            <span class="font-medium">Kakao Map SDK 로드에 실패했어요</span>
-            <span class="text-slate-500 dark:text-slate-400">키와 도메인 허용 설정을 확인해주세요.</span>
-          </div>
-
-          <div
-            v-if="hasKey && !positionedItems.length"
-            class="absolute bottom-3 left-3 right-3 px-3 py-2 rounded-md bg-white/90 dark:bg-slate-900/80 text-[11px] text-slate-500 dark:text-slate-400 shadow-sm pointer-events-none"
-          >
-            이 날짜에 좌표가 있는 장소가 없습니다.
-          </div>
-        </div>
-      </div>
-      </Teleport>
-    </CardContent>
-  </Card>
+  <div class="h-full w-full overflow-hidden relative bg-slate-50 dark:bg-slate-800/50">
+    <div v-if="hasKey" ref="mapEl" class="absolute inset-0 w-full h-full" />
+    <div
+      v-else
+      class="absolute inset-0 flex flex-col items-center justify-center gap-1 text-[12px] text-slate-400 dark:text-slate-500 px-4 text-center"
+    >
+      <span class="font-medium text-slate-500 dark:text-slate-400">Kakao Map 키가 필요합니다</span>
+      <span>.env 의 <code class="text-primary">VITE_KAKAO_MAP_APP_KEY</code> 값을 채워주세요.</span>
+    </div>
+    <div
+      v-if="hasKey && sdkError"
+      class="absolute inset-0 flex flex-col items-center justify-center gap-1 text-[12px] text-red-500 px-4 text-center bg-white/90 dark:bg-slate-900/80"
+    >
+      <span class="font-medium">Kakao Map SDK 로드에 실패했어요</span>
+      <span class="text-slate-500 dark:text-slate-400">키와 도메인 허용 설정을 확인해주세요.</span>
+    </div>
+    <div
+      v-if="hasKey && !positionedItems.length"
+      class="absolute bottom-3 left-3 right-3 px-3 py-2 rounded-md bg-white/90 dark:bg-slate-900/80 text-[11px] text-slate-500 dark:text-slate-400 shadow-sm pointer-events-none"
+    >
+      좌표가 있는 장소가 없습니다.
+    </div>
+  </div>
 </template>
 
 <style>

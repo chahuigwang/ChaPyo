@@ -15,6 +15,7 @@ export class TravelItem {
     lat = null,
     lng = null,
     contentId = null,
+    transitAfter = null,
   } = {}) {
     this.id = id ?? newItemId()
     this.name = name
@@ -25,6 +26,7 @@ export class TravelItem {
     this.lat = lat
     this.lng = lng
     this.contentId = contentId
+    this.transitAfter = transitAfter ?? { cost: 0, mins: null }
   }
 
   static fromJSON(raw = {}) {
@@ -42,6 +44,7 @@ export class TravelItem {
       lat: this.lat,
       lng: this.lng,
       contentId: this.contentId,
+      transitAfter: this.transitAfter,
     }
   }
 

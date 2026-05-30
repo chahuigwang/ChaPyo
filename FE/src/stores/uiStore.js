@@ -8,6 +8,7 @@ export const useUiStore = defineStore('ui', {
     activePanel: 'chat',
     hoveredItemId: null,
     viewMode: 'split', // 'map' | 'split' | 'timeline'
+    currentView: 'total', // 'total' | 'daily'
   }),
   getters: {
     sidebarOpen: (s) => s.activePanel !== null,
@@ -15,6 +16,9 @@ export const useUiStore = defineStore('ui', {
   actions: {
     setViewMode(mode) {
       if (['map', 'split', 'timeline'].includes(mode)) this.viewMode = mode
+    },
+    setCurrentView(view) {
+      if (['total', 'daily'].includes(view)) this.currentView = view
     },
     setHoveredItem(id) { this.hoveredItemId = id ?? null },
     clearHoveredItem(id) {

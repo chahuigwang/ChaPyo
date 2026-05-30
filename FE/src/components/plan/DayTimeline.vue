@@ -1,7 +1,8 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import { Clock, Pencil, Trash2, GripVertical, Car, Sparkles } from 'lucide-vue-next'
+import { Clock, Pencil, Trash2, GripVertical, Sparkles, X } from 'lucide-vue-next'
+import TransitItem from './TransitItem.vue'
 import { useTripStore } from '@/stores/tripStore'
 import { useStorageStore } from '@/stores/storageStore'
 import { useChatStore } from '@/stores/chatStore'
@@ -194,8 +195,7 @@ function onCardDragEnd() {
 const formOpen = ref(false)
 const editing = ref(null)
 const detail = ref(null)
-const autoComposeOpen = ref(false)
-
+const pendingDelete = ref(null) // id of item awaiting 2-step confirm
 
 function openEdit(item) {
   detail.value = null
@@ -216,35 +216,48 @@ function submit(payload) {
   }
   closeForm()
 }
-function remove(item) {
-  if (confirm(`"${item.name}"을(를) 삭제할까요?`)) {
-    trip.removeItem(item.id)
-    collab.pushHistory({ type: 'remove', itemName: item.name, byName: collab.me.name })
-    detail.value = null
-  }
+function requestDelete(item) {
+  pendingDelete.value = item.id
 }
+function cancelDelete() {
+  pendingDelete.value = null
+}
+function confirmDelete(item) {
+  trip.removeItem(item.id)
+  collab.pushHistory({ type: 'remove', itemName: item.name, byName: collab.me.name })
+  pendingDelete.value = null
+  if (detail.value?.id === item.id) detail.value = null
+}
+
+// Daily summary stats
+const dailyCost = computed(() =>
+  itemsOfSelectedDay.value.reduce((s, i) => s + (Number(i.cost) || 0) + (Number(i.transitAfter?.cost) || 0), 0)
+)
 const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
 </script>
 
 <template>
   <Card class="flex flex-col min-h-0">
     <CardHeader>
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-3 min-w-0">
-          <span
-            v-if="selectedDate"
-            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap"
-            :style="{ backgroundColor: selectedDayColor.bg, color: selectedDayColor.fg }"
-          >
-            <span class="h-1.5 w-1.5 rounded-full" :style="{ backgroundColor: selectedDayColor.pin }"></span>
-            {{ selectedDayLabel }}
-          </span>
-          <div class="min-w-0">
-            <CardTitle>{{ selectedDate || '날짜를 선택하세요' }}</CardTitle>
-            <p class="mt-1 text-[12px] text-slate-500 dark:text-slate-400">{{ itemsOfSelectedDay.length }}건의 일정</p>
-          </div>
+      <div class="flex items-center gap-3 min-w-0">
+        <span
+          v-if="selectedDate"
+          class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap"
+          :style="{ backgroundColor: selectedDayColor.bg, color: selectedDayColor.fg }"
+        >
+          <span class="h-1.5 w-1.5 rounded-full" :style="{ backgroundColor: selectedDayColor.pin }"></span>
+          {{ selectedDayLabel }}
+        </span>
+        <div class="flex-1 min-w-0">
+          <CardTitle>{{ selectedDate || '날짜를 선택하세요' }}</CardTitle>
+          <p class="mt-1 text-[12px] text-slate-500 dark:text-slate-400">{{ itemsOfSelectedDay.length }}건의 일정</p>
         </div>
-        </div>
+      </div>
+      <!-- Daily Summary bar -->
+      <div v-if="selectedDate" class="mt-3 flex items-center justify-between rounded-lg bg-slate-50 dark:bg-slate-800/60 px-3 py-2">
+        <span class="text-[11px] text-slate-400">장소 {{ itemsOfSelectedDay.length }}건</span>
+        <span class="text-[12px] font-semibold text-slate-900 dark:text-slate-100">{{ won(dailyCost) }}</span>
+      </div>
     </CardHeader>
 
     <CardContent
@@ -321,12 +334,30 @@ const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
                   >
                     <Pencil :size="13" />
                   </button>
+                  <!-- 2-step delete -->
                   <button
-                    @click.stop="remove(item)"
+                    v-if="pendingDelete !== item.id"
+                    @click.stop="requestDelete(item)"
                     class="h-7 w-7 rounded-md flex items-center justify-center text-slate-500 hover:text-red-500 hover:bg-white dark:hover:bg-slate-900"
                     title="삭제"
                   >
                     <Trash2 :size="13" />
+                  </button>
+                  <button
+                    v-else
+                    @click.stop="confirmDelete(item)"
+                    class="h-7 px-2 rounded-md flex items-center justify-center text-[10px] font-semibold text-white bg-red-500 hover:bg-red-600"
+                    title="정말 삭제"
+                  >
+                    정말?
+                  </button>
+                  <button
+                    v-if="pendingDelete === item.id"
+                    @click.stop="cancelDelete"
+                    class="h-7 w-7 rounded-md flex items-center justify-center text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    title="취소"
+                  >
+                    <X :size="12" />
                   </button>
                 </div>
               </div>
@@ -358,8 +389,8 @@ const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
           <!-- between/trailing connector -->
           <div
             @dragover="onSlotDragOver($event, idx + 1)"
-            class="relative mx-4 flex flex-col items-center transition-all"
-            :class="dropIndex === idx + 1 ? 'py-0.5' : 'py-1'"
+            class="relative flex flex-col items-center transition-all"
+            :class="dropIndex === idx + 1 ? 'py-0.5' : ''"
           >
             <!-- drop indicator bar -->
             <div
@@ -379,20 +410,12 @@ const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
                 {{ ghostSlots[idx].suggestedTime }} · {{ Math.round(ghostSlots[idx].gapMins / 60) }}h 여유
               </span>
             </button>
-            <!-- Transit chip -->
-            <span
-              v-else-if="idx < itemsOfSelectedDay.length - 1 && transits[idx]"
-              class="inline-flex items-center gap-1 px-2 py-1 rounded-full my-0.5
-                     bg-white dark:bg-slate-900 text-[10px] font-medium
-                     text-slate-500 dark:text-slate-400 shadow-sm"
-            >
-              <Car :size="11" class="text-[#00B7EB]" />
-              {{ transits[idx].mins }}분 · {{ transits[idx].km }}km
-            </span>
-            <!-- Plain connector line -->
-            <div
+            <!-- TransitItem (editable) -->
+            <TransitItem
               v-else-if="idx < itemsOfSelectedDay.length - 1"
-              class="w-px h-5 bg-slate-200 dark:bg-slate-700"
+              :item="item"
+              :auto-km="transits[idx]?.km ?? null"
+              :auto-mins="transits[idx]?.mins ?? null"
             />
           </div>
         </template>
@@ -427,9 +450,20 @@ const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
         <div v-else class="text-[12px] text-slate-400 dark:text-slate-500">추가 메모가 없습니다.</div>
       </div>
       <template #footer>
-        <Button variant="ghost" size="sm" class="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30" @click="remove(detail)">
+        <Button
+          v-if="pendingDelete !== detail?.id"
+          variant="ghost" size="sm"
+          class="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30"
+          @click="requestDelete(detail)"
+        >
           <Trash2 :size="13" /> 삭제
         </Button>
+        <div v-else class="flex items-center gap-1">
+          <Button size="sm" class="bg-red-500 hover:bg-red-600 text-white" @click="confirmDelete(detail)">
+            정말 삭제
+          </Button>
+          <Button variant="ghost" size="sm" @click="cancelDelete">취소</Button>
+        </div>
         <Button size="sm" @click="openEdit(detail)">
           <Pencil :size="13" /> 수정
         </Button>

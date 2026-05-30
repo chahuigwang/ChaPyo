@@ -61,10 +61,16 @@ function submit() {
   else chat.addPersona({ ...form })
   closeForm()
 }
+const pendingDeletePersona = ref(null)
 function remove(p) {
   if (p.builtIn) return
-  if (confirm(`"${p.name}" 페르소나를 삭제할까요?`)) chat.deletePersona(p.id)
+  pendingDeletePersona.value = p.id
 }
+function confirmRemove(p) {
+  chat.deletePersona(p.id)
+  pendingDeletePersona.value = null
+}
+function cancelRemove() { pendingDeletePersona.value = null }
 </script>
 
 <template>
@@ -151,6 +157,7 @@ function remove(p) {
                 <Pencil :size="11" />
               </span>
               <span
+                v-if="pendingDeletePersona !== p.id"
                 role="button"
                 tabindex="0"
                 @click.stop="remove(p)"
@@ -158,6 +165,18 @@ function remove(p) {
                 title="삭제"
               >
                 <Trash2 :size="11" />
+              </span>
+              <span v-else class="flex items-center gap-0.5">
+                <span
+                  role="button" tabindex="0"
+                  @click.stop="confirmRemove(p)"
+                  class="h-6 px-1.5 rounded-md text-[9px] font-semibold text-white bg-red-500 hover:bg-red-600 flex items-center"
+                >정말?</span>
+                <span
+                  role="button" tabindex="0"
+                  @click.stop="cancelRemove"
+                  class="h-6 w-6 rounded-md flex items-center justify-center text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                ><X :size="10" /></span>
               </span>
             </template>
           </button>

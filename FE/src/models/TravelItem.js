@@ -26,7 +26,7 @@ export class TravelItem {
     this.lat = lat
     this.lng = lng
     this.contentId = contentId
-    this.transitAfter = transitAfter ?? { cost: 0, mins: null }
+    this.transitAfter = transitAfter ?? { cost: 0, mins: null, method: '' }
   }
 
   static fromJSON(raw = {}) {

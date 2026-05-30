@@ -1,16 +1,14 @@
 <script setup>
 import { computed } from 'vue'
-import SuggestionCard from './SuggestionCard.vue'
+import DiscoverPlaceCard from '@/components/common/DiscoverPlaceCard.vue'
 
 const props = defineProps({
   message: { type: Object, required: true },
   emoji: { type: String, default: '🤖' },
 })
-const emit = defineEmits(['addSuggestion'])
 
 const isUser = computed(() => props.message.role === 'user')
 const isSystem = computed(() => props.message.role === 'system')
-const isAdded = (i) => (props.message.addedIds ?? []).includes(i)
 </script>
 
 <template>
@@ -25,7 +23,7 @@ const isAdded = (i) => (props.message.addedIds ?? []).includes(i)
       {{ emoji }}
     </div>
 
-    <div class="max-w-[82%] space-y-2">
+    <div class="max-w-[90%] w-full space-y-2">
       <div
         :class="[
           'rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed whitespace-pre-wrap break-words',
@@ -37,13 +35,11 @@ const isAdded = (i) => (props.message.addedIds ?? []).includes(i)
         {{ message.content }}
       </div>
 
-      <div v-if="message.suggestions?.length" class="space-y-1.5">
-        <SuggestionCard
+      <div v-if="message.suggestions?.length" class="space-y-2 pl-0.5">
+        <DiscoverPlaceCard
           v-for="(s, i) in message.suggestions"
           :key="i"
-          :suggestion="s"
-          :added="isAdded(i)"
-          @add="emit('addSuggestion', { messageId: message.id, index: i, suggestion: s })"
+          :item="s"
         />
       </div>
     </div>

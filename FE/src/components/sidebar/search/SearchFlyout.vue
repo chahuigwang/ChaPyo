@@ -1,16 +1,18 @@
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import { Search, Plus, X, MapPin, Loader2, RotateCcw, Clock, Heart } from 'lucide-vue-next'
+import { Search, X, MapPin, Loader2, RotateCcw, Heart, CalendarPlus, ChevronDown } from 'lucide-vue-next'
 import { useSearchStore, PROVINCES, PLACE_TYPE_GROUPS } from '@/stores/searchStore'
 import { useStorageStore } from '@/stores/storageStore'
 import { useChatStore } from '@/stores/chatStore'
+import { useTripStore } from '@/stores/tripStore'
 import { findCategory } from '@/types/itinerary'
-import SearchResultItem from './SearchResultItem.vue'
+import DiscoverPlaceCard from '@/components/common/DiscoverPlaceCard.vue'
 
 const search = useSearchStore()
 const storage = useStorageStore()
 const chat = useChatStore()
+const trip = useTripStore()
 const { keyword, provinceId, districtId, typeId, results, hasNext, loading, searched, districts } = storeToRefs(search)
 
 const currentPage = ref(0)
@@ -33,6 +35,7 @@ function onLoadMore() {
 
 // IntersectionObserver 설정
 onMounted(() => {
+  document.addEventListener('mousedown', onCategoryOutside)
   observer = new IntersectionObserver((entries) => {
     const target = entries[0]
     if (target.isIntersecting && hasNext.value && !loading.value) {
@@ -57,19 +60,24 @@ watch(observerTarget, (newVal) => {
 })
 
 onUnmounted(() => {
+  document.removeEventListener('mousedown', onCategoryOutside)
   if (observer) observer.disconnect()
 })
 
 
 
-function addToStorage(item) {
-  storage.addItem({
+function addToItinerary(item) {
+  const date = trip.selectedDate ?? trip.days?.[0] ?? null
+  if (!date) return
+  trip.addItemToDate(date, {
     name: item.name,
     category: item.category,
-    memo: item.address,
-    cost: 0,
+    memo: item.address || '',
+    cost: item.cost ?? 0,
+    lat: item.lat,
+    lng: item.lng,
+    firstImage: item.firstImage,
   })
-  chat.pushSystemNotice?.(`"${item.name}"을(를) 보관함에 추가했어요.`)
 }
 function clearAll() {
   currentPage.value = 0
@@ -77,6 +85,33 @@ function clearAll() {
 }
 
 const detailItem = ref(null)
+
+// Category custom dropdown
+const categoryOpen = ref(false)
+const categoryRef = ref(null)
+const categoryTriggerRef = ref(null)
+
+const selectedTypeLabel = computed(() => {
+  if (!typeId.value) return '카테고리 전체'
+  for (const g of PLACE_TYPE_GROUPS) {
+    if (g.id === typeId.value) return g.label
+    const child = g.children.find((c) => c.id === typeId.value)
+    if (child) return child.label
+  }
+  return '카테고리 전체'
+})
+
+function selectType(id) {
+  search.setType(id)
+  categoryOpen.value = false
+}
+
+function onCategoryOutside(e) {
+  if (!categoryOpen.value) return
+  if (categoryTriggerRef.value?.contains(e.target)) return
+  if (categoryRef.value?.contains(e.target)) return
+  categoryOpen.value = false
+}
 </script>
 
 <template>
@@ -138,17 +173,51 @@ const detailItem = ref(null)
           <option v-for="d in districts" :key="d.id" :value="d.id">{{ d.label }}</option>
         </select>
       </div>
-      <select
-        :value="typeId"
-        @change="search.setType($event.target.value)"
-        class="w-full h-8 px-2 text-[11px] rounded-md bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-primary/30"
-      >
-        <option value="">카테고리 전체</option>
-        <template v-for="group in PLACE_TYPE_GROUPS" :key="group.id">
-          <option :value="group.id" class="font-semibold">▸ {{ group.label }}</option>
-          <option v-for="t in group.children" :key="t.id" :value="t.id">&nbsp;&nbsp;ㄴ {{ t.label }}</option>
-        </template>
-      </select>
+      <!-- Category custom dropdown -->
+      <div class="relative">
+        <button
+          ref="categoryTriggerRef"
+          type="button"
+          @click="categoryOpen = !categoryOpen"
+          class="w-full h-8 px-3 text-[11px] rounded-xl bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-1 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+        >
+          <span class="truncate">{{ selectedTypeLabel }}</span>
+          <ChevronDown :size="11" class="shrink-0 text-slate-400 transition-transform duration-200" :class="categoryOpen ? 'rotate-180' : ''" />
+        </button>
+
+        <Transition
+          enter-active-class="transition-all duration-200 ease-out"
+          enter-from-class="opacity-0 scale-95 -translate-y-1"
+          enter-to-class="opacity-100 scale-100 translate-y-0"
+          leave-active-class="transition-all duration-150 ease-in"
+          leave-from-class="opacity-100 scale-100 translate-y-0"
+          leave-to-class="opacity-0 scale-95 -translate-y-1"
+        >
+          <div
+            v-if="categoryOpen"
+            ref="categoryRef"
+            class="absolute left-0 top-full mt-1 z-50 w-full max-h-56 overflow-y-auto bg-white dark:bg-slate-900 rounded-xl shadow-xl py-1"
+          >
+            <button
+              type="button"
+              @click="selectType('')"
+              class="w-full text-left px-3 py-1.5 text-[11px] transition-colors"
+              :class="!typeId ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'"
+            >카테고리 전체</button>
+            <template v-for="group in PLACE_TYPE_GROUPS" :key="group.id">
+              <div class="px-3 pt-2 pb-0.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">{{ group.label }}</div>
+              <button
+                v-for="t in group.children"
+                :key="t.id"
+                type="button"
+                @click="selectType(t.id)"
+                class="w-full text-left px-3 py-1.5 text-[11px] transition-colors pl-5"
+                :class="typeId === t.id ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'"
+              >{{ t.label }}</button>
+            </template>
+          </div>
+        </Transition>
+      </div>
     </section>
 
     <span class="mx-5 h-px bg-slate-100 dark:bg-slate-800" />
@@ -165,11 +234,10 @@ const detailItem = ref(null)
 
       <template v-else>
 
-        <SearchResultItem
+        <DiscoverPlaceCard
           v-for="item in results"
           :key="item.id"
           :item="item"
-          @add="addToStorage"
           @detail="detailItem = $event"
         />
 
@@ -245,12 +313,24 @@ const detailItem = ref(null)
                 {{ detailItem.likeCount.toLocaleString() }}
               </div>
 
-              <button
-                @click="addToStorage(detailItem); detailItem = null"
-                class="w-full h-10 rounded-xl bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-brand-600 transition-colors flex items-center justify-center gap-2"
-              >
-                <Plus :size="15" /> 보관함에 담기
-              </button>
+              <div class="flex gap-2">
+                <button
+                  @click="storage.toggleLike(detailItem)"
+                  class="flex-1 h-10 rounded-xl text-[13px] font-semibold transition-colors flex items-center justify-center gap-2"
+                  :class="storage.isLiked(detailItem.sourceId ?? detailItem.id)
+                    ? 'bg-red-50 dark:bg-red-900/20 text-red-500 hover:bg-red-100'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'"
+                >
+                  <Heart :size="14" :class="storage.isLiked(detailItem.sourceId ?? detailItem.id) ? 'fill-red-500' : ''" />
+                  {{ storage.isLiked(detailItem.sourceId ?? detailItem.id) ? '좋아요 취소' : '좋아요' }}
+                </button>
+                <button
+                  @click="addToItinerary(detailItem); detailItem = null"
+                  class="flex-1 h-10 rounded-xl bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-brand-600 transition-colors flex items-center justify-center gap-2"
+                >
+                  <CalendarPlus :size="15" /> 일정에 추가
+                </button>
+              </div>
             </div>
           </div>
         </div>

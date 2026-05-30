@@ -32,14 +32,32 @@ export const useStorageStore = defineStore('storage', {
     items: seedStorageItems(),
     dragging: null, // { source: 'storage'|'chat', item: PlaceItem }
   }),
+  getters: {
+    isLiked: (state) => (sourceId) =>
+      state.items.some((i) => i.sourceId === sourceId || i.id === sourceId),
+  },
   actions: {
     addItem(payload) {
       const it = createPlaceItem(payload)
       const preservedVotes = payload?.votes ?? { up: 0, down: 0 }
-      this.items.unshift({ ...it, id: nextId(), votes: { ...preservedVotes }, myVote: payload?.myVote ?? null })
+      this.items.unshift({
+        ...it,
+        id: nextId(),
+        sourceId: payload?.sourceId ?? payload?.id ?? null,
+        votes: { ...preservedVotes },
+        myVote: payload?.myVote ?? null,
+      })
     },
     removeItem(id) {
       this.items = this.items.filter((i) => i.id !== id)
+    },
+    toggleLike(item) {
+      const existing = this.items.find((i) => i.sourceId === item.id || i.id === item.id)
+      if (existing) {
+        this.items = this.items.filter((i) => i.id !== existing.id)
+      } else {
+        this.addItem({ ...item, sourceId: item.id })
+      }
     },
     vote(id, dir) {
       const it = this.items.find((i) => i.id === id)

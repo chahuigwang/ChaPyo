@@ -176,6 +176,17 @@ export const useTripStore = defineStore('trip', {
         trip.touch()
       }
     },
+    patchItemCoords(id, lat, lng) {
+      const trip = this.currentTrip
+      if (!trip) return
+      for (const list of Object.values(trip.itemsByDay)) {
+        const idx = list.findIndex((i) => i.id === id)
+        if (idx >= 0) {
+          list[idx] = { ...list[idx], lat, lng }
+          return
+        }
+      }
+    },
     removeItem(id) {
       const trip = this.currentTrip
       if (!trip) return

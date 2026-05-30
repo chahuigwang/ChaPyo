@@ -1,9 +1,9 @@
 <script setup>
 import { watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import LoginPage from '@/pages/Login.vue'
-import DashboardPage from '@/pages/Dashboard.vue'
-import PlanDetailPage from '@/pages/PlanDetail.vue'
+import LoginPage from '@/views/Login.vue'
+import DashboardPage from '@/views/Dashboard.vue'
+import PlanDetailPage from '@/views/PlanDetail.vue'
 import { useAuthStore } from '@/stores/authStore'
 import { useTripStore } from '@/stores/tripStore'
 import { useTheme } from '@/composables/useTheme'

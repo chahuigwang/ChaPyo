@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia'
 import { ChevronLeft, ChevronRight, Pencil, Check } from 'lucide-vue-next'
 import { useTripStore } from '@/stores/tripStore'
 import { useUiStore } from '@/stores/uiStore'
+import CustomCalendar from '@/components/common/CustomCalendar.vue'
 
 const trip = useTripStore()
 const ui = useUiStore()
@@ -17,14 +18,12 @@ function saveTitle() { trip.setTitle(titleDraft.value); titleEditing.value = fal
 function onTitleKeydown(e) { if (e.key === 'Enter') saveTitle(); else if (e.key === 'Escape') titleEditing.value = false }
 
 // ── Date inputs ──────────────────────────────────────────────
-function onStartChange(e) {
-  const v = e.target.value
+function onStartChange(v) {
   if (!v) return
   const end = v > endDate.value ? v : endDate.value
   trip.setRange(v, end)
 }
-function onEndChange(e) {
-  const v = e.target.value
+function onEndChange(v) {
   if (!v || v < startDate.value) return
   trip.setRange(startDate.value, v)
 }
@@ -140,15 +139,10 @@ const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
     </div>
 
     <!-- 1. 출발 -->
-    <label class="mx-5 mb-3 flex items-center justify-between cursor-pointer rounded-lg px-3 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors">
+    <div class="mx-5 mb-3 flex items-center justify-between rounded-lg px-3 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors">
       <span class="text-lg font-semibold text-gray-900 dark:text-slate-100">출발</span>
-      <input
-        type="date"
-        :value="startDate"
-        @change="onStartChange"
-        class="bg-transparent text-[14px] font-medium text-slate-700 dark:text-slate-200 outline-none cursor-pointer text-right"
-      />
-    </label>
+      <CustomCalendar :model-value="startDate" @update:model-value="onStartChange" />
+    </div>
 
     <!-- 2. 캘린더 -->
     <div class="px-4 pb-4">
@@ -203,16 +197,10 @@ const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
     </div>
 
     <!-- 3. 도착 -->
-    <label class="mx-5 mb-5 flex items-center justify-between cursor-pointer rounded-lg px-3 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors">
+    <div class="mx-5 mb-5 flex items-center justify-between rounded-lg px-3 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors">
       <span class="text-lg font-semibold text-gray-900 dark:text-slate-100">도착</span>
-      <input
-        type="date"
-        :value="endDate"
-        :min="startDate"
-        @change="onEndChange"
-        class="bg-transparent text-[14px] font-medium text-slate-700 dark:text-slate-200 outline-none cursor-pointer text-right"
-      />
-    </label>
+      <CustomCalendar :model-value="endDate" :min-date="startDate" @update:model-value="onEndChange" />
+    </div>
 
     <!-- 4. 요약 (총 기간 + 총 비용) -->
     <div class="px-5 pb-6">

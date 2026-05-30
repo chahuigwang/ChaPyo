@@ -7,8 +7,7 @@ import {
   UserRound,
   Sun,
   Moon,
-  Ticket,
-  Archive,
+  Heart,
   MessageSquare,
   Search,
   MapPin,
@@ -54,8 +53,10 @@ function isActive(name) {
         <PanelLeftOpen v-else :size="18" />
       </button>
 
+      <div class="w-1/2 mx-auto border-t border-slate-200 dark:border-slate-700 my-2" />
+
       <!-- Group 2: Trip Settings only -->
-      <div class="mt-4 flex flex-col items-center">
+      <div class="flex flex-col items-center">
         <button
           @click="ui.togglePanel('plan')"
           :class="isActive('plan') ? railBtnActive : railBtn"
@@ -65,8 +66,10 @@ function isActive(name) {
         </button>
       </div>
 
+      <div class="w-1/2 mx-auto border-t border-slate-200 dark:border-slate-700 my-2" />
+
       <!-- Group 3: Chat / Search / Storage / Profile -->
-      <div class="mt-4 flex flex-col items-center gap-1">
+      <div class="flex flex-col items-center gap-1">
         <button
           @click="ui.togglePanel('chat')"
           :class="isActive('chat') ? railBtnActive : railBtn"
@@ -84,9 +87,9 @@ function isActive(name) {
         <button
           @click="ui.togglePanel('storage')"
           :class="isActive('storage') ? railBtnActive : railBtn"
-          title="보관함"
+          title="좋아요 리스트"
         >
-          <Archive :size="18" />
+          <Heart :size="18" />
         </button>
         <button
           @click="ui.togglePanel('profile')"
@@ -97,22 +100,22 @@ function isActive(name) {
         </button>
       </div>
 
-      <!-- Bottom: theme toggle + branding + back button -->
-      <div class="mt-auto flex flex-col items-center gap-1">
+      <!-- Bottom: theme toggle + back button -->
+      <div class="mt-auto flex flex-col items-center gap-1.5">
         <button
           @click="toggle"
-          :class="railBtn"
+          class="h-10 w-10 rounded-md flex items-center justify-center transition-colors"
+          :class="isDark
+            ? 'bg-slate-700 text-slate-200 hover:bg-slate-600'
+            : 'bg-slate-800 text-white hover:bg-slate-700'"
           :title="isDark ? '라이트 모드' : '다크 모드'"
         >
           <Sun v-if="isDark" :size="18" />
           <Moon v-else :size="18" />
         </button>
-        <span class="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center" title="차표">
-          <Ticket :size="15" />
-        </span>
         <button
           @click="trip.exitTrip"
-          class="h-10 w-10 rounded-md text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 flex items-center justify-center transition-colors"
+          class="h-10 w-10 rounded-md bg-red-50 dark:bg-red-900/20 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/40 flex items-center justify-center transition-colors"
           title="여행 리스트로 이동"
         >
           <ChevronLeft :size="18" />
@@ -123,9 +126,10 @@ function isActive(name) {
     <!-- Flyout panel -->
     <div
       :class="[
-        'h-full border-l border-slate-100 dark:border-slate-800 flex flex-col min-h-0 bg-white dark:bg-slate-900 overflow-hidden',
+        'h-full flex flex-col min-h-0 bg-white dark:bg-slate-900 overflow-hidden',
         'transition-[width] duration-300 ease-in-out',
-        sidebarOpen ? 'w-100' : 'w-0',
+        'border-l border-slate-100 dark:border-slate-800',
+        sidebarOpen ? 'w-100 border-r border-gray-200/80 dark:border-slate-700/60' : 'w-0 border-r-0',
       ]"
     >
       <ChatFlyout v-if="activePanel === 'chat'" />

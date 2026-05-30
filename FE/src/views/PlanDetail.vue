@@ -1,7 +1,7 @@
 <script setup>
 import SidebarContainer from '@/components/sidebar/SidebarContainer.vue'
-import TripDetailPanel from '@/components/plan/TripDetailPanel.vue'
-import HistoryDrawer from '@/components/plan/HistoryDrawer.vue'
+import TripDetailPanel from '@/components/workspace/TripDetailPanel.vue'
+import HistoryDrawer from '@/components/workspace/HistoryDrawer.vue'
 </script>
 
 <template>

@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { storeToRefs } from 'pinia'
-import { Plus, LogOut, UserRound, Pencil } from 'lucide-vue-next'
+import { Plus, LogOut, Pencil } from 'lucide-vue-next'
 import { useTripStore } from '@/stores/tripStore'
 import { useAuthStore } from '@/stores/authStore'
 import { Button } from '@/components/common'
@@ -10,9 +10,7 @@ import TripCard from '@/components/tripList/TripCard.vue'
 const trip = useTripStore()
 const auth = useAuthStore()
 const { trips } = storeToRefs(trip)
-const { user, isAuthed } = storeToRefs(auth)
-
-function logout() { auth.logout() }
+const { user } = storeToRefs(auth)
 
 const SORT_OPTIONS = [
   { id: 'updated', label: '최근 수정한 순' },
@@ -29,25 +27,18 @@ const sortedTrips = computed(() => {
   }
   return list
 })
-
-function open(id) { trip.selectTrip(id) }
-function remove(t) { trip.deleteTrip(t.id) }
-function createNew() { trip.createTrip({ title: '새 여행' }) }
 </script>
 
 <template>
   <div class="flex-1 overflow-y-auto">
     <div class="mx-auto max-w-5xl px-8 py-16">
       <div class="flex items-start justify-between mb-10 gap-6">
-        <!-- Left: greeting -->
         <div>
           <p class="text-[13px] text-slate-500 dark:text-slate-400">안녕하세요 👋</p>
           <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100 tracking-tight mt-2">나의 여행 계획</h1>
         </div>
 
-        <!-- Right: User ID Card + actions -->
         <div class="flex items-center gap-3 shrink-0">
-          <!-- User ID Card -->
           <div class="flex items-center gap-3 px-4 py-3 rounded-2xl bg-white dark:bg-slate-900 shadow-sm">
             <div class="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 text-[15px] font-bold">
               {{ (user?.name ?? '?').charAt(0).toUpperCase() }}
@@ -66,7 +57,7 @@ function createNew() { trip.createTrip({ title: '새 여행' }) }
                 <Pencil :size="14" />
               </button>
               <button
-                @click="logout"
+                @click="auth.logout"
                 class="h-8 w-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                 title="로그아웃"
               >
@@ -75,7 +66,7 @@ function createNew() { trip.createTrip({ title: '새 여행' }) }
             </div>
           </div>
 
-          <Button @click="createNew">
+          <Button @click="trip.createTrip({ title: '새 여행' })">
             <Plus :size="15" /> 새 여행
           </Button>
         </div>
@@ -102,8 +93,8 @@ function createNew() { trip.createTrip({ title: '새 여행' }) }
           v-for="t in sortedTrips"
           :key="t.id"
           :trip="t"
-          @open="open"
-          @delete="remove"
+          @open="trip.selectTrip($event)"
+          @delete="trip.deleteTrip($event.id)"
         />
       </div>
 

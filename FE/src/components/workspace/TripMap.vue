@@ -167,8 +167,7 @@ function renderRoute() {
       if (dPts.length >= 2) {
         const pl = new kakao.maps.Polyline({ path: dPts, strokeWeight: 3, strokeColor: color.pin, strokeOpacity: 0.85, strokeStyle: 'shortdash' })
         pl.setMap(mapInstance)
-        if (!polyline) polyline = pl
-        else overlays.push({ itemId: `pl_${dayIdx}`, overlay: pl, el: null })
+        polylines.push({ pl, color: color.pin, segIdx: dayIdx })
       }
     })
   } else {

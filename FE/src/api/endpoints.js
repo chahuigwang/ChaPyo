@@ -4,6 +4,8 @@ export const ENDPOINTS = {
   auth: {
     login: '/auth/login',
     logout: '/auth/logout',
+    refresh: '/auth/refresh',
+    register: '/auth/register',
     me: '/auth/me',
   },
   trips: {

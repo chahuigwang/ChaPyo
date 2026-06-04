@@ -11,6 +11,12 @@ spring:
     password:
     driver-class-name:
 
+# Redis 설정
+  data:
+    redis:
+      host:
+      port:
+
 # MyBatis 설정
 mybatis:
   mapper-locations: classpath:mappers/**/*.xml

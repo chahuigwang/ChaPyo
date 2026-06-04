@@ -19,7 +19,7 @@ public class BaseResponse<T> {
         this.data = data;
     }
 
-		// 성공 - 데이터만
+    // 성공 - 데이터만
     public static <T> BaseResponse<T> success(T data) {
         return new BaseResponse<>(true, null, data);
     }
@@ -34,7 +34,7 @@ public class BaseResponse<T> {
         return new BaseResponse<>(true, message, data);
     }
 
-		// 실패
+    // 실패
     public static <T> BaseResponse<T> fail(ErrorCode errorCode) {
         return new BaseResponse<>(false, errorCode.getMessage(), null);
     }

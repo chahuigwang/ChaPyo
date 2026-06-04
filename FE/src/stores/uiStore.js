@@ -5,9 +5,11 @@ import { defineStore } from 'pinia'
 // 즉, 다른 협업 사용자와 동기화되지 않는다. 실시간 동기는 워크스페이스(SHARED) 영역에서만 발생한다.
 export const useUiStore = defineStore('ui', {
   state: () => ({
-    activePanel: 'chat',
+    activePanel: 'plan',
     hoveredItemId: null,
-    viewMode: 'split', // 'map' | 'split' | 'timeline'
+    hoveredTransitIndex: null,
+    viewMode: 'split',
+    currentView: 'total',
   }),
   getters: {
     sidebarOpen: (s) => s.activePanel !== null,
@@ -16,20 +18,25 @@ export const useUiStore = defineStore('ui', {
     setViewMode(mode) {
       if (['map', 'split', 'timeline'].includes(mode)) this.viewMode = mode
     },
+    setCurrentView(view) {
+      if (['total', 'daily'].includes(view)) this.currentView = view
+    },
     setHoveredItem(id) { this.hoveredItemId = id ?? null },
     clearHoveredItem(id) {
       if (id == null || this.hoveredItemId === id) this.hoveredItemId = null
     },
+    setHoveredTransit(idx) { this.hoveredTransitIndex = idx },
+    clearHoveredTransit() { this.hoveredTransitIndex = null },
     openPanel(name) { this.activePanel = name },
     closePanel() { this.activePanel = null },
     togglePanel(name) {
       this.activePanel = this.activePanel === name ? null : name
     },
     // 호환용 (기존 호출처 대응)
-    openSidebar() { if (!this.activePanel) this.activePanel = 'chat' },
+    openSidebar() { if (!this.activePanel) this.activePanel = 'plan' },
     closeSidebar() { this.activePanel = null },
     toggleSidebar() {
-      this.activePanel = this.activePanel ? null : 'chat'
+      this.activePanel = this.activePanel ? null : 'plan'
     },
   },
 })

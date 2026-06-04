@@ -7,19 +7,23 @@ import {
   UserRound,
   Sun,
   Moon,
-  Ticket,
-  Archive,
+  Heart,
   MessageSquare,
   Search,
+  MapPin,
+  ChevronLeft,
 } from 'lucide-vue-next'
 import { useUiStore } from '@/stores/uiStore'
 import { useTheme } from '@/composables/useTheme'
+import { useTripStore } from '@/stores/tripStore'
 import ChatFlyout from '@/components/sidebar/chat/ChatFlyout.vue'
 import ProfileFlyout from '@/components/sidebar/ProfileFlyout.vue'
 import StorageFlyout from '@/components/sidebar/storage/StorageFlyout.vue'
 import SearchFlyout from '@/components/sidebar/search/SearchFlyout.vue'
+import PlanFlyout from '@/components/sidebar/PlanFlyout.vue'
 
 const ui = useUiStore()
+const trip = useTripStore()
 const { activePanel, sidebarOpen } = storeToRefs(ui)
 const { theme, toggle } = useTheme()
 const isDark = computed(() => theme.value === 'dark')
@@ -36,8 +40,10 @@ function isActive(name) {
 
 <template>
   <aside class="shrink-0 h-full flex bg-white dark:bg-slate-900 shadow-sm">
-    <!-- Navigation Rail (always visible) -->
-    <div class="w-16 h-full flex flex-col items-center py-3 gap-1">
+    <!-- Navigation Rail: 3 groups -->
+    <div class="w-16 h-full flex flex-col items-center py-3">
+
+      <!-- Group 1: Collapse toggle only -->
       <button
         @click="ui.toggleSidebar"
         :class="railBtn"
@@ -47,62 +53,88 @@ function isActive(name) {
         <PanelLeftOpen v-else :size="18" />
       </button>
 
-      <div class="my-1 h-px w-8 bg-slate-100 dark:bg-slate-800" />
+      <div class="w-1/2 mx-auto border-t border-slate-200 dark:border-slate-700 my-2" />
 
-      <button
-        @click="ui.togglePanel('chat')"
-        :class="isActive('chat') ? railBtnActive : railBtn"
-        title="AI 채팅"
-      >
-        <MessageSquare :size="18" />
-      </button>
-      <button
-        @click="ui.togglePanel('search')"
-        :class="isActive('search') ? railBtnActive : railBtn"
-        title="장소 검색"
-      >
-        <Search :size="18" />
-      </button>
-      <button
-        @click="ui.togglePanel('storage')"
-        :class="isActive('storage') ? railBtnActive : railBtn"
-        title="보관함"
-      >
-        <Archive :size="18" />
-      </button>
-      <button
-        @click="ui.togglePanel('profile')"
-        :class="isActive('profile') ? railBtnActive : railBtn"
-        title="내 프로필"
-      >
-        <UserRound :size="18" />
-      </button>
+      <!-- Group 2: Trip Settings only -->
+      <div class="flex flex-col items-center">
+        <button
+          @click="ui.togglePanel('plan')"
+          :class="isActive('plan') ? railBtnActive : railBtn"
+          title="여행 설정"
+        >
+          <MapPin :size="18" />
+        </button>
+      </div>
 
-      <div class="mt-auto flex flex-col items-center gap-1">
+      <div class="w-1/2 mx-auto border-t border-slate-200 dark:border-slate-700 my-2" />
+
+      <!-- Group 3: Chat / Search / Storage / Profile -->
+      <div class="flex flex-col items-center gap-1">
+        <button
+          @click="ui.togglePanel('chat')"
+          :class="isActive('chat') ? railBtnActive : railBtn"
+          title="AI 채팅"
+        >
+          <MessageSquare :size="18" />
+        </button>
+        <button
+          @click="ui.togglePanel('search')"
+          :class="isActive('search') ? railBtnActive : railBtn"
+          title="장소 검색"
+        >
+          <Search :size="18" />
+        </button>
+        <button
+          @click="ui.togglePanel('storage')"
+          :class="isActive('storage') ? railBtnActive : railBtn"
+          title="좋아요 리스트"
+        >
+          <Heart :size="18" />
+        </button>
+        <button
+          @click="ui.togglePanel('profile')"
+          :class="isActive('profile') ? railBtnActive : railBtn"
+          title="내 프로필"
+        >
+          <UserRound :size="18" />
+        </button>
+      </div>
+
+      <!-- Bottom: theme toggle + back button -->
+      <div class="mt-auto flex flex-col items-center gap-1.5">
         <button
           @click="toggle"
-          :class="railBtn"
+          class="h-10 w-10 rounded-md flex items-center justify-center transition-colors"
+          :class="isDark
+            ? 'bg-slate-700 text-slate-200 hover:bg-slate-600'
+            : 'bg-slate-800 text-white hover:bg-slate-700'"
           :title="isDark ? '라이트 모드' : '다크 모드'"
         >
           <Sun v-if="isDark" :size="18" />
           <Moon v-else :size="18" />
         </button>
-        <span class="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center" title="차표">
-          <Ticket :size="15" />
-        </span>
+        <button
+          @click="trip.exitTrip"
+          class="h-10 w-10 rounded-md bg-red-50 dark:bg-red-900/20 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/40 flex items-center justify-center transition-colors"
+          title="여행 리스트로 이동"
+        >
+          <ChevronLeft :size="18" />
+        </button>
       </div>
     </div>
 
     <!-- Flyout panel -->
     <div
       :class="[
-        'h-full border-l border-slate-100 dark:border-slate-800 flex flex-col min-h-0 bg-white dark:bg-slate-900 overflow-hidden',
+        'h-full flex flex-col min-h-0 bg-white dark:bg-slate-900 overflow-hidden',
         'transition-[width] duration-300 ease-in-out',
-        sidebarOpen ? 'w-100' : 'w-0',
+        'border-l border-slate-100 dark:border-slate-800',
+        sidebarOpen ? 'w-80 border-r border-gray-200/80 dark:border-slate-700/60' : 'w-0 border-r-0',
       ]"
     >
       <ChatFlyout v-if="activePanel === 'chat'" />
       <SearchFlyout v-else-if="activePanel === 'search'" />
+      <PlanFlyout v-else-if="activePanel === 'plan'" />
       <ProfileFlyout v-else-if="activePanel === 'profile'" />
       <StorageFlyout v-else-if="activePanel === 'storage'" />
     </div>

@@ -1,4 +1,3 @@
-// 일정 도메인 정의.
 export const CATEGORIES = [
   { id: 'place', label: '관광', emoji: '📍' },
   { id: 'food', label: '식당', emoji: '🍽️' },
@@ -10,8 +9,7 @@ export function findCategory(id) {
   return CATEGORIES.find((c) => c.id === id) ?? CATEGORIES[0]
 }
 
-// Itinerary 아이템 팩토리. role: 카드 단위 데이터
-export function createPlaceItem({ name, category = 'place', time = '', memo = '', cost = 0, lat = null, lng = null }) {
+export function createPlaceItem({ name, category = 'place', time = '', memo = '', cost = 0, lat = null, lng = null, firstImage = null, address = '', sourceId = null }) {
   return {
     id: `i_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
     name,
@@ -21,10 +19,12 @@ export function createPlaceItem({ name, category = 'place', time = '', memo = ''
     cost: Number(cost) || 0,
     lat,
     lng,
+    firstImage,
+    address,
+    sourceId,
   }
 }
 
-// startDate~endDate 사이의 날짜 배열을 'YYYY-MM-DD' 문자열로 반환
 export function enumerateDays(startDate, endDate) {
   if (!startDate || !endDate) return []
   const start = new Date(startDate)

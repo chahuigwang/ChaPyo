@@ -4,13 +4,14 @@ import { storeToRefs } from 'pinia'
 import { useTripStore } from '@/stores/tripStore'
 import { useUiStore } from '@/stores/uiStore'
 import { dayColorFor } from '@/composables/useDayColor'
+import { geocodeAddress } from '@/composables/useGeocoder'
 
 const props = defineProps({ showAll: { type: Boolean, default: false } })
 
 const trip = useTripStore()
 const ui = useUiStore()
 const { itemsOfSelectedDay, selectedDate, currentTrip } = storeToRefs(trip)
-const { hoveredItemId } = storeToRefs(ui)
+const { hoveredItemId, hoveredTransitIndex } = storeToRefs(ui)
 
 const dayColor = computed(() => {
   const days = trip.days || []
@@ -38,12 +39,20 @@ const hasKey = computed(
 const mapEl = ref(null)
 let mapInstance = null
 let overlays = [] // { itemId, overlay, el }
-let polyline = null
+let polylines = [] // daily segments: [{ polyline, color }] indexed by segment position
 let sdkPromise = null
+let animFrame = null
 
 const sortedItems = computed(() =>
   [...itemsOfSelectedDay.value].sort((a, b) => (a.time || '99:99').localeCompare(b.time || '99:99')),
 )
+
+// Items that need geocoding (have an address but no coords)
+const itemsMissingCoords = computed(() => {
+  const src = props.showAll ? allDayItems.value : sortedItems.value
+  return src.filter((i) => (i.lat == null || i.lng == null) && !!(i.address || i.memo))
+})
+
 const positionedItems = computed(() => {
   if (props.showAll) return allDayItems.value.filter((i) => i.lat != null && i.lng != null)
   return sortedItems.value.filter((i) => i.lat != null && i.lng != null)
@@ -53,7 +62,7 @@ function loadKakaoSdk() {
   if (sdkPromise) return sdkPromise
   sdkPromise = new Promise((resolve, reject) => {
     if (window.kakao?.maps) return resolve(window.kakao)
-    const src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_APP_KEY}&autoload=false`
+    const src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_APP_KEY}&libraries=services&autoload=false`
     const existing = document.querySelector(`script[src^="https://dapi.kakao.com/v2/maps/sdk.js"]`)
     const onLoad = () => window.kakao.maps.load(() => resolve(window.kakao))
     if (existing) {
@@ -72,6 +81,26 @@ function loadKakaoSdk() {
 }
 
 const sdkError = ref(false)
+const geocoding = ref(false)
+
+async function resolveCoords(items) {
+  if (!window.kakao?.maps?.services) return
+  const unresolved = items.filter((i) => (i.lat == null || i.lng == null) && !!(i.address || i.memo))
+  if (!unresolved.length) return
+  geocoding.value = true
+  await Promise.allSettled(
+    unresolved.map(async (item) => {
+      const addr = (item.address && item.address.trim()) || ''
+      if (!addr) return
+      try {
+        const coords = await geocodeAddress(addr)
+        if (coords) trip.patchItemCoords(item.id, coords.lat, coords.lng)
+      } catch {}
+    })
+  )
+  geocoding.value = false
+}
+
 async function initMap() {
   if (!hasKey.value || !mapEl.value || mapInstance) return
   try {
@@ -80,6 +109,7 @@ async function initMap() {
       center: new kakao.maps.LatLng(37.5665, 126.9780),
       level: 6,
     })
+    await resolveCoords(props.showAll ? allDayItems.value : sortedItems.value)
     renderRoute()
   } catch (err) {
     console.error('[TripMap] Kakao SDK failed to load', err)
@@ -90,10 +120,9 @@ async function initMap() {
 function clearOverlays() {
   overlays.forEach(({ overlay }) => { try { overlay.setMap(null) } catch {} })
   overlays = []
-  if (polyline) {
-    try { polyline.setMap(null) } catch {}
-    polyline = null
-  }
+  polylines.forEach(({ pl }) => { try { pl.setMap(null) } catch {} })
+  polylines = []
+  if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null }
 }
 
 function buildPinEl(num, name, itemId, color) {
@@ -138,8 +167,7 @@ function renderRoute() {
       if (dPts.length >= 2) {
         const pl = new kakao.maps.Polyline({ path: dPts, strokeWeight: 3, strokeColor: color.pin, strokeOpacity: 0.85, strokeStyle: 'shortdash' })
         pl.setMap(mapInstance)
-        if (!polyline) polyline = pl
-        else overlays.push({ itemId: `pl_${dayIdx}`, overlay: pl, el: null })
+        polylines.push({ pl, color: color.pin, segIdx: dayIdx })
       }
     })
   } else {
@@ -150,9 +178,17 @@ function renderRoute() {
       overlay.setMap(mapInstance)
       overlays.push({ itemId: it.id, overlay, el })
     })
-    if (pts.length >= 2) {
-      polyline = new kakao.maps.Polyline({ path: pts, strokeWeight: 3, strokeColor: dayColor.value.pin, strokeOpacity: 0.9, strokeStyle: 'shortdash' })
-      polyline.setMap(mapInstance)
+    // Per-segment polylines for transit hover
+    for (let i = 0; i < pts.length - 1; i++) {
+      const pl = new kakao.maps.Polyline({
+        path: [pts[i], pts[i + 1]],
+        strokeWeight: 3,
+        strokeColor: pinColor,
+        strokeOpacity: 0.85,
+        strokeStyle: 'shortdash',
+      })
+      pl.setMap(mapInstance)
+      polylines.push({ pl, color: pinColor, segIdx: i })
     }
   }
   if (pts.length === 1) {
@@ -168,8 +204,32 @@ function renderRoute() {
 
 function applyHoverHighlight(id) {
   overlays.forEach(({ itemId, el }) => {
-    el.classList.toggle('trip-map-pin--active', !!id && itemId === id)
+    if (el) el.classList.toggle('trip-map-pin--active', !!id && itemId === id)
   })
+}
+
+function applyTransitHighlight(segIdx) {
+  if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null }
+  polylines.forEach(({ pl, color, segIdx: si }) => {
+    if (segIdx != null && si === segIdx) {
+      pl.setOptions({ strokeWeight: 5, strokeColor: '#00B7EB', strokeOpacity: 1, strokeStyle: 'solid' })
+      animateDash(pl)
+    } else {
+      pl.setOptions({ strokeWeight: 3, strokeColor: color, strokeOpacity: 0.85, strokeStyle: 'shortdash' })
+    }
+  })
+}
+
+function animateDash(pl) {
+  let offset = 0
+  function step() {
+    offset = (offset + 1) % 30
+    try {
+      pl.setOptions({ strokeStyle: 'shortdash', strokeOpacity: 0.9 + 0.1 * Math.sin(offset / 5) })
+    } catch {}
+    animFrame = requestAnimationFrame(step)
+  }
+  animFrame = requestAnimationFrame(step)
 }
 
 onMounted(() => {
@@ -179,12 +239,19 @@ onMounted(() => {
 onBeforeUnmount(() => {
   clearOverlays()
   mapInstance = null
+  if (animFrame) cancelAnimationFrame(animFrame)
 })
 
+watch(itemsMissingCoords, async (items) => {
+  if (!items.length || !window.kakao?.maps?.services) return
+  await resolveCoords(items)
+  renderRoute()
+}, { deep: true })
 watch(positionedItems, renderRoute, { deep: true })
 watch(selectedDate, renderRoute)
 watch(allDayItems, () => { if (props.showAll) renderRoute() }, { deep: true })
 watch(hoveredItemId, (id) => applyHoverHighlight(id))
+watch(hoveredTransitIndex, (idx) => applyTransitHighlight(idx))
 
 function onRelayout() {
   nextTick(() => {
@@ -213,7 +280,14 @@ function onRelayout() {
       <span class="text-slate-500 dark:text-slate-400">키와 도메인 허용 설정을 확인해주세요.</span>
     </div>
     <div
-      v-if="hasKey && !positionedItems.length"
+      v-if="hasKey && geocoding"
+      class="absolute top-3 right-3 px-3 py-1.5 rounded-full bg-white/90 dark:bg-slate-900/80 text-[11px] text-slate-500 dark:text-slate-400 shadow-sm pointer-events-none flex items-center gap-1.5"
+    >
+      <span class="inline-block h-2 w-2 rounded-full bg-primary animate-pulse" />
+      주소 변환 중…
+    </div>
+    <div
+      v-if="hasKey && !positionedItems.length && !geocoding"
       class="absolute bottom-3 left-3 right-3 px-3 py-2 rounded-md bg-white/90 dark:bg-slate-900/80 text-[11px] text-slate-500 dark:text-slate-400 shadow-sm pointer-events-none"
     >
       좌표가 있는 장소가 없습니다.

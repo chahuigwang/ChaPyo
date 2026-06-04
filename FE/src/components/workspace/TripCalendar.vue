@@ -4,14 +4,12 @@ import { storeToRefs } from 'pinia'
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import { useTripStore } from '@/stores/tripStore'
 import { useStorageStore } from '@/stores/storageStore'
-import { useChatStore } from '@/stores/chatStore'
 import { useUiStore } from '@/stores/uiStore'
 import { Card, CardHeader, CardTitle, CardContent, Button } from '@/components/common'
 import { formatDayLabel } from '@/types/itinerary'
 
 const trip = useTripStore()
 const storage = useStorageStore()
-const chat = useChatStore()
 const ui = useUiStore()
 const dropTarget = ref(null) // iso string when dragging over an in-range cell
 const { startDate, endDate, selectedDate, currentTrip } = storeToRefs(trip)
@@ -105,13 +103,9 @@ function onCellDrop(e, cell) {
     storage.clearDragging()
     return
   }
-  const days = trip.days
-  const idx = days.indexOf(cell.iso)
-  const label = idx >= 0 ? formatDayLabel(cell.iso, idx) : cell.iso
   trip.addItemToDate(cell.iso, payload.item)
   if (payload.source === 'storage') storage.removeItem(payload.item.id)
   else if (payload.source === 'timeline') trip.removeItemFromDate(payload.fromDate, payload.item.id)
-  chat.pushSystemNotice(`"${payload.item.name}"을(를) ${label}에 추가했어요.`)
   storage.clearDragging()
 }
 </script>

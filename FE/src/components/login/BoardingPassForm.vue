@@ -207,12 +207,21 @@ async function submitSignup() {
                       :size="20"
                       class="animate-spin"
                     />
-                    <Check
+                    <svg
                       v-else-if="isSuccess"
                       key="success"
-                      :size="20"
-                      class="stroke-[3]"
-                    />
+                      class="check-draw"
+                      viewBox="0 0 24 24"
+                      width="22"
+                      height="22"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.8"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <polyline class="check-path" points="4,13 9,18 20,7" />
+                    </svg>
                     <span v-else key="idle">로그인</span>
                   </Transition>
                 </span>
@@ -362,12 +371,21 @@ async function submitSignup() {
                         :size="20"
                         class="animate-spin"
                       />
-                      <Check
+                      <svg
                         v-else-if="isSignupSuccess"
                         key="success"
-                        :size="20"
-                        class="stroke-[3]"
-                      />
+                        class="check-draw"
+                        viewBox="0 0 24 24"
+                        width="22"
+                        height="22"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.8"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <polyline class="check-path" points="4,13 9,18 20,7" />
+                      </svg>
                       <span v-else key="idle">가입하기</span>
                     </Transition>
                   </span>
@@ -484,7 +502,24 @@ async function submitSignup() {
   opacity: 1;
 }
 
-/* Smooth swap between idle / loading / success icons */
+/* Check draw animation */
+.check-path {
+  stroke-dasharray: 30;
+  stroke-dashoffset: 30;
+  animation: draw-check 0.35s cubic-bezier(0.22, 1, 0.36, 1) 0.05s forwards;
+}
+@keyframes draw-check {
+  to { stroke-dashoffset: 0; }
+}
+
+/* Pop-in for the whole SVG when it first appears */
+.check-draw {
+  animation: pop-in 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+@keyframes pop-in {
+  from { transform: scale(0.6); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
 .btn-content-enter-active,
 .btn-content-leave-active {
   transition: opacity 200ms ease, transform 200ms ease;

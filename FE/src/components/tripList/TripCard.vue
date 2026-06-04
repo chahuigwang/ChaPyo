@@ -84,11 +84,11 @@ onBeforeUnmount(() => {
 <template>
   <div
     ref="rootRef"
-    class="trip-ticket group relative cursor-pointer rounded-xl bg-white dark:bg-slate-900
-           shadow-sm transition-all duration-300 ease-out
-           flex flex-col overflow-hidden"
+    class="trip-ticket group relative cursor-pointer rounded-2xl bg-white dark:bg-slate-900
+           shadow-md border border-slate-200/80 dark:border-slate-700/60
+           transition-all duration-300 ease-out flex flex-col overflow-hidden"
     :class="[
-      isPast ? 'opacity-60 grayscale' : 'hover:shadow-md hover:-translate-y-1.5',
+      isPast ? 'opacity-60 grayscale' : 'hover:shadow-xl hover:-translate-y-1.5 hover:border-slate-300 dark:hover:border-slate-600',
       isOngoing ? 'trip-ticket--ongoing' : '',
     ]"
     @click="onCardClick"
@@ -130,9 +130,15 @@ onBeforeUnmount(() => {
         <h3 class="mt-2 text-lg font-semibold text-gray-900 dark:text-slate-100 truncate">
           {{ trip.title }}
         </h3>
-        <div class="mt-3 flex flex-col gap-1 text-sm text-slate-700 dark:text-slate-200">
-          <span class="font-medium">From {{ trip.startDate }}</span>
-          <span class="font-medium">To {{ trip.endDate }}</span>
+        <div class="mt-3 flex items-center justify-between gap-2 text-[12px] text-slate-600 dark:text-slate-300">
+          <div class="flex flex-col gap-0.5">
+            <span class="text-[10px] uppercase tracking-wider text-slate-400">From</span>
+            <span class="font-semibold text-slate-800 dark:text-slate-100">{{ trip.startDate }}</span>
+          </div>
+          <div class="flex flex-col items-end gap-0.5">
+            <span class="text-[10px] uppercase tracking-wider text-slate-400">To</span>
+            <span class="font-semibold text-slate-800 dark:text-slate-100">{{ trip.endDate }}</span>
+          </div>
         </div>
       </section>
 

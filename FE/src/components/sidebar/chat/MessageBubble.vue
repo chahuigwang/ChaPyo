@@ -1,16 +1,14 @@
 <script setup>
 import { computed } from 'vue'
-import SuggestionCard from './SuggestionCard.vue'
+import DiscoverPlaceCard from '@/components/common/DiscoverPlaceCard.vue'
 
 const props = defineProps({
   message: { type: Object, required: true },
   emoji: { type: String, default: '🤖' },
 })
-const emit = defineEmits(['addSuggestion'])
 
 const isUser = computed(() => props.message.role === 'user')
 const isSystem = computed(() => props.message.role === 'system')
-const isAdded = (i) => (props.message.addedIds ?? []).includes(i)
 </script>
 
 <template>
@@ -25,25 +23,25 @@ const isAdded = (i) => (props.message.addedIds ?? []).includes(i)
       {{ emoji }}
     </div>
 
-    <div class="max-w-[82%] space-y-2">
+    <div class="max-w-[85%] flex flex-col gap-2">
+      <!-- Text bubble: wraps content width -->
       <div
         :class="[
-          'rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed whitespace-pre-wrap break-words',
+          'w-fit max-w-full rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed whitespace-pre-wrap break-words',
           isUser
-            ? 'bg-primary text-primary-foreground rounded-br-sm'
+            ? 'bg-primary text-primary-foreground rounded-br-sm self-end'
             : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-bl-sm',
         ]"
       >
         {{ message.content }}
       </div>
 
-      <div v-if="message.suggestions?.length" class="space-y-1.5">
-        <SuggestionCard
+      <!-- Suggestion cards: full width of column -->
+      <div v-if="message.suggestions?.length" class="flex flex-col gap-2 w-full">
+        <DiscoverPlaceCard
           v-for="(s, i) in message.suggestions"
           :key="i"
-          :suggestion="s"
-          :added="isAdded(i)"
-          @add="emit('addSuggestion', { messageId: message.id, index: i, suggestion: s })"
+          :item="s"
         />
       </div>
     </div>

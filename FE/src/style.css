@@ -102,6 +102,15 @@ html, body, #app {
   height: 100%;
 }
 
+/* Global scrollbar hide */
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+*::-webkit-scrollbar {
+  display: none;
+}
+
 body {
   margin: 0;
   background-color: var(--background);

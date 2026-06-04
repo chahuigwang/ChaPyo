@@ -1,24 +1,11 @@
 import { TravelItem } from './TravelItem'
+import { enumerateDays } from '@/types/itinerary'
+
+export { enumerateDays }
 
 let _tripSeq = 0
 const newTripId = () => `t_${Date.now()}_${++_tripSeq}`
 
-// startDate~endDate 사이 'YYYY-MM-DD' 배열
-export function enumerateDays(startDate, endDate) {
-  if (!startDate || !endDate) return []
-  const s = new Date(startDate)
-  const e = new Date(endDate)
-  if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime()) || e < s) return []
-  const out = []
-  const cur = new Date(s)
-  while (cur <= e) {
-    out.push(cur.toISOString().slice(0, 10))
-    cur.setDate(cur.getDate() + 1)
-  }
-  return out
-}
-
-// 여행 계획 도메인 모델. 협업 동기를 위한 version / lastSyncTime 포함.
 export class TripPlan {
   constructor({
     id,
@@ -81,13 +68,11 @@ export class TripPlan {
     }
   }
 
-  // 협업: 서버 동기 메타 반영
   applySync({ version, lastSyncTime } = {}) {
     if (version != null) this.version = Number(version) || this.version
     if (lastSyncTime != null) this.lastSyncTime = lastSyncTime
   }
 
-  // 협업: 동시 편집 충돌 감지. 서버 version > 로컬 version 이면 stale.
   isStaleAgainst(serverVersion) {
     return Number(serverVersion) > this.version
   }

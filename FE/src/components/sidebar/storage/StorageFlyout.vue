@@ -1,11 +1,12 @@
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { storeToRefs } from 'pinia'
-import { Trash2, GripVertical, Plus, X, Check, ThumbsUp, ThumbsDown } from 'lucide-vue-next'
+import { Plus, X, Check } from 'lucide-vue-next'
 import { useStorageStore } from '@/stores/storageStore'
 import { useTripStore } from '@/stores/tripStore'
 import { useChatStore } from '@/stores/chatStore'
-import { findCategory, CATEGORIES } from '@/types/itinerary'
+import { CATEGORIES } from '@/types/itinerary'
+import DiscoverPlaceCard from '@/components/common/DiscoverPlaceCard.vue'
 
 const storage = useStorageStore()
 const trip = useTripStore()
@@ -13,8 +14,21 @@ const chat = useChatStore()
 const { items } = storeToRefs(storage)
 
 const dropActive = ref(false)
+const activeFilter = ref('all')
 
-const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
+const FILTERS = [
+  { id: 'all', label: '전체' },
+  { id: 'place', label: '관광지' },
+  { id: 'food', label: '음식점' },
+  { id: 'lodging', label: '숙소' },
+  { id: 'transport', label: '기타' },
+]
+
+const filteredItems = computed(() =>
+  activeFilter.value === 'all'
+    ? items.value
+    : items.value.filter((i) => i.category === activeFilter.value)
+)
 
 const formOpen = ref(false)
 const form = reactive({ name: '', category: 'place', memo: '', cost: 0 })
@@ -24,35 +38,20 @@ function resetForm() {
   form.memo = ''
   form.cost = 0
 }
-function openForm() {
-  resetForm()
-  formOpen.value = true
-}
-function closeForm() {
-  formOpen.value = false
-}
+function openForm() { resetForm(); formOpen.value = true }
+function closeForm() { formOpen.value = false }
 function submitForm() {
   const name = form.name.trim()
   if (!name) return
-  storage.addItem({
-    name,
-    category: form.category,
-    memo: form.memo.trim(),
-    cost: Number(form.cost) || 0,
-  })
+  storage.addItem({ name, category: form.category, memo: form.memo.trim(), cost: Number(form.cost) || 0 })
   closeForm()
 }
 
 function onDragStart(e, item) {
   storage.setDragging({ source: 'storage', item })
-  try {
-    e.dataTransfer.setData('text/plain', item.id)
-    e.dataTransfer.effectAllowed = 'copy'
-  } catch {}
+  try { e.dataTransfer.setData('text/plain', item.id); e.dataTransfer.effectAllowed = 'copy' } catch {}
 }
-function onDragEnd() {
-  storage.clearDragging()
-}
+function onDragEnd() { storage.clearDragging() }
 
 function onPanelDragOver(e) {
   const p = storage.dragging
@@ -73,11 +72,9 @@ function onPanelDrop(e) {
     e.preventDefault()
     trip.removeItemFromDate(p.fromDate, p.item.id)
     storage.addItem(p.item)
-    chat.pushSystemNotice(`"${p.item.name}"을(를) 보관함으로 옮겼어요.`)
   } else if (p.source === 'chat') {
     e.preventDefault()
     storage.addItem(p.item)
-    chat.pushSystemNotice(`"${p.item.name}"을(를) 보관함에 담았어요.`)
   } else {
     storage.clearDragging()
     return
@@ -95,28 +92,38 @@ function onPanelDrop(e) {
     @drop="onPanelDrop"
   >
     <header class="px-5 pt-5 pb-3">
-      <div class="flex items-center gap-2 mb-6">
-        <h2 class="text-xl font-bold text-gray-900 dark:text-slate-100">
-          보관함
-        </h2>
+      <div class="flex items-center gap-2 mb-4">
+        <h2 class="text-xl font-bold text-gray-900 dark:text-slate-100">좋아요 리스트</h2>
         <span class="text-[11px] text-slate-400 dark:text-slate-500">{{ items.length }}개</span>
         <button
           @click="openForm"
           class="ml-auto inline-flex items-center gap-1 px-2.5 h-7 rounded-md bg-primary text-primary-foreground text-[11px] font-medium hover:bg-brand-600 transition-colors"
-          title="직접 추가"
         >
           <Plus :size="12" /> 추가
         </button>
       </div>
-      <p class="text-[11px] text-slate-400 dark:text-slate-500 leading-relaxed">
-        아이템을 드래그해서 오른쪽 워크스페이스의 날짜에 떨어뜨려 보세요.
+
+      <!-- Category filter pills -->
+      <div class="flex items-center gap-1.5 flex-wrap">
+        <button
+          v-for="f in FILTERS"
+          :key="f.id"
+          @click="activeFilter = f.id"
+          class="px-3 h-6 rounded-full text-[11px] font-medium transition-all duration-200"
+          :class="activeFilter === f.id
+            ? 'bg-primary text-white shadow-sm'
+            : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'"
+        >
+          {{ f.label }}
+        </button>
+      </div>
+
+      <p class="mt-3 text-[11px] text-slate-400 dark:text-slate-500 leading-relaxed">
+        하트를 눌러 장소를 저장하거나, 드래그해서 일정에 추가하세요.
       </p>
 
       <!-- Manual add form -->
-      <div
-        v-if="formOpen"
-        class="mt-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 p-3.5 space-y-2"
-      >
+      <div v-if="formOpen" class="mt-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 p-3.5 space-y-2">
         <div class="flex items-center justify-between">
           <span class="text-[11px] font-semibold text-slate-600 dark:text-slate-300">새 아이템</span>
           <button @click="closeForm" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">
@@ -163,70 +170,21 @@ function onPanelDrop(e) {
       </div>
     </header>
 
-    <div class="flex-1 overflow-y-auto px-4 pb-4 space-y-2">
-      <div
-        v-for="item in items"
+    <div class="flex-1 overflow-y-auto px-4 pb-4 space-y-3">
+      <DiscoverPlaceCard
+        v-for="item in filteredItems"
         :key="item.id"
-        draggable="true"
+        :item="item"
+        :draggable="true"
         @dragstart="onDragStart($event, item)"
         @dragend="onDragEnd"
-        class="group rounded-lg bg-slate-50 dark:bg-slate-800/60 px-3 py-2.5 flex items-center gap-2.5 cursor-grab active:cursor-grabbing shadow-sm hover:shadow-md transition-all"
-      >
-        <GripVertical :size="14" class="text-slate-300 dark:text-slate-600 shrink-0" />
-        <span class="text-base shrink-0">{{ findCategory(item.category).emoji }}</span>
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-1.5">
-            <span class="text-[12px] font-semibold text-slate-900 dark:text-slate-100 truncate">
-              {{ item.name }}
-            </span>
-            <span class="text-[10px] text-slate-500 dark:text-slate-400">
-              {{ findCategory(item.category).label }}
-            </span>
-          </div>
-          <div class="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400 truncate">
-            {{ item.memo || '메모 없음' }}
-            <span v-if="item.cost"> · {{ won(item.cost) }}</span>
-          </div>
-          <!-- Voting -->
-          <div class="mt-1.5 flex items-center gap-1.5" @click.stop>
-            <button
-              type="button"
-              :title="item.myVote === 'up' ? '추천 취소' : '추천'"
-              class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium transition-all"
-              :class="item.myVote === 'up'
-                ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300'
-                : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/60'"
-              @click="storage.vote(item.id, 'up')"
-            >
-              <ThumbsUp :size="11" /> {{ item.votes?.up ?? 0 }}
-            </button>
-            <button
-              type="button"
-              :title="item.myVote === 'down' ? '비추천 취소' : '비추천'"
-              class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium transition-all"
-              :class="item.myVote === 'down'
-                ? 'bg-red-500/15 text-red-500 dark:text-red-300'
-                : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/60'"
-              @click="storage.vote(item.id, 'down')"
-            >
-              <ThumbsDown :size="11" /> {{ item.votes?.down ?? 0 }}
-            </button>
-          </div>
-        </div>
-        <button
-          @click="storage.removeItem(item.id)"
-          class="opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7 rounded-md text-slate-400 hover:text-red-500 flex items-center justify-center"
-          title="제거"
-        >
-          <Trash2 :size="13" />
-        </button>
-      </div>
+      />
 
       <div
-        v-if="!items.length"
+        v-if="!filteredItems.length"
         class="rounded-xl bg-slate-50 dark:bg-slate-800/40 p-10 text-center text-[12px] text-slate-500 dark:text-slate-400 shadow-inner"
       >
-        보관함이 비었습니다.
+        {{ activeFilter === 'all' ? '좋아요 리스트가 비었습니다.' : '해당 카테고리에 아이템이 없습니다.' }}
       </div>
     </div>
   </div>

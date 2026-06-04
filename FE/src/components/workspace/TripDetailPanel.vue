@@ -1,9 +1,10 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import { ChevronDown, ChevronRight } from 'lucide-vue-next'
+import { ChevronDown, ArrowRight } from 'lucide-vue-next'
 import TripMap from './TripMap.vue'
 import DayTimeline from './DayTimeline.vue'
+import DateNavigator from './DateNavigator.vue'
 import { useTripStore } from '@/stores/tripStore'
 import { useUiStore } from '@/stores/uiStore'
 import { findCategory, formatDayLabel } from '@/types/itinerary'
@@ -11,7 +12,14 @@ import { findCategory, formatDayLabel } from '@/types/itinerary'
 const trip = useTripStore()
 const ui = useUiStore()
 const { currentView } = storeToRefs(ui)
-const { currentTrip, days } = storeToRefs(trip)
+const { currentTrip, days, selectedDate } = storeToRefs(trip)
+
+// Auto-select first day if none selected when switching to daily view
+watch(currentView, (v) => {
+  if (v === 'daily' && !selectedDate.value && days.value.length) {
+    trip.selectDate(days.value[0])
+  }
+}, { immediate: true })
 
 // Accordion state: set of expanded day ISO strings
 const expanded = ref(new Set())
@@ -61,21 +69,29 @@ function goDaily(iso) {
 <template>
   <div class="flex-1 h-full flex flex-col min-h-0 relative">
 
-    <!-- Daily view: 3:7 grid (timeline left, map right) -->
-    <div v-if="currentView === 'daily'" class="flex-1 grid grid-cols-10 min-h-0 overflow-hidden">
-      <div class="col-span-3 h-full overflow-y-auto bg-slate-50 dark:bg-slate-950 px-4 py-6 transition-colors">
+    <!-- Daily view: flex (timeline fixed-width left, map fluid right) -->
+    <div v-if="currentView === 'daily'" class="flex-1 flex min-h-0 overflow-hidden">
+      <div class="w-96 shrink-0 h-full overflow-y-auto bg-slate-50 dark:bg-slate-950 px-4 py-4 transition-colors">
+        <!-- Bento navigator -->
+        <div class="mb-3">
+          <DateNavigator />
+        </div>
         <DayTimeline />
       </div>
-      <div class="col-span-7 h-full overflow-hidden bg-slate-50 dark:bg-slate-950 p-4 transition-colors">
+      <div class="flex-1 h-full overflow-hidden bg-slate-50 dark:bg-slate-950 p-4 transition-colors">
         <TripMap class="h-full w-full rounded-2xl shadow-sm overflow-hidden" />
       </div>
     </div>
 
-    <!-- Total view: 3:7 grid (all-days accordion left, full-trip map right) -->
-    <div v-else class="flex-1 grid grid-cols-10 min-h-0 overflow-hidden">
+    <!-- Total view: flex (accordion fixed-width left, map fluid right) -->
+    <div v-else class="flex-1 flex min-h-0 overflow-hidden">
       <!-- Left: scrollable accordion itinerary -->
-      <div class="col-span-3 h-full overflow-y-auto bg-slate-50 dark:bg-slate-950 px-4 py-6 transition-colors">
+      <div class="w-96 shrink-0 h-full overflow-y-auto bg-slate-50 dark:bg-slate-950 px-4 py-4 transition-colors">
         <div class="flex flex-col gap-3">
+        <!-- Bento navigator -->
+        <div class="shrink-0">
+          <DateNavigator />
+        </div>
         <!-- Summary bar -->
         <div class="shrink-0 rounded-xl bg-white dark:bg-slate-900 shadow-sm px-4 py-4 flex flex-col gap-2">
           <div class="text-[11px] uppercase tracking-wider text-slate-400">전체 여행</div>
@@ -118,7 +134,13 @@ function goDaily(iso) {
             </div>
             <div class="flex items-center gap-2 shrink-0">
               <span class="text-[11px] text-slate-400">{{ day.items.length }}건</span>
-              <button @click.stop="goDaily(day.iso)" class="text-[11px] text-primary hover:underline">일별 →</button>
+              <button
+                @click.stop="goDaily(day.iso)"
+                class="bg-cyan-50 dark:bg-cyan-900/20 text-cyan-500 hover:bg-cyan-100 dark:hover:bg-cyan-900/40 rounded-xl p-2.5 transition-all hover:-translate-y-0.5 hover:shadow-md"
+                title="일별 상세 보기"
+              >
+                <ArrowRight :size="13" />
+              </button>
             </div>
           </div>
 
@@ -154,8 +176,8 @@ function goDaily(iso) {
         </div>
       </div>
 
-      <!-- Right: map showing ALL trip pins (continuous numbering) -->
-      <div class="col-span-7 h-full overflow-hidden bg-slate-50 dark:bg-slate-950 p-4 transition-colors">
+      <!-- Right: map showing ALL trip pins (fluid) -->
+      <div class="flex-1 h-full overflow-hidden bg-slate-50 dark:bg-slate-950 p-4 transition-colors">
         <TripMap class="h-full w-full rounded-2xl shadow-sm overflow-hidden" :show-all="true" />
       </div>
     </div>

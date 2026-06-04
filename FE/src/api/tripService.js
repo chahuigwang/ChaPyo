@@ -3,7 +3,6 @@ import { ENDPOINTS } from './endpoints'
 import { TripPlan } from '@/models/TripPlan'
 import { TravelItem } from '@/models/TravelItem'
 
-// Trip 도메인 서비스. Store 는 이 모듈만 호출한다.
 export const tripService = {
   async list() {
     const { data } = await http.get(ENDPOINTS.trips.list)
@@ -18,14 +17,12 @@ export const tripService = {
   },
 
   async create(payload) {
-    const body = TripPlan.fromJSON(payload).toJSON()
-    const { data } = await http.post(ENDPOINTS.trips.create, body)
+    const { data } = await http.post(ENDPOINTS.trips.create, TripPlan.fromJSON(payload).toJSON())
     return TripPlan.fromJSON(data)
   },
 
   async update(plan) {
-    const body = plan.toJSON()
-    const { data, sync } = await http.put(ENDPOINTS.trips.update(plan.id), body)
+    const { data, sync } = await http.put(ENDPOINTS.trips.update(plan.id), plan.toJSON())
     const next = TripPlan.fromJSON(data)
     next.applySync(sync)
     return next
@@ -36,7 +33,6 @@ export const tripService = {
     return id
   },
 
-  // 협업: Smart Polling. 마지막 동기 시점 이후 변경분만 받는다.
   async pollSync(id, lastSyncTime) {
     const { data, sync } = await http.get(ENDPOINTS.trips.sync(id), { since: lastSyncTime })
     return { plan: data ? TripPlan.fromJSON(data) : null, sync }

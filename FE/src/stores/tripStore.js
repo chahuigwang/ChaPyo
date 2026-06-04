@@ -8,7 +8,6 @@ function todayISO(offset = 0) {
   return d.toISOString().slice(0, 10)
 }
 
-// Mock 시드. 백엔드 연동 전 임시 데이터.
 function seedTrips() {
   const DAY = 86_400_000
   const now = Date.now()
@@ -25,27 +24,17 @@ function seedTrips() {
     new TravelItem({ name: '광장시장', category: 'food', time: '13:00', memo: '빈대떡, 마약김밥', cost: 25000, lat: 37.570028, lng: 126.999595 }),
     new TravelItem({ name: 'N서울타워', category: 'place', time: '17:30', memo: '서울 야경 명소', cost: 16000, lat: 37.551169, lng: 126.988227 }),
   ]
-  const t2 = new TripPlan({
-    title: '부산 주말 여행',
-    startDate: todayISO(20),
-    endDate: todayISO(21),
-    updatedAt: now - DAY * 5,
-  })
-  const t3 = new TripPlan({
-    title: '제주 가족 일정',
-    startDate: todayISO(45),
-    endDate: todayISO(48),
-    updatedAt: now - DAY * 12,
-  })
+  const t2 = new TripPlan({ title: '부산 주말 여행', startDate: todayISO(20), endDate: todayISO(21), updatedAt: now - DAY * 5 })
+  const t3 = new TripPlan({ title: '제주 가족 일정', startDate: todayISO(45), endDate: todayISO(48), updatedAt: now - DAY * 12 })
   return [t1, t2, t3]
 }
 
 export const useTripStore = defineStore('trip', {
   state: () => ({
-    trips: [],          // TripPlan[]
+    trips: [],
     currentTripId: null,
     seeded: false,
-    syncing: false,     // 협업 폴링 진행 여부
+    syncing: false,
     lastError: null,
   }),
   getters: {
@@ -67,7 +56,6 @@ export const useTripStore = defineStore('trip', {
     },
   },
   actions: {
-    // --- 라이프사이클 ---
     ensureSeed() {
       if (this.seeded) return
       this.trips = seedTrips()
@@ -79,7 +67,6 @@ export const useTripStore = defineStore('trip', {
       this.seeded = false
     },
 
-    // --- 원격 동기 (백엔드 붙은 뒤 활성화) ---
     async fetchTrips() {
       try {
         this.trips = await tripService.list()
@@ -94,8 +81,7 @@ export const useTripStore = defineStore('trip', {
       this.syncing = true
       try {
         const { plan } = await tripService.pollSync(t.id, t.lastSyncTime)
-        if (plan && plan.isStaleAgainst(t.version) === false) {
-          // 서버가 더 최신이면 교체
+        if (plan && !plan.isStaleAgainst(t.version)) {
           const idx = this.trips.findIndex((x) => x.id === t.id)
           if (idx >= 0) this.trips[idx] = plan
         }
@@ -106,11 +92,12 @@ export const useTripStore = defineStore('trip', {
       }
     },
 
-    // --- Trip 관리 ---
     createTrip(payload = {}) {
-      const start = payload.startDate ?? todayISO(0)
-      const end = payload.endDate ?? todayISO(2)
-      const t = new TripPlan({ ...payload, startDate: start, endDate: end })
+      const t = new TripPlan({
+        ...payload,
+        startDate: payload.startDate ?? todayISO(0),
+        endDate: payload.endDate ?? todayISO(2),
+      })
       this.trips.unshift(t)
       this.currentTripId = t.id
       return t
@@ -124,7 +111,6 @@ export const useTripStore = defineStore('trip', {
     },
     exitTrip() { this.currentTripId = null },
 
-    // --- 현재 trip 액션 ---
     setTitle(t) {
       const trip = this.currentTrip
       if (!trip) return
@@ -136,9 +122,7 @@ export const useTripStore = defineStore('trip', {
       if (!trip) return
       trip.startDate = start
       trip.endDate = end
-      if (!this.days.includes(trip.selectedDate)) {
-        trip.selectedDate = this.days[0] ?? ''
-      }
+      if (!this.days.includes(trip.selectedDate)) trip.selectedDate = this.days[0] ?? ''
       trip.touch()
     },
     selectDate(date) {
@@ -157,8 +141,7 @@ export const useTripStore = defineStore('trip', {
     addItemToDate(date, payload) {
       const trip = this.currentTrip
       if (!trip || !date) return null
-      const days = enumerateDays(trip.startDate, trip.endDate)
-      if (!days.includes(date)) return null
+      if (!enumerateDays(trip.startDate, trip.endDate).includes(date)) return null
       const item = new TravelItem(payload)
       if (!trip.itemsByDay[date]) trip.itemsByDay[date] = []
       trip.itemsByDay[date].push(item)
@@ -176,6 +159,14 @@ export const useTripStore = defineStore('trip', {
         trip.touch()
       }
     },
+    patchItemCoords(id, lat, lng) {
+      const trip = this.currentTrip
+      if (!trip) return
+      for (const list of Object.values(trip.itemsByDay)) {
+        const item = list.find((i) => i.id === id)
+        if (item) { item.lat = lat; item.lng = lng; return }
+      }
+    },
     removeItem(id) {
       const trip = this.currentTrip
       if (!trip) return
@@ -183,6 +174,14 @@ export const useTripStore = defineStore('trip', {
       if (!list) return
       trip.itemsByDay[trip.selectedDate] = list.filter((i) => i.id !== id)
       trip.touch()
+    },
+    updateTransit(id, patch) {
+      const trip = this.currentTrip
+      if (!trip) return
+      for (const list of Object.values(trip.itemsByDay)) {
+        const item = list.find((i) => i.id === id)
+        if (item) { item.transitAfter = { ...item.transitAfter, ...patch }; trip.touch(); return }
+      }
     },
     removeItemFromDate(date, id) {
       const trip = this.currentTrip
@@ -198,12 +197,9 @@ export const useTripStore = defineStore('trip', {
       const trip = this.currentTrip
       if (!trip || !date) return
       const list = trip.itemsByDay[date]
-      if (!list) return
-      if (fromIdx < 0 || fromIdx >= list.length) return
-      if (toIdx < 0 || toIdx > list.length) return
+      if (!list || fromIdx < 0 || fromIdx >= list.length || toIdx < 0 || toIdx > list.length) return
       const [moved] = list.splice(fromIdx, 1)
-      const insertAt = toIdx > fromIdx ? toIdx - 1 : toIdx
-      list.splice(insertAt, 0, moved)
+      list.splice(toIdx > fromIdx ? toIdx - 1 : toIdx, 0, moved)
       trip.touch()
     },
   },

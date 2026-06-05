@@ -15,7 +15,8 @@ public enum AuthErrorCode implements ErrorCode {
     BLACKLISTED_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH_004", "이미 로그아웃된 토큰입니다."),
     INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH_005", "유효하지 않은 토큰입니다."),
     TOKEN_NOT_FOUND(HttpStatus.UNAUTHORIZED, "AUTH_006", "토큰이 없습니다."),
-    TOKEN_MISMATCH(HttpStatus.UNAUTHORIZED, "AUTH_007", "토큰이 일치하지 않습니다.");
+    TOKEN_MISMATCH(HttpStatus.UNAUTHORIZED, "AUTH_007", "토큰이 일치하지 않습니다."),
+    USER_NOT_FOUND(HttpStatus.NOT_FOUND, "AUTH_008", "존재하지 않는 사용자입니다.");
 
     private final HttpStatus httpStatus;
     private final String code;

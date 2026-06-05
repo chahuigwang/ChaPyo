@@ -1,6 +1,7 @@
 package com.chapyo.auth.controller;
 
 import com.chapyo.auth.dto.request.LoginRequest;
+import com.chapyo.auth.dto.request.PasswordResetRequest;
 import com.chapyo.auth.dto.request.SignupRequest;
 import com.chapyo.auth.service.AuthService;
 import com.chapyo.common.response.BaseResponse;
@@ -67,5 +68,13 @@ public class AuthController {
             }
         }
         return null;
+    }
+
+    @Operation(summary = "비밀번호 재설정")
+    @SecurityRequirements
+    @PostMapping("/password")
+    public ResponseEntity<BaseResponse<?>> resetPassword(@RequestBody @Valid PasswordResetRequest request) {
+        authService.resetPassword(request);
+        return ResponseEntity.ok(BaseResponse.success("비밀번호가 재설정되었습니다."));
     }
 }

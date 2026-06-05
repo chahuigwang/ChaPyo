@@ -1,5 +1,6 @@
 package com.chapyo.auth.service;
 
+import com.chapyo.auth.dto.request.PasswordResetRequest;
 import com.chapyo.auth.dto.request.SignupRequest;
 import com.chapyo.auth.exception.AuthErrorCode;
 import com.chapyo.common.exception.CustomException;
@@ -68,5 +69,12 @@ public class AuthService {
                 .build();
 
         userMapper.insert(user);
+    }
+
+    public void resetPassword(PasswordResetRequest request) {
+        User user = userMapper.findByNicknameAndEmail(request.getNickname(), request.getEmail())
+                .orElseThrow(() -> new CustomException(AuthErrorCode.USER_NOT_FOUND));
+
+        userMapper.updatePassword(user.getUserId(), passwordEncoder.encode(request.getNewPassword()));
     }
 }

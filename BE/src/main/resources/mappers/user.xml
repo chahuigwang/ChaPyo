@@ -16,4 +16,18 @@
 		INSERT INTO users (nickname, email, password, role)
 		VALUES (#{nickname}, #{email}, #{password}, #{role})
 	</insert>
+
+	<select id="findByNicknameAndEmail" resultType="User">
+		SELECT *
+		FROM users
+		WHERE nickname = #{nickname}
+		  AND email = #{email}
+		  AND deleted_at IS NULL
+	</select>
+
+	<update id="updatePassword">
+		UPDATE users
+		SET password = #{password}
+		WHERE user_id = #{userId}
+	</update>
 </mapper>

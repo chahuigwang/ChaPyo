@@ -1,22 +1,41 @@
 package com.chapyo.common.config;
 
+import com.chapyo.auth.service.CustomUserDetailsService;
+import com.chapyo.auth.service.TokenBlacklistService;
+import com.chapyo.common.jwt.CustomLogoutHandler;
+import com.chapyo.common.jwt.JwtFilter;
+import com.chapyo.common.jwt.JwtUtil;
+import com.chapyo.common.jwt.LoginFilter;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.ProviderManager;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
+    private final JwtFilter jwtFilter;
+    private final CustomLogoutHandler logoutHandler;
+    private final CustomUserDetailsService customUserDetailsService;
+    private final TokenBlacklistService tokenBlacklistService;
+    private final JwtUtil jwtUtil;
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        LoginFilter loginFilter = new LoginFilter(authenticationManager(), jwtUtil, tokenBlacklistService);
+
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
@@ -24,17 +43,41 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Swagger
                         .requestMatchers(
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
-                                "/v3/api-docs/**"
+                                "/v3/api-docs/**",
+                                "/api/v1/auth/signup"
                         ).permitAll()
-                        // 일단 전부 허용 (JWT 필터 완성 후 수정)
-                        .anyRequest().permitAll()
+                        .requestMatchers("/api/v1/auth/login", "/api/v1/auth/reissue").permitAll()
+                        .anyRequest().authenticated()
+                )
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.setContentType("application/json");
+                            response.setCharacterEncoding("UTF-8");
+                            response.getWriter().write("{\"message\": \"인증이 필요합니다.\"}");
+                        })
+                )
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAt(loginFilter, UsernamePasswordAuthenticationFilter.class)
+                .logout(logout -> logout
+                        .logoutUrl("/api/v1/auth/logout")
+                        .addLogoutHandler(logoutHandler)
+                        .logoutSuccessHandler((request, response, authentication) -> {
+                            response.setStatus(HttpServletResponse.SC_OK);
+                        })
                 );
 
         return http.build();
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager() {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(passwordEncoder());
+        provider.setUserDetailsService(customUserDetailsService);
+        return new ProviderManager(provider);
     }
 
     @Bean

@@ -10,4 +10,5 @@ import com.chapyo.user.entity.User;
 public interface UserMapper {
 
 	Optional<User> findByEmail(String email);
+	void insert(User user);
 }

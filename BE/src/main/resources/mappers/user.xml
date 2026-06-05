@@ -11,4 +11,9 @@
 		WHERE email = #{email}
 				AND deleted_at IS NULL
 	</select>
+
+	<insert id="insert">
+		INSERT INTO users (nickname, email, password, role)
+		VALUES (#{nickname}, #{email}, #{password}, #{role})
+	</insert>
 </mapper>

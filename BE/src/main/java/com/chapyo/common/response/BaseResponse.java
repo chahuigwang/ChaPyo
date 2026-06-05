@@ -10,32 +10,34 @@ import lombok.Getter;
 public class BaseResponse<T> {
 
     private final boolean success;
+    private final String code;
     private final String message;
     private final T data;
 
-    private BaseResponse(boolean success, String message, T data) {
+    private BaseResponse(boolean success, String code, String message, T data) {
         this.success = success;
+        this.code = code;
         this.message = message;
         this.data = data;
     }
 
     // 성공 - 데이터만
     public static <T> BaseResponse<T> success(T data) {
-        return new BaseResponse<>(true, null, data);
+        return new BaseResponse<>(true, null, null, data);
     }
-    
+
     // 성공 - 메시지만
     public static <T> BaseResponse<T> success(String message) {
-        return new BaseResponse<>(true, message, null);
+        return new BaseResponse<>(true, null, message, null);
     }
-    
+
     // 성공 - 메시지 + 데이터
     public static <T> BaseResponse<T> success(String message, T data) {
-        return new BaseResponse<>(true, message, data);
+        return new BaseResponse<>(true, null, message, data);
     }
 
     // 실패
     public static <T> BaseResponse<T> fail(ErrorCode errorCode) {
-        return new BaseResponse<>(false, errorCode.getMessage(), null);
+        return new BaseResponse<>(false, errorCode.getCode(), errorCode.getMessage(), null);
     }
 }

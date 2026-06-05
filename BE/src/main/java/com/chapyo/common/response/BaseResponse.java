@@ -40,4 +40,9 @@ public class BaseResponse<T> {
     public static <T> BaseResponse<T> fail(ErrorCode errorCode) {
         return new BaseResponse<>(false, errorCode.getCode(), errorCode.getMessage(), null);
     }
+
+    // 실패 - 메시지만 (Validation 등 ErrorCode 없는 경우)
+    public static <T> BaseResponse<T> fail(String message) {
+        return new BaseResponse<>(false, null, message, null);
+    }
 }

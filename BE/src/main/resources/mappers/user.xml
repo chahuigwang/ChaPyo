@@ -5,6 +5,13 @@
 	
 <mapper namespace="com.chapyo.user.repository.UserMapper">
 
+	<select id="findById" resultType="User">
+		SELECT *
+		FROM users
+		WHERE user_id = #{userId}
+		  AND deleted_at IS NULL
+	</select>
+
 	<select id="findByEmail" resultType="User">
 		SELECT *
 		FROM users

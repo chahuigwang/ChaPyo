@@ -43,7 +43,8 @@ public class SecurityConfig {
                     CorsConfiguration config = new CorsConfiguration();
                     config.setAllowedOrigins(List.of(
                             "https://chapyo.vercel.app",
-                            "http://localhost:5173"
+                            "http://localhost:5173",
+                            "https://chapyo.duckdns.org"
                     ));
                     config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
                     config.setAllowedHeaders(List.of("*"));
@@ -61,9 +62,10 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**",
-                                "/api/v1/auth/signup"
+                                "/api/v1/auth/signup",
+                                "/api/v1/auth/login",
+                                "/api/v1/auth/reissue"
                         ).permitAll()
-                        .requestMatchers("/api/v1/auth/login", "/api/v1/auth/reissue").permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex

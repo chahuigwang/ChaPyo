@@ -7,6 +7,7 @@ import com.chapyo.common.jwt.JwtFilter;
 import com.chapyo.common.jwt.JwtUtil;
 import com.chapyo.common.jwt.LoginFilter;
 import jakarta.servlet.http.HttpServletResponse;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,6 +21,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
 
 @Configuration
 @EnableWebSecurity
@@ -37,6 +39,18 @@ public class SecurityConfig {
         LoginFilter loginFilter = new LoginFilter(authenticationManager(), jwtUtil, tokenBlacklistService);
 
         http
+                .cors(cors -> cors.configurationSource(request -> {
+                    CorsConfiguration config = new CorsConfiguration();
+                    config.setAllowedOrigins(List.of(
+                            "https://chapyo.vercel.app",
+                            "http://localhost:5173"
+                    ));
+                    config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+                    config.setAllowedHeaders(List.of("*"));
+                    config.setAllowCredentials(true);
+                    config.setMaxAge(3600L);
+                    return config;
+                }))
                 .csrf(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)

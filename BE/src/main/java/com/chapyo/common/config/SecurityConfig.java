@@ -1,11 +1,14 @@
 package com.chapyo.common.config;
 
+import com.chapyo.auth.exception.AuthErrorCode;
 import com.chapyo.auth.service.CustomUserDetailsService;
 import com.chapyo.auth.service.TokenBlacklistService;
 import com.chapyo.common.jwt.CustomLogoutHandler;
 import com.chapyo.common.jwt.JwtFilter;
 import com.chapyo.common.jwt.JwtUtil;
 import com.chapyo.common.jwt.LoginFilter;
+import com.chapyo.common.response.BaseResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -33,10 +36,11 @@ public class SecurityConfig {
     private final CustomUserDetailsService customUserDetailsService;
     private final TokenBlacklistService tokenBlacklistService;
     private final JwtUtil jwtUtil;
+    private final ObjectMapper objectMapper;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        LoginFilter loginFilter = new LoginFilter(authenticationManager(), jwtUtil, tokenBlacklistService);
+        LoginFilter loginFilter = new LoginFilter(authenticationManager(), jwtUtil, tokenBlacklistService, objectMapper);
 
         http
                 .cors(cors -> cors.configurationSource(request -> {
@@ -73,7 +77,9 @@ public class SecurityConfig {
                             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                             response.setContentType("application/json");
                             response.setCharacterEncoding("UTF-8");
-                            response.getWriter().write("{\"message\": \"인증이 필요합니다.\"}");
+                            response.getWriter().write(
+                                    objectMapper.writeValueAsString(BaseResponse.fail(AuthErrorCode.TOKEN_NOT_FOUND))
+                            );
                         })
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)

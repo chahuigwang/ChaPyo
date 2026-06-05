@@ -28,9 +28,7 @@ public class AuthService {
             throw new CustomException(AuthErrorCode.TOKEN_NOT_FOUND);
         }
 
-        if (!jwtUtil.isValid(refreshToken)) {
-            throw new CustomException(AuthErrorCode.INVALID_TOKEN);
-        }
+        jwtUtil.validate(refreshToken);  // isValid() 대신 validate()로 변경
 
         if (!"refresh".equals(jwtUtil.getType(refreshToken))) {
             throw new CustomException(AuthErrorCode.INVALID_TOKEN);

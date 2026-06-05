@@ -1,5 +1,7 @@
 package com.chapyo.common.jwt;
 
+import com.chapyo.auth.exception.AuthErrorCode;
+import com.chapyo.common.exception.CustomException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
@@ -75,16 +77,16 @@ public class JwtUtil {
     }
 
     // 토큰 유효성 검증
-    public boolean isValid(String token) {
+    public void validate(String token) {
         try {
             getClaims(token);
-            return true;
         } catch (ExpiredJwtException e) {
             log.warn("만료된 토큰: {}", e.getMessage());
+            throw new CustomException(AuthErrorCode.EXPIRED_TOKEN);
         } catch (JwtException e) {
             log.warn("유효하지 않은 토큰: {}", e.getMessage());
+            throw new CustomException(AuthErrorCode.INVALID_TOKEN);
         }
-        return false;
     }
 
     private Claims getClaims(String token) {

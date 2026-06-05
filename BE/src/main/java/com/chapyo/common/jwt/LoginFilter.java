@@ -1,8 +1,10 @@
 package com.chapyo.common.jwt;
 
+import com.chapyo.auth.exception.AuthErrorCode;
 import com.chapyo.auth.service.TokenBlacklistService;
 import com.chapyo.auth.dto.request.LoginRequest;
 import com.chapyo.auth.security.CustomUserDetails;
+import com.chapyo.common.response.BaseResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.Cookie;
@@ -24,14 +26,16 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
     private final TokenBlacklistService tokenBlacklistService;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
 
     public LoginFilter(AuthenticationManager authenticationManager,
             JwtUtil jwtUtil,
-            TokenBlacklistService tokenBlacklistService) {
+            TokenBlacklistService tokenBlacklistService,
+            ObjectMapper objectMapper) {
         this.authenticationManager = authenticationManager;
         this.jwtUtil = jwtUtil;
         this.tokenBlacklistService = tokenBlacklistService;
+        this.objectMapper = objectMapper;
         setFilterProcessesUrl("/api/v1/auth/login");
     }
 
@@ -102,9 +106,7 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
         response.getWriter().write(
-                objectMapper.writeValueAsString(
-                        Map.of("message", "이메일 또는 비밀번호가 올바르지 않습니다.")
-                )
+                objectMapper.writeValueAsString(BaseResponse.fail(AuthErrorCode.INVALID_CREDENTIALS))
         );
     }
 }

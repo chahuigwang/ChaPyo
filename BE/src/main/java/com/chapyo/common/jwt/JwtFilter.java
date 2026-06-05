@@ -1,6 +1,11 @@
 package com.chapyo.common.jwt;
 
+import com.chapyo.auth.exception.AuthErrorCode;
 import com.chapyo.auth.service.TokenBlacklistService;
+import com.chapyo.common.exception.CustomException;
+import com.chapyo.common.exception.ErrorCode;
+import com.chapyo.common.response.BaseResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,6 +27,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final TokenBlacklistService tokenBlacklistService;
+    private final ObjectMapper objectMapper;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -30,25 +36,24 @@ public class JwtFilter extends OncePerRequestFilter {
 
         String token = resolveToken(request);
 
-        log.debug("요청 URL: {}", request.getRequestURI());
-        log.debug("추출된 토큰: {}", token);
-
-        if (token != null && jwtUtil.isValid(token) && !tokenBlacklistService.isBlacklisted(token)) {
-            log.debug("토큰 유효 - 타입: {}", jwtUtil.getType(token));
-            // ...
-        } else {
-            log.debug("토큰 없음 or 유효하지 않음 or 블랙리스트");
-        }
-
-        if (token != null && jwtUtil.isValid(token) && !tokenBlacklistService.isBlacklisted(token)) {
-
-            // access 토큰인지 확인
-            if (!"access".equals(jwtUtil.getType(token))) {
-                sendUnauthorized(response, "Access Token이 아닙니다.");
+        if (token != null) {
+            try {
+                jwtUtil.validate(token);
+            } catch (CustomException e) {
+                sendErrorResponse(response, e.getErrorCode());
                 return;
             }
 
-            // SecurityContext에 인증 정보 저장
+            if (tokenBlacklistService.isBlacklisted(token)) {
+                sendErrorResponse(response, AuthErrorCode.BLACKLISTED_TOKEN);
+                return;
+            }
+
+            if (!"access".equals(jwtUtil.getType(token))) {
+                sendErrorResponse(response, AuthErrorCode.INVALID_TOKEN);
+                return;
+            }
+
             Long userId = jwtUtil.getUserId(token);
             String role = jwtUtil.getRole(token);
 
@@ -60,7 +65,7 @@ public class JwtFilter extends OncePerRequestFilter {
                     );
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
-            log.debug("SecurityContext 저장 완료 - userId: {}, role: {}", userId, role);  // 추가
+            log.debug("SecurityContext 저장 완료 - userId: {}, role: {}", userId, role);
         }
 
         filterChain.doFilter(request, response);
@@ -74,12 +79,12 @@ public class JwtFilter extends OncePerRequestFilter {
         return null;
     }
 
-    private void sendUnauthorized(HttpServletResponse response, String message) throws IOException {
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+    private void sendErrorResponse(HttpServletResponse response, ErrorCode errorCode) throws IOException {
+        response.setStatus(errorCode.getHttpStatus().value());
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
         response.getWriter().write(
-                "{\"message\": \"" + message + "\"}"
+                objectMapper.writeValueAsString(BaseResponse.fail(errorCode))
         );
     }
 }

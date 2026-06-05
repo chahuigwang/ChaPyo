@@ -81,7 +81,7 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
         Cookie refreshCookie = new Cookie("refreshToken", refreshToken);
         refreshCookie.setHttpOnly(true);
         refreshCookie.setPath("/");
-        refreshCookie.setMaxAge(7 * 24 * 60 * 60); // 7일
+        refreshCookie.setMaxAge((int) (jwtUtil.getRefreshExpiration() / 1000));
         response.addCookie(refreshCookie);
 
         // Access Token 응답 바디에 담아 반환

@@ -57,8 +57,7 @@ const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
       @mouseenter="emit('hover-transit')"
       @mouseleave="emit('leave-transit')"
     >
-      <div class="w-0.5 h-full absolute left-0 top-0 rounded-l-xl bg-slate-200 dark:bg-slate-700" />
-      <Car :size="14" class="text-primary shrink-0 ml-1" />
+      <Car :size="14" class="text-primary shrink-0" />
       <div class="flex-1 min-w-0">
         <div class="text-[11px] font-medium text-slate-600 dark:text-slate-300">
           <span v-if="transitMethod" class="font-semibold text-slate-700 dark:text-slate-200 mr-1">{{ transitMethod }}</span>

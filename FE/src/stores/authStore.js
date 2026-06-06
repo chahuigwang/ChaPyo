@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { authService } from '@/api/authService'
 import { setAccessToken } from '@/api/httpClient'
 
-const REFRESH_TOKEN_KEY = 'chapyo_refresh_token'
+const USER_KEY = 'chapyo_user'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -10,6 +10,7 @@ export const useAuthStore = defineStore('auth', {
     accessToken: null,
     loginOpen: false,
     initializing: true,
+    _pendingLogin: null,
   }),
   getters: {
     isAuthed: (s) => !!s.user,
@@ -19,57 +20,68 @@ export const useAuthStore = defineStore('auth', {
     clearSession() {
       this.user = null
       this.accessToken = null
+      this._pendingLogin = null
       setAccessToken(null)
-      localStorage.removeItem(REFRESH_TOKEN_KEY)
+      localStorage.removeItem(USER_KEY)
     },
 
-    _applyTokens({ accessToken, refreshToken, user }) {
+    _applyTokens({ accessToken, user }) {
       this.accessToken = accessToken
       this.user = user
       setAccessToken(accessToken)
-      if (refreshToken) localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken)
+      if (user) localStorage.setItem(USER_KEY, JSON.stringify(user))
     },
 
-    // Runs once on App mount — restores session from stored refresh token
+    // Runs once on App mount — HttpOnly 쿠키로 Access Token 재발급 후 유저 정보 복원
     async initAuth() {
-      const storedRefreshToken = localStorage.getItem(REFRESH_TOKEN_KEY)
-      if (storedRefreshToken) {
+      try {
+        const accessToken = await authService.reissue()
+        setAccessToken(accessToken)
+
+        let user = null
         try {
-          const data = await authService.refresh(storedRefreshToken)
-          // refresh endpoint may return a new refreshToken (rotation) or reuse old one
-          this._applyTokens({
-            ...data,
-            refreshToken: data.refreshToken ?? storedRefreshToken,
-          })
+          user = await authService.getMe()
         } catch {
-          this.clearSession()
+          const stored = localStorage.getItem(USER_KEY)
+          user = stored ? JSON.parse(stored) : null
         }
+
+        if (!user) throw new Error('no user info')
+        this._applyTokens({ accessToken, user })
+      } catch {
+        this.clearSession()
       }
       this.initializing = false
     },
 
     async login({ id, password }) {
       if (!id?.trim() || !password?.trim()) {
-        return { ok: false, message: '아이디와 비밀번호를 입력해 주세요.' }
+        return { ok: false, message: '이메일과 비밀번호를 입력해 주세요.' }
       }
       try {
         const data = await authService.login(id.trim(), password.trim())
-        this._applyTokens(data)
-        this.loginOpen = false
+        // 즉시 커밋하지 않고 pendingLogin에 저장 — 폼 애니메이션 후 commitLogin()으로 적용
+        this._pendingLogin = {
+          accessToken: data.accessToken,
+          user: { nickname: data.nickname, email: data.email ?? id.trim() },
+        }
         return { ok: true }
       } catch (err) {
-        // TODO: remove mock fallback once POST /auth/login is live
-        this.user = { id: id.trim(), name: id.trim() }
-        this.loginOpen = false
-        return { ok: true }
+        return { ok: false, message: err?.message ?? '로그인에 실패했습니다.' }
       }
     },
 
+    commitLogin() {
+      if (!this._pendingLogin) return
+      this._applyTokens(this._pendingLogin)
+      this._pendingLogin = null
+      this.loginOpen = false
+    },
+
+    // id(email), name(nickname) → BE SignupRequest { nickname, email, password }
     async register({ id, password, name }) {
       try {
-        const data = await authService.register({ id: id.trim(), password, name: name.trim() })
-        this._applyTokens(data)
-        this.loginOpen = false
+        await authService.signup({ nickname: name.trim(), email: id.trim(), password })
         return { ok: true }
       } catch (err) {
         return { ok: false, message: err?.message ?? '회원가입에 실패했습니다.' }
@@ -79,6 +91,21 @@ export const useAuthStore = defineStore('auth', {
     async logout() {
       await authService.logout()
       this.clearSession()
+    },
+
+    // BE PasswordResetRequest { nickname, email, newPassword }
+    async resetPassword({ nickname, email, newPassword }) {
+      try {
+        await authService.resetPassword({ nickname, email, newPassword })
+        return { ok: true }
+      } catch (err) {
+        return { ok: false, message: err?.message ?? '비밀번호 재설정에 실패했습니다.' }
+      }
+    },
+
+    updateUser(patch) {
+      if (!this.user) return
+      this.user = { ...this.user, ...patch }
     },
 
     openLogin() { this.loginOpen = true },

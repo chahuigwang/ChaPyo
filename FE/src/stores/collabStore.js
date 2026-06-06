@@ -49,7 +49,7 @@ export const useCollabStore = defineStore('collab', {
       if (this.history.length > 50) this.history.length = 50
     },
     seedDemoHistory() {
-      if (this.history.length) return
+      if (!import.meta.env.DEV || this.history.length) return
       const samples = [
         { type: 'add', byName: '민지', itemName: '경복궁' },
         { type: 'edit', byName: '준호', itemName: '광장시장' },
@@ -82,7 +82,7 @@ export const useCollabStore = defineStore('collab', {
 
     // Demo seed — pre-populate one editing intent so the UI is observable.
     seedDemoEditing(itemId) {
-      if (!itemId) return
+      if (!import.meta.env.DEV || !itemId) return
       this.markEditing(itemId, this.peers[0])
     },
   },

@@ -1,7 +1,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue'
 import { storeToRefs } from 'pinia'
-import { Plus, Pencil, Trash2, X, Check, ChevronDown } from 'lucide-vue-next'
+import { Plus, Pencil, Trash2, Check, ChevronDown } from 'lucide-vue-next'
 import { useChatStore } from '@/stores/chatStore'
 import { GENDERS, AGE_GROUPS, MBTI_TYPES } from '@/types/persona'
 
@@ -157,38 +157,29 @@ function cancelRemove() { pendingDeletePersona.value = null }
                 <Pencil :size="11" />
               </span>
               <span
-                v-if="pendingDeletePersona !== p.id"
                 role="button"
                 tabindex="0"
-                @click.stop="remove(p)"
-                class="opacity-0 group-hover:opacity-100 h-6 w-6 rounded-md flex items-center justify-center text-slate-400 hover:text-red-500"
-                title="삭제"
+                @click.stop="pendingDeletePersona === p.id ? confirmRemove(p) : remove(p)"
+                class="h-6 w-6 rounded-md flex items-center justify-center transition-all duration-150"
+                :class="pendingDeletePersona === p.id
+                  ? 'bg-red-500 text-white hover:bg-red-600 scale-110'
+                  : 'opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500'"
+                :title="pendingDeletePersona === p.id ? '한 번 더 클릭하면 삭제됩니다' : '삭제'"
               >
                 <Trash2 :size="11" />
-              </span>
-              <span v-else class="flex items-center gap-0.5">
-                <span
-                  role="button" tabindex="0"
-                  @click.stop="confirmRemove(p)"
-                  class="h-6 px-1.5 rounded-md text-[9px] font-semibold text-white bg-red-500 hover:bg-red-600 flex items-center"
-                >정말?</span>
-                <span
-                  role="button" tabindex="0"
-                  @click.stop="cancelRemove"
-                  class="h-6 w-6 rounded-md flex items-center justify-center text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-                ><X :size="10" /></span>
               </span>
             </template>
           </button>
         </div>
 
         <!-- Pinned add button -->
-        <div class="border-t border-slate-100 dark:border-slate-800">
+        <div class="border-t border-slate-100 dark:border-slate-800 flex justify-center py-1.5">
           <button
             @click="openAdd"
-            class="w-full flex items-center gap-2 px-3.5 py-2.5 text-[12.5px] font-medium text-primary hover:bg-primary/5 transition-colors"
+            class="h-8 w-8 rounded-lg flex items-center justify-center text-primary hover:bg-primary/10 transition-colors"
+            title="새 페르소나 추가"
           >
-            <Plus :size="14" /> 추가하기
+            <Plus :size="16" />
           </button>
         </div>
       </div>
@@ -227,9 +218,10 @@ function cancelRemove() { pendingDeletePersona.value = null }
         </div>
         <button
           @click="submit"
-          class="ml-1 shrink-0 inline-flex items-center gap-1 px-2.5 h-7 rounded-md bg-primary text-primary-foreground text-[11px] font-medium hover:bg-brand-600"
+          class="ml-1 shrink-0 h-7 w-7 rounded-md bg-primary text-primary-foreground flex items-center justify-center hover:bg-brand-600 transition-colors"
+          :title="isEditing ? '저장' : '추가'"
         >
-          <Check :size="11" /> {{ isEditing ? '저장' : '추가' }}
+          <Check :size="13" />
         </button>
       </div>
     </div>

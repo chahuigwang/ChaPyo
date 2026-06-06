@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia'
 import { ChevronLeft, ChevronRight, Pencil, Check } from 'lucide-vue-next'
 import { useTripStore } from '@/stores/tripStore'
 import { useUiStore } from '@/stores/uiStore'
+import { CATEGORIES } from '@/types/itinerary'
 import CustomCalendar from '@/components/common/CustomCalendar.vue'
 
 const trip = useTripStore()
@@ -109,6 +110,28 @@ const totalCost = computed(() => {
 })
 
 const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
+
+// ── Category breakdown ────────────────────────────────────────
+const CATEGORY_COLORS = {
+  place:     { bar: 'bg-sky-400',    text: 'text-sky-600 dark:text-sky-400' },
+  food:      { bar: 'bg-orange-400', text: 'text-orange-600 dark:text-orange-400' },
+  lodging:   { bar: 'bg-violet-400', text: 'text-violet-600 dark:text-violet-400' },
+  transport: { bar: 'bg-emerald-400',text: 'text-emerald-600 dark:text-emerald-400' },
+}
+
+const categoryStats = computed(() => {
+  const t = currentTrip.value
+  if (!t) return []
+  const allItems = Object.values(t.itemsByDay).flat()
+  const total = allItems.length
+  return CATEGORIES.map((cat) => {
+    const count = allItems.filter((i) => i.category === cat.id).length
+    const pct = total > 0 ? Math.round((count / total) * 100) : 0
+    return { ...cat, count, pct, color: CATEGORY_COLORS[cat.id] }
+  })
+})
+
+const hasAnyItem = computed(() => categoryStats.value.some((s) => s.count > 0))
 </script>
 
 <template>
@@ -139,8 +162,14 @@ const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
     </div>
 
     <!-- 1. 출발 -->
-    <div class="mx-5 mb-3 flex items-center justify-between rounded-lg px-3 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors">
-      <span class="text-lg font-semibold text-gray-900 dark:text-slate-100">출발</span>
+    <div class="mx-5 mb-3 flex items-center justify-between rounded-lg px-3 py-2.5
+                bg-sky-50 dark:bg-sky-900/15 transition-colors">
+      <div class="flex items-center gap-2">
+        <span class="text-[10px] font-bold uppercase tracking-widest text-sky-500 dark:text-sky-400">FROM</span>
+        <span class="text-[13px] font-semibold text-slate-900 dark:text-slate-100">
+          {{ startDate || '날짜 선택' }}
+        </span>
+      </div>
       <CustomCalendar :model-value="startDate" @update:model-value="onStartChange" />
     </div>
 
@@ -197,13 +226,19 @@ const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
     </div>
 
     <!-- 3. 도착 -->
-    <div class="mx-5 mb-5 flex items-center justify-between rounded-lg px-3 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors">
-      <span class="text-lg font-semibold text-gray-900 dark:text-slate-100">도착</span>
+    <div class="mx-5 mb-5 flex items-center justify-between rounded-lg px-3 py-2.5
+                bg-violet-50 dark:bg-violet-900/15 transition-colors">
+      <div class="flex items-center gap-2">
+        <span class="text-[10px] font-bold uppercase tracking-widest text-violet-500 dark:text-violet-400">TO</span>
+        <span class="text-[13px] font-semibold text-slate-900 dark:text-slate-100">
+          {{ endDate || '날짜 선택' }}
+        </span>
+      </div>
       <CustomCalendar :model-value="endDate" :min-date="startDate" @update:model-value="onEndChange" />
     </div>
 
     <!-- 4. 요약 (총 기간 + 총 비용) -->
-    <div class="px-5 pb-6">
+    <div class="px-5 pb-4">
       <div class="rounded-xl bg-slate-50 dark:bg-slate-800/60 px-4 py-4 flex items-center justify-between">
         <div class="flex flex-col">
           <span class="text-[10px] uppercase tracking-wider text-slate-400">총 기간</span>
@@ -213,6 +248,38 @@ const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
           <span class="text-[10px] uppercase tracking-wider text-slate-400">총 비용</span>
           <span class="text-lg font-bold text-slate-900 dark:text-slate-100 leading-tight">{{ won(totalCost) }}</span>
         </div>
+      </div>
+    </div>
+
+    <!-- 5. 카테고리 분포 -->
+    <div class="px-5 pb-6">
+      <div class="rounded-xl bg-slate-50 dark:bg-slate-800/60 px-4 py-4">
+        <p class="text-[10px] uppercase tracking-wider text-slate-400 mb-3">일정 구성</p>
+
+        <div v-if="hasAnyItem" class="space-y-2.5">
+          <div
+            v-for="cat in categoryStats"
+            :key="cat.id"
+            class="flex items-center gap-2.5"
+          >
+            <span class="text-base w-5 shrink-0 leading-none">{{ cat.emoji }}</span>
+            <div class="flex-1 h-2 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+              <div
+                class="h-full rounded-full transition-all duration-500"
+                :class="cat.color.bar"
+                :style="{ width: cat.pct + '%' }"
+              />
+            </div>
+            <span class="text-[11px] font-semibold w-4 text-right shrink-0"
+                  :class="cat.count > 0 ? cat.color.text : 'text-slate-300 dark:text-slate-600'">
+              {{ cat.count }}
+            </span>
+          </div>
+        </div>
+
+        <p v-else class="text-[11px] text-slate-400 dark:text-slate-500 text-center py-1">
+          아직 일정이 없습니다.
+        </p>
       </div>
     </div>
   </div>

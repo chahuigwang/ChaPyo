@@ -58,7 +58,7 @@ export const useTripStore = defineStore('trip', {
   actions: {
     ensureSeed() {
       if (this.seeded) return
-      this.trips = seedTrips()
+      if (import.meta.env.DEV) this.trips = seedTrips()
       this.seeded = true
     },
     resetForLogout() {

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, nextTick } from 'vue'
 import { storeToRefs } from 'pinia'
 import { ChevronDown, ArrowRight } from 'lucide-vue-next'
 import TripMap from './TripMap.vue'
@@ -7,12 +7,54 @@ import DayTimeline from './DayTimeline.vue'
 import DateNavigator from './DateNavigator.vue'
 import { useTripStore } from '@/stores/tripStore'
 import { useUiStore } from '@/stores/uiStore'
+import { useStorageStore } from '@/stores/storageStore'
+import { useCollabStore } from '@/stores/collabStore'
 import { findCategory, formatDayLabel } from '@/types/itinerary'
 
 const trip = useTripStore()
 const ui = useUiStore()
-const { currentView } = storeToRefs(ui)
+const storage = useStorageStore()
+const collab = useCollabStore()
+const { currentView, sidebarOpen } = storeToRefs(ui)
 const { currentTrip, days, selectedDate } = storeToRefs(trip)
+
+// ── Total-view day drop zones ────────────────────────────────
+const dropTargetDay = ref(null)
+
+function onDayDragOver(e, iso) {
+  if (!storage.dragging) return
+  e.preventDefault()
+  e.dataTransfer.dropEffect = storage.dragging.source === 'timeline' ? 'move' : 'copy'
+  dropTargetDay.value = iso
+}
+function onDayDragLeave(e) {
+  if (e.currentTarget.contains(e.relatedTarget)) return
+  dropTargetDay.value = null
+}
+function onDayDrop(e, iso) {
+  e.preventDefault()
+  const p = storage.dragging
+  dropTargetDay.value = null
+  if (!p?.item) { storage.clearDragging(); return }
+
+  trip.addItemToDate(iso, p.item)
+  collab.pushHistory({ type: 'add', itemName: p.item.name, byName: collab.me.name })
+
+  if (p.source === 'storage') storage.removeItem(p.item.id)
+  else if (p.source === 'timeline') trip.removeItemFromDate(p.fromDate, p.item.id)
+
+  storage.clearDragging()
+}
+
+const dailyMapRef = ref(null)
+const totalMapRef = ref(null)
+
+watch(sidebarOpen, () => {
+  nextTick(() => {
+    if (currentView.value === 'daily') dailyMapRef.value?.onRelayout()
+    else totalMapRef.value?.onRelayout()
+  })
+})
 
 // Auto-select first day if none selected when switching to daily view
 watch(currentView, (v) => {
@@ -79,7 +121,7 @@ function goDaily(iso) {
         <DayTimeline />
       </div>
       <div class="flex-1 h-full overflow-hidden bg-slate-50 dark:bg-slate-950 p-4 transition-colors">
-        <TripMap class="h-full w-full rounded-2xl shadow-sm overflow-hidden" />
+        <TripMap ref="dailyMapRef" class="h-full w-full rounded-2xl shadow-sm overflow-hidden" />
       </div>
     </div>
 
@@ -116,7 +158,13 @@ function goDaily(iso) {
         <div
           v-for="day in allDays"
           :key="day.iso"
-          class="shrink-0 rounded-xl bg-white dark:bg-slate-900 shadow-sm overflow-hidden"
+          class="shrink-0 rounded-xl bg-white dark:bg-slate-900 shadow-sm overflow-hidden transition-all duration-150"
+          :class="dropTargetDay === day.iso
+            ? 'ring-2 ring-primary ring-dashed bg-primary/5 dark:bg-primary/10'
+            : ''"
+          @dragover="onDayDragOver($event, day.iso)"
+          @dragleave="onDayDragLeave"
+          @drop="onDayDrop($event, day.iso)"
         >
           <!-- Day header -->
           <div
@@ -133,7 +181,11 @@ function goDaily(iso) {
               <div class="text-[13px] font-bold text-slate-900 dark:text-slate-100">{{ day.label }}</div>
             </div>
             <div class="flex items-center gap-2 shrink-0">
-              <span class="text-[11px] text-slate-400">{{ day.items.length }}건</span>
+              <span
+                v-if="dropTargetDay === day.iso"
+                class="text-[10px] font-semibold text-primary animate-pulse"
+              >여기에 추가</span>
+              <span v-else class="text-[11px] text-slate-400">{{ day.items.length }}건</span>
               <button
                 @click.stop="goDaily(day.iso)"
                 class="bg-cyan-50 dark:bg-cyan-900/20 text-cyan-500 hover:bg-cyan-100 dark:hover:bg-cyan-900/40 rounded-xl p-2.5 transition-all hover:-translate-y-0.5 hover:shadow-md"
@@ -178,7 +230,7 @@ function goDaily(iso) {
 
       <!-- Right: map showing ALL trip pins (fluid) -->
       <div class="flex-1 h-full overflow-hidden bg-slate-50 dark:bg-slate-950 p-4 transition-colors">
-        <TripMap class="h-full w-full rounded-2xl shadow-sm overflow-hidden" :show-all="true" />
+        <TripMap ref="totalMapRef" class="h-full w-full rounded-2xl shadow-sm overflow-hidden" :show-all="true" />
       </div>
     </div>
 

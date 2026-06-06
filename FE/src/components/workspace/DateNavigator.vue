@@ -54,7 +54,7 @@ const currentLabel = computed(() => {
     <!-- Total view icon bento block -->
     <button
       @click="goTotal"
-      class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-2.5 flex items-center justify-center
+      class="bg-white dark:bg-slate-900 rounded-lg shadow-sm p-2.5 flex items-center justify-center
              transition-all hover:shadow-md shrink-0"
       :class="!isDaily ? 'text-primary ring-2 ring-primary/20' : 'text-slate-400 dark:text-slate-500'"
       title="전체 일정"
@@ -65,7 +65,7 @@ const currentLabel = computed(() => {
     <!-- State A: Total view — label block -->
     <div
       v-if="!isDaily"
-      class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm px-4 py-2.5 flex items-center"
+      class="bg-white dark:bg-slate-900 rounded-lg shadow-sm px-4 py-2.5 flex items-center"
     >
       <span class="text-[12px] font-semibold text-slate-700 dark:text-slate-200">전체 일정</span>
     </div>
@@ -76,7 +76,7 @@ const currentLabel = computed(() => {
       <button
         @click="goPrev"
         :disabled="!hasPrev"
-        class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-2.5 flex items-center justify-center
+        class="bg-white dark:bg-slate-900 rounded-lg shadow-sm p-2.5 flex items-center justify-center
                transition-all shrink-0"
         :class="hasPrev
           ? 'text-slate-600 dark:text-slate-300 hover:shadow-md cursor-pointer'
@@ -91,7 +91,7 @@ const currentLabel = computed(() => {
           ref="triggerRef"
           type="button"
           @click="toggleDropdown"
-          class="w-full bg-white dark:bg-slate-900 rounded-2xl shadow-sm px-3 py-2 flex items-center justify-between gap-1 cursor-pointer transition-all hover:shadow-md"
+          class="w-full bg-white dark:bg-slate-900 rounded-lg shadow-sm px-3 py-2 flex items-center justify-between gap-1 cursor-pointer transition-all hover:shadow-md"
         >
           <span class="text-[12px] font-semibold text-slate-900 dark:text-slate-100 truncate">{{ currentLabel }}</span>
           <ChevronDown
@@ -112,7 +112,7 @@ const currentLabel = computed(() => {
           <div
             v-if="dropdownOpen"
             ref="dropdownRef"
-            class="absolute left-0 top-full mt-1.5 z-50 w-full bg-white dark:bg-slate-900 rounded-2xl shadow-xl py-1.5 overflow-hidden"
+            class="absolute left-0 top-full mt-1.5 z-50 w-full bg-white dark:bg-slate-900 rounded-lg shadow-xl py-1.5 overflow-hidden"
           >
             <button
               v-for="(iso, idx) in days"
@@ -136,7 +136,7 @@ const currentLabel = computed(() => {
       <button
         @click="goNext"
         :disabled="!hasNext"
-        class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm p-2.5 flex items-center justify-center
+        class="bg-white dark:bg-slate-900 rounded-lg shadow-sm p-2.5 flex items-center justify-center
                transition-all shrink-0"
         :class="hasNext
           ? 'text-slate-600 dark:text-slate-300 hover:shadow-md cursor-pointer'

@@ -21,7 +21,8 @@
       "Bash(rm src/components/plan/AuthPanel.vue src/components/plan/DayItineraryPanel.vue src/components/plan/DayTabs.vue src/components/plan/PlaceCard.vue src/components/login/LoginModal.vue src/components/home/HeroSection.vue src/pages/Index.vue)",
       "Bash(rmdir src/components/home)",
       "Bash(node -e \"const v=require\\('vue/package.json'\\);console.log\\(v.version\\)\")",
-      "Bash(dir /s /b *.vue *.js)"
+      "Bash(dir /s /b *.vue *.js)",
+      "Bash(del \"C:\\\\Users\\\\USER\\\\project\\\\ssafy-final-ChaPyo\\\\FE\\\\src\\\\components\\\\sidebar\\\\search\\\\SearchResultItem.vue\")"
     ]
   }
 }

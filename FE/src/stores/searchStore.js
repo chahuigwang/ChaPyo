@@ -141,6 +141,7 @@ export const useSearchStore = defineStore('search', {
     hasNext: false,
     loading: false,
     searched: false,
+    searchError: null,
   }),
   getters: {
     districts(state) {
@@ -165,6 +166,7 @@ export const useSearchStore = defineStore('search', {
 
     async search(page = 0) {
       this.loading = true
+      this.searchError = null
       try {
         const selected = PLACE_TYPES.find((t) => t.id === this.typeId)
 
@@ -208,6 +210,8 @@ export const useSearchStore = defineStore('search', {
 
         this.hasNext = hasNext
         this.searched = true
+      } catch (err) {
+        this.searchError = err?.message ?? '검색에 실패했습니다.'
       } finally {
         this.loading = false
       }

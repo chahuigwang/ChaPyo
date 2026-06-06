@@ -2,12 +2,10 @@
 import { ref, nextTick, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useChatStore } from '@/stores/chatStore'
-import { useTripPlanner } from '@/composables/useTripPlanner'
 import MessageBubble from './MessageBubble.vue'
 
 const chat = useChatStore()
 const { messages, isTyping, persona } = storeToRefs(chat)
-const { addSuggestionToTrip } = useTripPlanner()
 
 const scrollEl = ref(null)
 
@@ -17,10 +15,6 @@ async function scrollToBottom() {
 }
 
 watch([messages, isTyping], scrollToBottom, { deep: true, immediate: true })
-
-function onAdd({ messageId, index, suggestion }) {
-  addSuggestionToTrip(messageId, index, suggestion)
-}
 </script>
 
 <template>
@@ -31,11 +25,11 @@ function onAdd({ messageId, index, suggestion }) {
         :key="m.id"
         :message="m"
         :emoji="persona.emoji"
-        @addSuggestion="onAdd"
       />
 
       <div v-if="isTyping" class="flex gap-2.5 justify-start">
-        <div class="h-7 w-7 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center text-sm shrink-0">
+        <div class="h-7 w-7 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300
+                    flex items-center justify-center text-sm shrink-0">
           {{ persona.emoji }}
         </div>
         <div class="bg-slate-100 dark:bg-slate-800 rounded-2xl rounded-bl-sm px-3.5 py-2.5 flex gap-1">

@@ -4,21 +4,16 @@ import { MapPin, Heart, CalendarPlus, GripVertical } from 'lucide-vue-next'
 import { findCategory } from '@/types/itinerary'
 import { useStorageStore } from '@/stores/storageStore'
 import { useTripStore } from '@/stores/tripStore'
-import { useChatStore } from '@/stores/chatStore'
 import knightImg from '@/assets/knight.png'
 
 const props = defineProps({
   item: { type: Object, required: true },
   draggable: { type: Boolean, default: false },
-  showRemove: { type: Boolean, default: false },
 })
 const emit = defineEmits(['detail', 'dragstart', 'dragend'])
 
 const storage = useStorageStore()
 const trip = useTripStore()
-const chat = useChatStore()
-
-
 
 const liked = computed(() => storage.isLiked(props.item))
 
@@ -43,23 +38,16 @@ function addToItinerary(e) {
   })
 }
 
-function handleClick() {
-  emit('detail', props.item)
-}
-
-function onDragStart(e) {
-  emit('dragstart', e)
-}
-function onDragEnd(e) {
-  emit('dragend', e)
-}
+function onDragStart(e) { emit('dragstart', e) }
+function onDragEnd(e) { emit('dragend', e) }
 </script>
 
 <template>
   <div
-    class="group flex flex-col w-full rounded-xl bg-white dark:bg-slate-800 shadow-sm overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer"
+    class="group flex flex-col w-full rounded-xl bg-white dark:bg-slate-800 shadow-sm overflow-hidden
+           hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer"
     :draggable="draggable"
-    @click="handleClick"
+    @click="emit('detail', item)"
     @dragstart="onDragStart"
     @dragend="onDragEnd"
   >
@@ -78,12 +66,13 @@ function onDragEnd(e) {
       <!-- Drag handle -->
       <div
         v-if="draggable"
-        class="absolute top-2 left-2 p-1 rounded-md bg-black/20 backdrop-blur-sm text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
+        class="absolute top-2 left-2 p-1 rounded-md bg-black/20 backdrop-blur-sm text-white
+               opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
       >
         <GripVertical :size="13" />
       </div>
 
-      <!-- Heart toggle button + like count -->
+      <!-- Heart + like count -->
       <div class="absolute top-2.5 right-2.5 flex flex-col items-center gap-0.5">
         <button
           @click="toggleLike"
@@ -101,7 +90,8 @@ function onDragEnd(e) {
       </div>
 
       <!-- Category badge -->
-      <span class="absolute bottom-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/30 backdrop-blur-sm text-white text-[10px] font-medium">
+      <span class="absolute bottom-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full
+                   bg-black/30 backdrop-blur-sm text-white text-[10px] font-medium">
         {{ findCategory(item.category)?.emoji }} {{ findCategory(item.category)?.label }}
       </span>
     </div>
@@ -122,17 +112,17 @@ function onDragEnd(e) {
         <span class="truncate">{{ item.address }}</span>
       </div>
 
-      <!-- Footer actions -->
+      <!-- Footer -->
       <div class="mt-auto pt-2 flex items-center justify-between border-t border-slate-100 dark:border-slate-700/50">
-        <span v-if="item.likeCount && item.likeCount > 0" class="inline-flex items-center gap-1 text-[11px] text-slate-400">
+        <span v-if="item.likeCount > 0" class="inline-flex items-center gap-1 text-[11px] text-slate-400">
           <Heart :size="11" class="fill-red-400 text-red-400" />
           {{ item.likeCount.toLocaleString() }}
         </span>
         <span v-else class="flex-1" />
-
         <button
           @click="addToItinerary"
-          class="shrink-0 inline-flex items-center gap-1.5 px-2.5 h-7 rounded-lg bg-primary/10 text-primary text-[11px] font-semibold hover:bg-primary hover:text-white transition-colors"
+          class="shrink-0 inline-flex items-center gap-1.5 px-2.5 h-7 rounded-lg bg-primary/10 text-primary
+                 text-[11px] font-semibold hover:bg-primary hover:text-white transition-colors"
           title="일정에 추가"
         >
           <CalendarPlus :size="12" /> 일정에 추가

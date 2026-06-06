@@ -260,6 +260,8 @@ function onRelayout() {
     renderRoute()
   })
 }
+
+defineExpose({ onRelayout })
 </script>
 
 <template>

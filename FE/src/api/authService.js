@@ -2,27 +2,36 @@ import { http } from './httpClient'
 import { ENDPOINTS } from './endpoints'
 
 export const authService = {
-  async login(id, password) {
-    const { data } = await http.post(ENDPOINTS.auth.login, { id, password })
-    return data // { accessToken, refreshToken, user: { id, name, email } }
+  // 로그인: BaseResponse { data: { accessToken, nickname, email } }
+  async login(email, password) {
+    const { data } = await http.post(ENDPOINTS.auth.login, { email, password })
+    return data?.data // { accessToken, nickname, email }
   },
 
-  async register({ id, password, name }) {
-    const { data } = await http.post(ENDPOINTS.auth.register, { id, password, name })
-    return data // { accessToken, refreshToken, user }
+  // 회원가입: 201 + BaseResponse { success, data: { nickname, email } }
+  async signup({ nickname, email, password }) {
+    const { data } = await http.post(ENDPOINTS.auth.signup, { nickname, email, password })
+    return data?.data
   },
 
-  async refresh(refreshToken) {
-    const { data } = await http.post(ENDPOINTS.auth.refresh, { refreshToken })
-    return data // { accessToken, refreshToken? }
+  // Access Token 재발급: HttpOnly 쿠키의 refreshToken 자동 전송
+  // 응답: BaseResponse { success, data: { accessToken } }
+  async reissue() {
+    const { data } = await http.post(ENDPOINTS.auth.reissue, {})
+    return data?.data?.accessToken
   },
 
-  async me() {
-    const { data } = await http.get(ENDPOINTS.auth.me)
-    return data // user object
+  async getMe() {
+    const { data } = await http.get(ENDPOINTS.users.me)
+    return data?.data // { nickname, email }
   },
 
   async logout() {
     await http.post(ENDPOINTS.auth.logout, {}).catch(() => {})
+  },
+
+  // 비밀번호 재설정
+  async resetPassword({ nickname, email, newPassword }) {
+    await http.post(ENDPOINTS.auth.password, { nickname, email, newPassword })
   },
 }

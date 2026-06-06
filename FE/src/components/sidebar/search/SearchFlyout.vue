@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { storeToRefs } from 'pinia'
 import { Search, X, MapPin, Loader2, RotateCcw, Heart, CalendarPlus, ChevronDown } from 'lucide-vue-next'
 import { useSearchStore, PROVINCES, PLACE_TYPE_GROUPS } from '@/stores/searchStore'
@@ -13,7 +13,13 @@ const search = useSearchStore()
 const storage = useStorageStore()
 const chat = useChatStore()
 const trip = useTripStore()
-const { keyword, provinceId, districtId, typeId, results, hasNext, loading, searched, districts } = storeToRefs(search)
+
+function onSearchDragStart(e, item) {
+  storage.setDragging({ source: 'search', item })
+  try { e.dataTransfer.effectAllowed = 'copy'; e.dataTransfer.setData('text/plain', item.id) } catch {}
+}
+function onSearchDragEnd() { storage.clearDragging() }
+const { keyword, provinceId, districtId, typeId, results, hasNext, loading, searched, searchError, districts } = storeToRefs(search)
 
 const currentPage = ref(0)
 const observerTarget = ref(null)
@@ -38,6 +44,7 @@ onMounted(() => {
   document.addEventListener('mousedown', onCategoryOutside)
   document.addEventListener('mousedown', onProvinceOutside)
   document.addEventListener('mousedown', onDistrictOutside)
+  if (!search.searched) nextTick(() => search.search(0))
   observer = new IntersectionObserver((entries) => {
     const target = entries[0]
     if (target.isIntersecting && hasNext.value && !loading.value) {
@@ -194,13 +201,13 @@ function onDistrictOutside(e) {
             ref="provinceTriggerRef"
             type="button"
             @click="provinceOpen = !provinceOpen"
-            class="w-full h-8 px-2.5 text-[11px] rounded-xl bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-1 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            class="w-full h-8 px-2.5 text-[11px] rounded-md bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-1 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           >
             <span class="truncate">{{ selectedProvinceLabel }}</span>
             <ChevronDown :size="10" class="shrink-0 text-slate-400 transition-transform duration-200" :class="provinceOpen ? 'rotate-180' : ''" />
           </button>
           <Transition enter-active-class="transition-all duration-200 ease-out" enter-from-class="opacity-0 scale-95 -translate-y-1" enter-to-class="opacity-100 scale-100 translate-y-0" leave-active-class="transition-all duration-150 ease-in" leave-from-class="opacity-100 scale-100 translate-y-0" leave-to-class="opacity-0 scale-95 -translate-y-1">
-            <div v-if="provinceOpen" ref="provinceRef" class="absolute left-0 top-full mt-1 z-50 w-48 max-h-52 overflow-y-auto bg-white dark:bg-slate-900 rounded-xl shadow-xl py-1">
+            <div v-if="provinceOpen" ref="provinceRef" class="absolute left-0 top-full mt-1 z-50 w-48 max-h-52 overflow-y-auto bg-white dark:bg-slate-900 rounded-lg shadow-xl py-1">
               <button type="button" @click="selectProvince('')" class="w-full text-left px-3 py-1.5 text-[11px] transition-colors" :class="!provinceId ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'">시/도 전체</button>
               <button v-for="p in PROVINCES" :key="p.id" type="button" @click="selectProvince(p.id)" class="w-full text-left px-3 py-1.5 text-[11px] transition-colors" :class="provinceId === p.id ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'">{{ p.label }}</button>
             </div>
@@ -213,14 +220,14 @@ function onDistrictOutside(e) {
             ref="districtTriggerRef"
             type="button"
             @click="provinceId && (districtOpen = !districtOpen)"
-            class="w-full h-8 px-2.5 text-[11px] rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-1 transition-colors"
+            class="w-full h-8 px-2.5 text-[11px] rounded-md bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-1 transition-colors"
             :class="provinceId ? 'text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer' : 'text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-50'"
           >
             <span class="truncate">{{ selectedDistrictLabel }}</span>
             <ChevronDown :size="10" class="shrink-0 text-slate-400 transition-transform duration-200" :class="districtOpen ? 'rotate-180' : ''" />
           </button>
           <Transition enter-active-class="transition-all duration-200 ease-out" enter-from-class="opacity-0 scale-95 -translate-y-1" enter-to-class="opacity-100 scale-100 translate-y-0" leave-active-class="transition-all duration-150 ease-in" leave-from-class="opacity-100 scale-100 translate-y-0" leave-to-class="opacity-0 scale-95 -translate-y-1">
-            <div v-if="districtOpen" ref="districtRef" class="absolute left-0 top-full mt-1 z-50 w-48 max-h-52 overflow-y-auto bg-white dark:bg-slate-900 rounded-xl shadow-xl py-1">
+            <div v-if="districtOpen" ref="districtRef" class="absolute left-0 top-full mt-1 z-50 w-48 max-h-52 overflow-y-auto bg-white dark:bg-slate-900 rounded-lg shadow-xl py-1">
               <button type="button" @click="selectDistrict('')" class="w-full text-left px-3 py-1.5 text-[11px] transition-colors" :class="!districtId ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'">구/군 전체</button>
               <button v-for="d in districts" :key="d.id" type="button" @click="selectDistrict(d.id)" class="w-full text-left px-3 py-1.5 text-[11px] transition-colors" :class="districtId === d.id ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'">{{ d.label }}</button>
             </div>
@@ -233,7 +240,7 @@ function onDistrictOutside(e) {
           ref="categoryTriggerRef"
           type="button"
           @click="categoryOpen = !categoryOpen"
-          class="w-full h-8 px-3 text-[11px] rounded-xl bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-1 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          class="w-full h-8 px-3 text-[11px] rounded-md bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-1 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
         >
           <span class="truncate">{{ selectedTypeLabel }}</span>
           <ChevronDown :size="11" class="shrink-0 text-slate-400 transition-transform duration-200" :class="categoryOpen ? 'rotate-180' : ''" />
@@ -250,7 +257,7 @@ function onDistrictOutside(e) {
           <div
             v-if="categoryOpen"
             ref="categoryRef"
-            class="absolute left-0 top-full mt-1 z-50 w-full max-h-56 overflow-y-auto bg-white dark:bg-slate-900 rounded-xl shadow-xl py-1"
+            class="absolute left-0 top-full mt-1 z-50 w-full max-h-56 overflow-y-auto bg-white dark:bg-slate-900 rounded-lg shadow-xl py-1"
           >
             <button
               type="button"
@@ -292,7 +299,10 @@ function onDistrictOutside(e) {
           v-for="item in results"
           :key="item.id"
           :item="item"
+          :draggable="true"
           @detail="detailItem = $event"
+          @dragstart="onSearchDragStart($event, item)"
+          @dragend="onSearchDragEnd"
         />
 
         <div ref="observerTarget" class="h-4 w-full" />
@@ -302,7 +312,13 @@ function onDistrictOutside(e) {
         </div>
         
         <div
-          v-if="searched && !results.length"
+          v-if="searchError"
+          class="rounded-xl bg-red-50 dark:bg-red-900/20 p-8 text-center text-[12px] text-red-500 dark:text-red-400 shadow-inner"
+        >
+          {{ searchError }}
+        </div>
+        <div
+          v-else-if="searched && !results.length"
           class="rounded-xl bg-slate-50 dark:bg-slate-800/40 p-10 text-center text-[12px] text-slate-500 dark:text-slate-400 shadow-inner"
         >
           조건에 맞는 장소가 없습니다.

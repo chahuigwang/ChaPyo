@@ -1,7 +1,7 @@
 <script setup>
-import { computed, ref, watch, nextTick } from 'vue'
+import { computed, ref, watch, nextTick, onBeforeUnmount } from 'vue'
 import { storeToRefs } from 'pinia'
-import { Pencil, Trash2, Clock } from 'lucide-vue-next'
+import { Trash2, Clock } from 'lucide-vue-next'
 import PlaceCard from './PlaceCard.vue'
 import DailySummary from './DailySummary.vue'
 import TransitItem from './TransitItem.vue'
@@ -12,7 +12,6 @@ import { useUiStore } from '@/stores/uiStore'
 import { useTimelineLogic, snapTimeFor } from '@/composables/useTimelineLogic'
 import { findCategory, formatDayLabel } from '@/types/itinerary'
 import { dayColorFor } from '@/composables/useDayColor'
-import PlaceFormModal from '@/components/modal/PlaceFormModal.vue'
 import BaseModal from '@/components/common/BaseModal.vue'
 import { Card, CardHeader, CardContent, Button } from '@/components/common'
 
@@ -47,7 +46,7 @@ watch(hoveredItemId, (id) => {
   })
 })
 
-// ── Drag & Drop ─────────────────────────────────────────────
+// ── Drag & Drop ──────────────────────────────────────────────
 const dropActive = ref(false)
 const dropIndex = ref(null)
 
@@ -101,27 +100,22 @@ function onCardDragEnd() {
   storage.clearDragging(); dropActive.value = false; dropIndex.value = null
 }
 
-
-// ── CRUD ─────────────────────────────────────────────────────
-const formOpen = ref(false)
-const editing = ref(null)
+// ── CRUD ────────────────────────────────────────────────────
 const detail = ref(null)
 const pendingDelete = ref(null)
 
-function openEdit(item) { detail.value = null; editing.value = item; formOpen.value = true }
-function closeForm() { formOpen.value = false; editing.value = null }
-function submit(payload) {
-  if (editing.value) {
-    trip.updateItem(editing.value.id, payload)
-    collab.pushHistory({ type: 'edit', itemName: payload?.name || editing.value.name, byName: collab.me.name })
-  } else {
-    trip.addItem(payload)
-    collab.pushHistory({ type: 'add', itemName: payload?.name || '새 일정', byName: collab.me.name })
-  }
-  closeForm()
+function onItemSave(item, patch) {
+  trip.updateItem(item.id, patch)
+  collab.pushHistory({ type: 'edit', itemName: item.name, byName: collab.me.name })
 }
+function onDocClick() { if (pendingDelete.value) pendingDelete.value = null }
+watch(pendingDelete, (id) => {
+  if (id) document.addEventListener('click', onDocClick)
+  else document.removeEventListener('click', onDocClick)
+})
+onBeforeUnmount(() => document.removeEventListener('click', onDocClick))
+
 function requestDelete(item) { pendingDelete.value = item.id }
-function cancelDelete() { pendingDelete.value = null }
 function confirmDelete(item) {
   trip.removeItem(item.id)
   collab.pushHistory({ type: 'remove', itemName: item.name, byName: collab.me.name })
@@ -168,10 +162,9 @@ const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
             @mouseleave="ui.clearHoveredItem(item.id)"
             @dragstart="onCardDragStart($event, item, idx)"
             @dragend="onCardDragEnd"
-            @edit="openEdit(item)"
+            @save="onItemSave(item, $event)"
             @request-delete="requestDelete(item)"
             @confirm-delete="confirmDelete(item)"
-            @cancel-delete="cancelDelete"
           />
 
           <div
@@ -197,8 +190,7 @@ const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
       </div>
     </CardContent>
 
-    <PlaceFormModal :open="formOpen" :initial="editing" @close="closeForm" @submit="submit" />
-
+    <!-- 상세보기 모달 (조회 전용) -->
     <BaseModal :open="!!detail" :title="detail?.name ?? ''" @close="detail = null">
       <div v-if="detail" class="space-y-4 text-sm">
         <div class="flex items-center gap-3 text-[12px] text-slate-500 dark:text-slate-400">
@@ -213,28 +205,24 @@ const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
         </div>
         <div v-if="detail.memo">
           <div class="text-[11px] text-slate-500 dark:text-slate-400">메모</div>
-          <p class="mt-1.5 whitespace-pre-wrap text-[13px] text-slate-700 dark:text-slate-300 leading-relaxed">{{ detail.memo }}</p>
+          <p class="mt-1.5 whitespace-pre-wrap text-[13px] text-slate-700 dark:text-slate-300 leading-relaxed">
+            {{ detail.memo }}
+          </p>
         </div>
         <div v-else class="text-[12px] text-slate-400 dark:text-slate-500">추가 메모가 없습니다.</div>
       </div>
       <template #footer>
         <Button
-          v-if="pendingDelete !== detail?.id"
           variant="ghost" size="sm"
-          class="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30"
-          @click="requestDelete(detail)"
+          :class="pendingDelete === detail?.id
+            ? 'bg-red-500 text-white hover:bg-red-600'
+            : 'text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30'"
+          @click.stop="pendingDelete === detail?.id ? confirmDelete(detail) : requestDelete(detail)"
         >
-          <Trash2 :size="13" /> 삭제
-        </Button>
-        <div v-else class="flex items-center gap-1">
-          <Button size="sm" class="bg-red-500 hover:bg-red-600 text-white" @click="confirmDelete(detail)">정말 삭제</Button>
-          <Button variant="ghost" size="sm" @click="cancelDelete">취소</Button>
-        </div>
-        <Button size="sm" @click="openEdit(detail)">
-          <Pencil :size="13" /> 수정
+          <Trash2 :size="13" />
+          {{ pendingDelete === detail?.id ? '한 번 더 누르면 삭제' : '삭제' }}
         </Button>
       </template>
     </BaseModal>
   </Card>
 </template>
-

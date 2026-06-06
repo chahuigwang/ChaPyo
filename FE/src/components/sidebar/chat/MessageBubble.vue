@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import { useStorageStore } from '@/stores/storageStore'
 import DiscoverPlaceCard from '@/components/common/DiscoverPlaceCard.vue'
 
 const props = defineProps({
@@ -9,6 +10,14 @@ const props = defineProps({
 
 const isUser = computed(() => props.message.role === 'user')
 const isSystem = computed(() => props.message.role === 'system')
+
+const storage = useStorageStore()
+
+function onSuggestionDragStart(e, item) {
+  storage.setDragging({ source: 'chat', item })
+  try { e.dataTransfer.effectAllowed = 'copy'; e.dataTransfer.setData('text/plain', item.name) } catch {}
+}
+function onSuggestionDragEnd() { storage.clearDragging() }
 </script>
 
 <template>
@@ -24,7 +33,6 @@ const isSystem = computed(() => props.message.role === 'system')
     </div>
 
     <div class="max-w-[85%] flex flex-col gap-2">
-      <!-- Text bubble: wraps content width -->
       <div
         :class="[
           'w-fit max-w-full rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed whitespace-pre-wrap break-words',
@@ -36,12 +44,14 @@ const isSystem = computed(() => props.message.role === 'system')
         {{ message.content }}
       </div>
 
-      <!-- Suggestion cards: full width of column -->
       <div v-if="message.suggestions?.length" class="flex flex-col gap-2 w-full">
         <DiscoverPlaceCard
           v-for="(s, i) in message.suggestions"
           :key="i"
           :item="s"
+          :draggable="true"
+          @dragstart="onSuggestionDragStart($event, s)"
+          @dragend="onSuggestionDragEnd"
         />
       </div>
     </div>

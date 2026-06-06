@@ -1,6 +1,7 @@
 <script setup>
+import { ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import { UserRound, Pencil, LogOut, LogIn, UserPlus, History, Clock } from 'lucide-vue-next'
+import { UserRound, LogOut, LogIn, UserPlus, History, Clock } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/authStore'
 import { useCollabStore } from '@/stores/collabStore'
 import InviteModal from '@/components/modal/InviteModal.vue'
@@ -9,6 +10,17 @@ const auth = useAuthStore()
 const collab = useCollabStore()
 const { user, isAuthed } = storeToRefs(auth)
 const { peers, inviteOpen, historyOpen, history } = storeToRefs(collab)
+
+const logoutPending = ref(false)
+function handleLogout() {
+  if (logoutPending.value) { auth.logout(); logoutPending.value = false }
+  else logoutPending.value = true
+}
+function cancelLogout() { logoutPending.value = false }
+watch(logoutPending, (v) => {
+  if (v) document.addEventListener('click', cancelLogout)
+  else document.removeEventListener('click', cancelLogout)
+})
 
 collab.seedDemoHistory()
 
@@ -42,8 +54,8 @@ const row =
         <UserRound :size="18" />
       </span>
       <div class="min-w-0">
-        <div class="text-[14px] font-semibold text-slate-900 dark:text-slate-100 truncate">{{ user.name }}</div>
-        <div class="text-[12px] text-slate-500 dark:text-slate-400">로그인됨</div>
+        <div class="text-[14px] font-semibold text-slate-900 dark:text-slate-100 truncate">{{ user.nickname }}</div>
+        <div class="text-[12px] text-slate-500 dark:text-slate-400 truncate">{{ user.email }}</div>
       </div>
     </div>
     <div
@@ -54,8 +66,18 @@ const row =
     </div>
 
     <div class="flex flex-col gap-1">
-      <button v-if="isAuthed" :class="row"><Pencil :size="15" /> 정보 수정</button>
-      <button v-if="isAuthed" :class="row" @click="auth.logout"><LogOut :size="15" /> 로그아웃</button>
+      <button
+        v-if="isAuthed"
+        @click.stop="handleLogout"
+        class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-[13px] font-medium transition-all duration-150"
+        :class="logoutPending
+          ? 'bg-red-500 text-white hover:bg-red-600'
+          : 'text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'"
+        :title="logoutPending ? '한 번 더 누르면 로그아웃됩니다' : '로그아웃'"
+      >
+        <LogOut :size="15" />
+        {{ logoutPending ? '정말 로그아웃?' : '로그아웃' }}
+      </button>
       <button v-else :class="row" @click="auth.openLogin"><LogIn :size="15" /> 로그인</button>
     </div>
 
@@ -76,9 +98,9 @@ const row =
         <div class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60">
           <div
             class="h-8 w-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[12px] font-semibold shrink-0"
-          >나</div>
+          >{{ initialOf(user?.nickname) }}</div>
           <div class="min-w-0">
-            <div class="text-[12px] font-semibold text-slate-900 dark:text-slate-100 truncate">나 (본인)</div>
+            <div class="text-[12px] font-semibold text-slate-900 dark:text-slate-100 truncate">{{ user?.nickname ?? '나' }} (본인)</div>
           </div>
         </div>
 

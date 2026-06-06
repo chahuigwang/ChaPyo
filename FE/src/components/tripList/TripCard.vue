@@ -96,7 +96,7 @@ onBeforeUnmount(() => {
     <!-- Top row: left main + right stub -->
     <div class="grid grid-cols-12">
       <!-- Main info: left ~67% -->
-      <section class="col-span-8 p-6 pr-7 min-w-0">
+      <section class="col-span-8 p-6 pr-7 min-w-0 flex flex-col">
         <div class="flex items-center gap-2">
           <p class="text-[10px] tracking-[0.2em] uppercase text-slate-400 dark:text-slate-500">
             Boarding Pass
@@ -130,7 +130,7 @@ onBeforeUnmount(() => {
         <h3 class="mt-2 text-lg font-semibold text-gray-900 dark:text-slate-100 truncate">
           {{ trip.title }}
         </h3>
-        <div class="mt-3 flex items-center justify-between gap-2 text-[12px] text-slate-600 dark:text-slate-300">
+        <div class="mt-auto pt-3 flex items-center justify-between gap-2 text-[12px] text-slate-600 dark:text-slate-300">
           <div class="flex flex-col gap-0.5">
             <span class="text-[10px] uppercase tracking-wider text-slate-400">From</span>
             <span class="font-semibold text-slate-800 dark:text-slate-100">{{ trip.startDate }}</span>
@@ -146,22 +146,14 @@ onBeforeUnmount(() => {
       <section class="col-span-4 p-5 pl-6 flex flex-col gap-4 relative">
         <div class="absolute top-3 right-4" @click.stop>
           <button
-            v-if="!confirming"
-            class="opacity-0 group-hover:opacity-100 transition-all duration-200 p-1 rounded-md
-                   text-slate-400 dark:text-slate-500
-                   hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100"
-            aria-label="삭제"
-            @click="onTrashClick"
+            :title="confirming ? '한 번 더 클릭하면 삭제됩니다' : '삭제'"
+            class="p-1.5 rounded-md transition-all duration-200"
+            :class="confirming
+              ? 'bg-red-500 text-white hover:bg-red-600 scale-110'
+              : 'opacity-0 group-hover:opacity-100 text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'"
+            @click="confirming ? onConfirmDelete() : onTrashClick()"
           >
             <Trash2 :size="14" />
-          </button>
-          <button
-            v-else
-            class="bg-red-500 text-white text-[11px] px-2 py-0.5 rounded font-medium
-                   hover:bg-red-600 transition-all duration-200 shadow-sm"
-            @click="onConfirmDelete"
-          >
-            영구 삭제
           </button>
         </div>
         <div class="flex flex-col mt-6">

@@ -1,5 +1,6 @@
 package com.chapyo.common.jwt;
 
+import com.chapyo.auth.dto.response.LoginSuccessResponse;
 import com.chapyo.auth.exception.AuthErrorCode;
 import com.chapyo.auth.service.TokenBlacklistService;
 import com.chapyo.auth.dto.request.LoginRequest;
@@ -89,13 +90,11 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
         response.setCharacterEncoding("UTF-8");
         response.getWriter().write(
                 objectMapper.writeValueAsString(
-                        BaseResponse.success(Map.of(
-                                "accessToken", accessToken,
-                                "userInfo", UserInfoResponse.builder()
-                                        .nickname(nickname)
-                                        .email(email)
-                                        .build()
-                        ))
+                        BaseResponse.success(LoginSuccessResponse.builder()
+                                .accessToken(accessToken)
+                                .nickname(nickname)
+                                .email(email)
+                                .build())
                 )
         );
 

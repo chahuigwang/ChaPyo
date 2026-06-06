@@ -12,7 +12,10 @@ public interface UserMapper {
 
 	Optional<User> findById(Long userId);
 	Optional<User> findByEmail(String email);
-	Optional<User> findByNicknameAndEmail(@Param("nickname") String nickname, @Param("email") String email);
+	Optional<User> findByNicknameAndEmail(@Param("nickname") String nickname,
+											@Param("email") String email);
 	void insert(User user);
 	void updatePassword(@Param("userId") Long userId, @Param("password") String password);
+	void updateProfile(@Param("userId") Long userId, @Param("nickname") String nickname, @Param("email") String email);
+	void deleteUser(@Param("userId") Long userId);
 }

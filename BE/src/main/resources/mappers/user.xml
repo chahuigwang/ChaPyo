@@ -37,4 +37,17 @@
 		SET password = #{password}
 		WHERE user_id = #{userId}
 	</update>
+
+	<update id="updateProfile">
+		UPDATE users
+		SET nickname = #{nickname},
+		    email    = #{email}
+		WHERE user_id = #{userId}
+	</update>
+
+	<update id="deleteUser">
+		UPDATE users
+		SET deleted_at = NOW()
+		WHERE user_id = #{userId}
+	</update>
 </mapper>

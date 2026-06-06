@@ -45,4 +45,9 @@
 		WHERE user_id = #{userId}
 	</update>
 
+	<update id="deleteUser">
+		UPDATE users
+		SET deleted_at = NOW()
+		WHERE user_id = #{userId}
+	</update>
 </mapper>

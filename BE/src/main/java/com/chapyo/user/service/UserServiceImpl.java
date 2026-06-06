@@ -49,4 +49,10 @@ public class UserServiceImpl implements UserService {
         String encodedPassword = passwordEncoder.encode(request.getNewPassword());
         userMapper.updatePassword(userId, encodedPassword);
     }
+
+    @Override
+    @Transactional
+    public void deleteUser(Long userId) {
+        userMapper.deleteUser(userId);
+    }
 }

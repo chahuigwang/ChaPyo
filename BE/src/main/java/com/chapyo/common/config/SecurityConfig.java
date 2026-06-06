@@ -90,6 +90,11 @@ public class SecurityConfig {
                         .addLogoutHandler(logoutHandler)
                         .logoutSuccessHandler((request, response, authentication) -> {
                             response.setStatus(HttpServletResponse.SC_OK);
+                            response.setContentType("application/json");
+                            response.setCharacterEncoding("UTF-8");
+                            response.getWriter().write(
+                                    objectMapper.writeValueAsString(BaseResponse.success("로그아웃 완료"))
+                            );
                         })
                 );
 

@@ -5,6 +5,7 @@ import com.chapyo.auth.service.TokenBlacklistService;
 import com.chapyo.auth.dto.request.LoginRequest;
 import com.chapyo.auth.security.CustomUserDetails;
 import com.chapyo.common.response.BaseResponse;
+import com.chapyo.user.dto.response.UserInfoResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.Cookie;
@@ -70,26 +71,31 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
         Long userId = userDetails.getUserId();
         String role = userDetails.getUser().getRole().name();
+        String nickname = userDetails.getUser().getNickname();
+        String email = userDetails.getUser().getEmail();
 
         String accessToken = jwtUtil.generateAccessToken(userId, role);
         String refreshToken = jwtUtil.generateRefreshToken(userId);
 
-        // Refresh Token Redis 저장
         tokenBlacklistService.saveRefreshToken(userId, refreshToken);
 
-        // Refresh Token HttpOnly 쿠키에 저장
         Cookie refreshCookie = new Cookie("refreshToken", refreshToken);
         refreshCookie.setHttpOnly(true);
         refreshCookie.setPath("/");
         refreshCookie.setMaxAge((int) (jwtUtil.getRefreshExpiration() / 1000));
         response.addCookie(refreshCookie);
 
-        // Access Token 응답 바디에 담아 반환
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
         response.getWriter().write(
                 objectMapper.writeValueAsString(
-                        Map.of("accessToken", accessToken)
+                        BaseResponse.success(Map.of(
+                                "accessToken", accessToken,
+                                "userInfo", UserInfoResponse.builder()
+                                        .nickname(nickname)
+                                        .email(email)
+                                        .build()
+                        ))
                 )
         );
 

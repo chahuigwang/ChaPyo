@@ -5,6 +5,7 @@ import com.chapyo.auth.dto.request.SignupRequest;
 import com.chapyo.auth.exception.AuthErrorCode;
 import com.chapyo.common.exception.CustomException;
 import com.chapyo.common.jwt.JwtUtil;
+import com.chapyo.user.dto.response.UserInfoResponse;
 import com.chapyo.user.entity.User;
 import com.chapyo.user.repository.UserMapper;
 import java.util.Map;
@@ -54,9 +55,8 @@ public class AuthService {
         return Map.of("accessToken", newAccessToken);
     }
 
-    public void signup(SignupRequest request) {
+    public UserInfoResponse signup(SignupRequest request) {
 
-        // 이메일 중복 확인
         userMapper.findByEmail(request.getEmail()).ifPresent(u -> {
             throw new CustomException(AuthErrorCode.DUPLICATE_EMAIL);
         });
@@ -69,6 +69,11 @@ public class AuthService {
                 .build();
 
         userMapper.insert(user);
+
+        return UserInfoResponse.builder()
+                .nickname(request.getNickname())
+                .email(request.getEmail())
+                .build();
     }
 
     public void resetPassword(PasswordResetRequest request) {

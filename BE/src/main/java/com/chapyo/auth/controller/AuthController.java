@@ -5,6 +5,7 @@ import com.chapyo.auth.dto.request.PasswordResetRequest;
 import com.chapyo.auth.dto.request.SignupRequest;
 import com.chapyo.auth.service.AuthService;
 import com.chapyo.common.response.BaseResponse;
+import com.chapyo.user.dto.response.UserInfoResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -54,10 +55,9 @@ public class AuthController {
     @Operation(summary = "회원가입")
     @SecurityRequirements
     @PostMapping("/signup")
-    public ResponseEntity<BaseResponse<?>> signup(@RequestBody @Valid SignupRequest request) {
-        authService.signup(request);
+    public ResponseEntity<BaseResponse<UserInfoResponse>> signup(@RequestBody @Valid SignupRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(BaseResponse.success("회원가입이 완료되었습니다."));
+                .body(BaseResponse.success(authService.signup(request)));
     }
 
     private String resolveRefreshToken(HttpServletRequest request) {

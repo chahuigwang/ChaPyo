@@ -16,6 +16,6 @@ public class UserInfoResponse {
     @Schema(description = "닉네임", example = "홍길동")
     private String nickname;
 
-    @Schema(description = "이메일", example = "test@test.com")
+    @Schema(description = "이메일", example = "chapyo@email.com")
     private String email;
 }

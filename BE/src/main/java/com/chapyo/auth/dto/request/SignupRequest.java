@@ -17,7 +17,7 @@ public class SignupRequest {
 
     @NotBlank(message = "이메일을 입력해주세요.")
     @Email(message = "이메일 형식이 올바르지 않습니다.")
-    @Schema(description = "이메일", example = "test@test.com")
+    @Schema(description = "이메일", example = "chapyo@email.com")
     private String email;
 
     @NotBlank(message = "비밀번호를 입력해주세요.")

@@ -6,15 +6,13 @@ import com.chapyo.auth.service.TokenBlacklistService;
 import com.chapyo.auth.dto.request.LoginRequest;
 import com.chapyo.auth.security.CustomUserDetails;
 import com.chapyo.common.response.BaseResponse;
-import com.chapyo.user.dto.response.UserInfoResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -80,11 +78,15 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
 
         tokenBlacklistService.saveRefreshToken(userId, refreshToken);
 
-        Cookie refreshCookie = new Cookie("refreshToken", refreshToken);
-        refreshCookie.setHttpOnly(true);
-        refreshCookie.setPath("/");
-        refreshCookie.setMaxAge((int) (jwtUtil.getRefreshExpiration() / 1000));
-        response.addCookie(refreshCookie);
+        ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", refreshToken)
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(jwtUtil.getRefreshExpiration() / 1000)
+                .sameSite("None")
+                .build();
+
+        response.addHeader("Set-Cookie", refreshCookie.toString());
 
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");

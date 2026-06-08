@@ -24,8 +24,41 @@ watch(theme, (t) => {
 })
 
 export function useTheme() {
-  function toggle() {
-    theme.value = theme.value === 'dark' ? 'light' : 'dark'
+  async function toggle(event) {
+    const next = theme.value === 'dark' ? 'light' : 'dark'
+
+    if (!document.startViewTransition) {
+      theme.value = next
+      return
+    }
+
+    const x = event?.clientX ?? window.innerWidth / 2
+    const y = event?.clientY ?? window.innerHeight / 2
+    const maxRadius = Math.hypot(
+      Math.max(x, window.innerWidth - x),
+      Math.max(y, window.innerHeight - y),
+    )
+
+    const transition = document.startViewTransition(() => {
+      theme.value = next
+    })
+
+    await transition.ready
+
+    document.documentElement.animate(
+      {
+        clipPath: [
+          `circle(0px at ${x}px ${y}px)`,
+          `circle(${maxRadius}px at ${x}px ${y}px)`,
+        ],
+      },
+      {
+        duration: 450,
+        easing: 'ease-in-out',
+        pseudoElement: '::view-transition-new(root)',
+      },
+    )
   }
+
   return { theme, toggle, isDark: () => theme.value === 'dark' }
 }

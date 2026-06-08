@@ -3,6 +3,13 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* 다크모드 원형 전환 애니메이션 — JS clip-path가 제어하므로 기본 크로스페이드 제거 */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
 /* ============================================================
  * Design Tokens (shadcn-vue 호환)
  * 70 : 25 : 5  ─  neutral(light) : secondary(slate) : accent(brand)

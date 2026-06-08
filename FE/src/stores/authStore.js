@@ -103,6 +103,39 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
+    // 내 정보 수정 (nickname, email)
+    async updateProfile({ nickname, email }) {
+      try {
+        await authService.updateProfile({ nickname, email })
+        this.user = { ...this.user, nickname, email }
+        localStorage.setItem(USER_KEY, JSON.stringify(this.user))
+        return { ok: true }
+      } catch (err) {
+        return { ok: false, message: err?.message ?? '정보 수정에 실패했습니다.' }
+      }
+    },
+
+    // 비밀번호 변경
+    async updatePassword({ currentPassword, newPassword }) {
+      try {
+        await authService.updatePassword({ currentPassword, newPassword })
+        return { ok: true }
+      } catch (err) {
+        return { ok: false, message: err?.message ?? '비밀번호 변경에 실패했습니다.' }
+      }
+    },
+
+    // 회원 탈퇴
+    async deleteAccount() {
+      try {
+        await authService.deleteAccount()
+        this.clearSession()
+        return { ok: true }
+      } catch (err) {
+        return { ok: false, message: err?.message ?? '회원 탈퇴에 실패했습니다.' }
+      }
+    },
+
     updateUser(patch) {
       if (!this.user) return
       this.user = { ...this.user, ...patch }

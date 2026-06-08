@@ -26,11 +26,28 @@ export const authService = {
     return data?.data // { nickname, email }
   },
 
+  // 내 정보 수정: { nickname, email }
+  async updateProfile({ nickname, email }) {
+    const { data } = await http.patch(ENDPOINTS.users.profile, { nickname, email })
+    return data
+  },
+
+  // 비밀번호 변경: { currentPassword, newPassword }
+  async updatePassword({ currentPassword, newPassword }) {
+    const { data } = await http.patch(ENDPOINTS.users.password, { currentPassword, newPassword })
+    return data
+  },
+
+  // 회원 탈퇴
+  async deleteAccount() {
+    await http.delete(ENDPOINTS.users.me)
+  },
+
   async logout() {
     await http.post(ENDPOINTS.auth.logout, {}).catch(() => {})
   },
 
-  // 비밀번호 재설정
+  // 비밀번호 재설정 (미로그인 상태)
   async resetPassword({ nickname, email, newPassword }) {
     await http.post(ENDPOINTS.auth.password, { nickname, email, newPassword })
   },

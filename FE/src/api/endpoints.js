@@ -22,6 +22,8 @@ export const ENDPOINTS = {
   },
   users: {
     me: '/api/v1/users/me',
+    profile: '/api/v1/users/me/profile',
+    password: '/api/v1/users/me/password',
   },
   tourism: {
     places: '/api/v1/places',

@@ -1,12 +1,14 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
+import { useRouter } from 'vue-router'
 import { Plus, LogOut, Pencil, Check, X, Loader2, KeyRound, Trash2 } from 'lucide-vue-next'
 import { useTripStore } from '@/stores/tripStore'
 import { useAuthStore } from '@/stores/authStore'
 import { Button, Input } from '@/components/common'
 import TripCard from '@/components/tripList/TripCard.vue'
 
+const router = useRouter()
 const trip = useTripStore()
 const auth = useAuthStore()
 const { trips } = storeToRefs(trip)
@@ -28,11 +30,26 @@ const sortedTrips = computed(() => {
   return list
 })
 
+// ── Trip navigation ───────────────────────────────────────────
+function handleOpen(id) {
+  trip.selectTrip(id)
+  router.push(`/trip/${id}`)
+}
+function handleCreateTrip() {
+  const t = trip.createTrip({ title: '새 여행' })
+  router.push(`/trip/${t.id}`)
+}
+
 // ── Logout two-click confirm ─────────────────────────────────
 const logoutPending = ref(false)
-function handleLogout() {
-  if (logoutPending.value) { auth.logout(); logoutPending.value = false }
-  else logoutPending.value = true
+async function handleLogout() {
+  if (logoutPending.value) {
+    await auth.logout()
+    logoutPending.value = false
+    router.push('/login')
+  } else {
+    logoutPending.value = true
+  }
 }
 function cancelLogout() { logoutPending.value = false }
 watch(logoutPending, (v) => {
@@ -157,11 +174,14 @@ async function confirmDelete() {
               </button>
               <button
                 @click.stop="handleLogout"
-                class="h-8 w-8 rounded-xl flex items-center justify-center transition-all duration-150"
-                :class="logoutPending ? 'bg-red-500 text-white scale-110' : 'text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'"
-                :title="logoutPending ? '한 번 더 누르면 로그아웃됩니다' : '로그아웃'"
+                class="h-8 rounded-xl flex items-center justify-center gap-1 transition-all duration-200 overflow-hidden"
+                :class="logoutPending
+                  ? 'px-2.5 bg-red-500 text-white'
+                  : 'w-8 bg-red-50 dark:bg-red-900/20 text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-500'"
+                title="로그아웃"
               >
-                <LogOut :size="14" />
+                <LogOut :size="14" class="shrink-0" />
+                <span v-if="logoutPending" class="text-[11px] font-medium whitespace-nowrap">정말요?</span>
               </button>
             </div>
           </div>
@@ -240,7 +260,7 @@ async function confirmDelete() {
 
       <!-- Toolbar -->
       <div class="flex items-center justify-between mb-5">
-        <Button @click="trip.createTrip({ title: '새 여행' })">
+        <Button @click="handleCreateTrip">
           <Plus :size="15" /> 새 여행
         </Button>
         <div v-if="trips.length" class="inline-flex p-1 rounded-lg bg-slate-100 dark:bg-slate-800/60">
@@ -262,7 +282,7 @@ async function confirmDelete() {
           v-for="t in sortedTrips"
           :key="t.id"
           :trip="t"
-          @open="trip.selectTrip($event)"
+          @open="handleOpen($event)"
           @delete="trip.deleteTrip($event.id)"
         />
       </div>

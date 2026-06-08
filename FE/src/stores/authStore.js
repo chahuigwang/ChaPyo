@@ -4,6 +4,8 @@ import { setAccessToken } from '@/api/httpClient'
 
 const USER_KEY = 'chapyo_user'
 
+let _initPromise = null
+
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: null,
@@ -23,6 +25,7 @@ export const useAuthStore = defineStore('auth', {
       this._pendingLogin = null
       setAccessToken(null)
       localStorage.removeItem(USER_KEY)
+      import('@/router').then(({ default: router }) => router.push('/login'))
     },
 
     _applyTokens({ accessToken, user }) {
@@ -32,8 +35,12 @@ export const useAuthStore = defineStore('auth', {
       if (user) localStorage.setItem(USER_KEY, JSON.stringify(user))
     },
 
-    // Runs once on App mount — HttpOnly 쿠키로 Access Token 재발급 후 유저 정보 복원
-    async initAuth() {
+    // Router guard와 App mount 양쪽에서 호출되므로 멱등성 보장 (한 번만 실행)
+    initAuth() {
+      if (!_initPromise) _initPromise = this._runInitAuth()
+      return _initPromise
+    },
+    async _runInitAuth() {
       try {
         const accessToken = await authService.reissue()
         setAccessToken(accessToken)

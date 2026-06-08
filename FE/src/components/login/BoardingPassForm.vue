@@ -1,9 +1,11 @@
 <script setup>
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { Plane, Loader2, ArrowLeft, X } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/authStore'
 import { Button, Input } from '@/components/common'
 
+const router = useRouter()
 const auth = useAuthStore()
 
 // ─── Login ───────────────────────────────────────────────
@@ -46,6 +48,7 @@ async function submit() {
 
 function onTicketAfterLeave() {
   auth.commitLogin()
+  router.push('/list')
 }
 
 // ─── Flip ────────────────────────────────────────────────
@@ -227,7 +230,7 @@ async function submitReset() {
                 <span class="text-[11px] font-medium tracking-wider uppercase text-slate-500 dark:text-slate-400">이메일</span>
                 <Input
                   v-model="id"
-                  :disabled="isBusy"
+                  :disabled="isLoading || isSuccess"
                   class="mt-2 bg-slate-100 dark:bg-slate-800 border-transparent focus:bg-white"
                   placeholder="example@enjoytrip.com"
                 />
@@ -237,7 +240,7 @@ async function submitReset() {
                 <Input
                   v-model="password"
                   type="password"
-                  :disabled="isBusy"
+                  :disabled="isLoading || isSuccess"
                   class="mt-2 bg-slate-100 dark:bg-slate-800 border-transparent focus:bg-white"
                   placeholder="••••••••"
                 />

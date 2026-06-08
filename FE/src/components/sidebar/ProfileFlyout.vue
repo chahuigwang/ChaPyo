@@ -1,20 +1,27 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
+import { useRouter } from 'vue-router'
 import { UserRound, LogOut, LogIn, UserPlus, History, Clock } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/authStore'
 import { useCollabStore } from '@/stores/collabStore'
 import InviteModal from '@/components/modal/InviteModal.vue'
 
+const router = useRouter()
 const auth = useAuthStore()
 const collab = useCollabStore()
 const { user, isAuthed } = storeToRefs(auth)
 const { peers, inviteOpen, historyOpen, history } = storeToRefs(collab)
 
 const logoutPending = ref(false)
-function handleLogout() {
-  if (logoutPending.value) { auth.logout(); logoutPending.value = false }
-  else logoutPending.value = true
+async function handleLogout() {
+  if (logoutPending.value) {
+    await auth.logout()
+    logoutPending.value = false
+    router.push('/login')
+  } else {
+    logoutPending.value = true
+  }
 }
 function cancelLogout() { logoutPending.value = false }
 watch(logoutPending, (v) => {
@@ -72,7 +79,7 @@ const row =
         class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-[13px] font-medium transition-all duration-150"
         :class="logoutPending
           ? 'bg-red-500 text-white hover:bg-red-600'
-          : 'text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'"
+          : 'bg-red-50/70 dark:bg-red-900/15 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30'"
         :title="logoutPending ? '한 번 더 누르면 로그아웃됩니다' : '로그아웃'"
       >
         <LogOut :size="15" />

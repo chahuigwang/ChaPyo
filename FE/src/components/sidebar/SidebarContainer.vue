@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
+import { useRouter } from 'vue-router'
 import {
   PanelLeftClose,
   PanelLeftOpen,
@@ -22,11 +23,17 @@ import StorageFlyout from '@/components/sidebar/storage/StorageFlyout.vue'
 import SearchFlyout from '@/components/sidebar/search/SearchFlyout.vue'
 import PlanFlyout from '@/components/sidebar/PlanFlyout.vue'
 
+const router = useRouter()
 const ui = useUiStore()
 const trip = useTripStore()
 const { activePanel, sidebarOpen } = storeToRefs(ui)
 const { theme, toggle } = useTheme()
 const isDark = computed(() => theme.value === 'dark')
+
+function goToList() {
+  trip.exitTrip()
+  router.push('/list')
+}
 
 const railBtn =
   'h-10 w-10 rounded-md text-slate-500 dark:text-slate-400 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center transition-colors'
@@ -114,7 +121,7 @@ function isActive(name) {
           <Moon v-else :size="18" />
         </button>
         <button
-          @click="trip.exitTrip"
+          @click="goToList"
           class="h-10 w-10 rounded-md bg-red-50 dark:bg-red-900/20 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/40 flex items-center justify-center transition-colors"
           title="여행 리스트로 이동"
         >

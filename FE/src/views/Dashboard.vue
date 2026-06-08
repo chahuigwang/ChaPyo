@@ -1,5 +1,10 @@
 <script setup>
+import { onMounted } from 'vue'
+import { useTripStore } from '@/stores/tripStore'
 import TripListPanel from '@/components/tripList/TripListPanel.vue'
+
+const trip = useTripStore()
+onMounted(() => trip.exitTrip())
 </script>
 
 <template>

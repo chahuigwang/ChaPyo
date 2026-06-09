@@ -27,6 +27,7 @@ function addToItinerary(e) {
   const date = trip.selectedDate ?? trip.days?.[0] ?? null
   if (!date) return
   trip.addItemToDate(date, {
+    placeId: Number(props.item.id),
     name: props.item.name,
     category: props.item.category,
     memo: props.item.memo || '',

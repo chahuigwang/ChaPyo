@@ -11,14 +11,10 @@ export const ENDPOINTS = {
   trips: {
     list: '/api/v1/trips',
     create: '/api/v1/trips',
-    detail: (id) => `/trips/${id}`,
-    update: (id) => `/trips/${id}`,
-    remove: (id) => `/trips/${id}`,
-    sync: (id) => `/trips/${id}/sync`,
-    stream: (id) => `/trips/${id}/stream`,
-    items: (id) => `/trips/${id}/items`,
-    item: (id, itemId) => `/trips/${id}/items/${itemId}`,
-    invite: (id) => `/trips/${id}/invite`,
+    detail: (id) => `/api/v1/trips/${id}`,
+    update: (id) => `/api/v1/trips/${id}`,
+    items: (id) => `/api/v1/trips/${id}/items`,
+    members: (id) => `/api/v1/trips/${id}/members`,
   },
   users: {
     me: '/api/v1/users/me',

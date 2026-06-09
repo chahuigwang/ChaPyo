@@ -16,6 +16,7 @@ export class TripPlan {
     selectedDate,
     ownerId = null,
     collaboratorIds = [],
+    members = [],
     version = 0,
     updatedAt,
     lastSyncTime = null,
@@ -28,6 +29,7 @@ export class TripPlan {
     this.selectedDate = selectedDate ?? this.days[0] ?? ''
     this.ownerId = ownerId
     this.collaboratorIds = [...collaboratorIds]
+    this.members = [...members] // [{ userId, nickname }] — 서버 상세 조회로 채워짐
     this.version = Number(version) || 0
     this.updatedAt = updatedAt ?? Date.now()
     this.lastSyncTime = lastSyncTime
@@ -62,6 +64,7 @@ export class TripPlan {
       selectedDate: this.selectedDate,
       ownerId: this.ownerId,
       collaboratorIds: [...this.collaboratorIds],
+      members: [...this.members],
       version: this.version,
       updatedAt: this.updatedAt,
       lastSyncTime: this.lastSyncTime,

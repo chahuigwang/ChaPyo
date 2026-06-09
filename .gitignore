@@ -14,5 +14,4 @@ docker-compose.local.yml
 
 
 .claudeignore
-README.md
 checklist.md

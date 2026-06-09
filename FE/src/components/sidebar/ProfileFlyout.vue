@@ -1,18 +1,18 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
-import { UserRound, LogOut, LogIn, UserPlus, History, Clock } from 'lucide-vue-next'
+import { UserRound, LogOut, LogIn, UserPlus, Mail, Loader2, Check } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/authStore'
-import { useCollabStore } from '@/stores/collabStore'
-import InviteModal from '@/components/modal/InviteModal.vue'
+import { useTripStore } from '@/stores/tripStore'
 
 const router = useRouter()
 const auth = useAuthStore()
-const collab = useCollabStore()
+const trip = useTripStore()
 const { user, isAuthed } = storeToRefs(auth)
-const { peers, inviteOpen, historyOpen, history } = storeToRefs(collab)
+const { members } = storeToRefs(trip)
 
+// ── Logout two-click confirm ─────────────────────────────────
 const logoutPending = ref(false)
 async function handleLogout() {
   if (logoutPending.value) {
@@ -29,17 +29,37 @@ watch(logoutPending, (v) => {
   else document.removeEventListener('click', cancelLogout)
 })
 
-collab.seedDemoHistory()
-
 function initialOf(name) { return (name || '?').trim().charAt(0) }
 
-const typeLabel = { add: '추가', edit: '수정', reorder: '순서 변경', remove: '삭제' }
-function timeAgo(ts) {
-  const diff = Math.floor((Date.now() - ts) / 1000)
-  if (diff < 60) return '방금'
-  if (diff < 3600) return `${Math.floor(diff / 60)}분 전`
-  if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`
-  return `${Math.floor(diff / 86400)}일 전`
+// ── Members (서버 상세 조회 결과) ─────────────────────────────
+const MEMBER_COLORS = ['#F59E0B', '#10B981', '#A855F7', '#EF4444', '#3B82F6', '#EC4899']
+function isMe(m) { return m.nickname === user.value?.nickname }
+const memberList = computed(() =>
+  (members.value ?? []).map((m, i) => ({
+    id: m.userId ?? m.nickname,
+    name: m.nickname,
+    me: isMe(m),
+    color: isMe(m) ? '#00B7EB' : MEMBER_COLORS[i % MEMBER_COLORS.length],
+  })),
+)
+
+// ── Inline invite ────────────────────────────────────────────
+const email = ref('')
+const inviting = ref(false)
+const inviteError = ref('')
+const inviteSuccess = ref('')
+const canInvite = computed(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim()))
+
+async function invite() {
+  if (!canInvite.value || inviting.value) return
+  inviting.value = true
+  inviteError.value = ''
+  inviteSuccess.value = ''
+  const res = await trip.inviteMember(email.value.trim())
+  inviting.value = false
+  if (!res.ok) { inviteError.value = res.message; return }
+  inviteSuccess.value = res.message || '초대했습니다.'
+  email.value = ''
 }
 
 const row =
@@ -88,78 +108,65 @@ const row =
       <button v-else :class="row" @click="auth.openLogin"><LogIn :size="15" /> 로그인</button>
     </div>
 
-    <!-- Collaborators section -->
+    <!-- Members + inline invite -->
     <section class="flex flex-col gap-3">
-      <div class="flex items-center justify-between">
-        <span class="text-[12px] font-semibold text-slate-600 dark:text-slate-300">멤버</span>
-        <button
-          @click="collab.openInvite"
-          class="inline-flex items-center gap-1.5 px-3 h-7 rounded-full text-[11px] font-medium text-[#00B7EB] bg-[#00B7EB]/10 hover:bg-[#00B7EB] hover:text-white hover:-translate-y-0.5 hover:shadow-md transition-all duration-300"
-        >
-          <UserPlus :size="13" /> 초대
-        </button>
-      </div>
+      <span class="text-[12px] font-semibold text-slate-600 dark:text-slate-300">멤버 ({{ memberList.length }})</span>
 
       <div class="grid grid-cols-2 gap-2">
-        <!-- Me -->
-        <div class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60">
-          <div
-            class="h-8 w-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[12px] font-semibold shrink-0"
-          >{{ initialOf(user?.nickname) }}</div>
-          <div class="min-w-0">
-            <div class="text-[12px] font-semibold text-slate-900 dark:text-slate-100 truncate">{{ user?.nickname ?? '나' }} (본인)</div>
-          </div>
-        </div>
-
         <div
-          v-for="peer in peers"
-          :key="peer.id"
+          v-for="m in memberList"
+          :key="m.id"
           class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60"
         >
           <div
             class="h-8 w-8 rounded-full flex items-center justify-center text-[12px] font-semibold text-white shrink-0"
-            :style="{ backgroundColor: peer.color }"
-          >{{ initialOf(peer.name) }}</div>
+            :style="{ backgroundColor: m.color }"
+          >{{ initialOf(m.name) }}</div>
           <div class="min-w-0">
-            <div class="text-[12px] font-semibold text-slate-900 dark:text-slate-100 truncate">{{ peer.name }}</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Activity history section -->
-    <section class="flex flex-col gap-3">
-      <div class="flex items-center gap-2">
-        <History :size="14" class="text-slate-400" />
-        <span class="text-[12px] font-semibold text-slate-600 dark:text-slate-300">활동 기록</span>
-      </div>
-
-      <div v-if="history.length" class="flex flex-col gap-2">
-        <div
-          v-for="h in history.slice(0, 8)"
-          :key="h.id"
-          class="flex items-start gap-2.5 px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60"
-        >
-          <div
-            class="mt-0.5 h-6 w-6 rounded-full flex items-center justify-center text-[11px] font-semibold text-white shrink-0"
-            :style="{ backgroundColor: h.byColor }"
-          >{{ initialOf(h.byName) }}</div>
-          <div class="min-w-0 flex-1">
-            <span class="text-[12px] text-slate-700 dark:text-slate-200">
-              <span class="font-semibold">{{ h.byName }}</span>
-              님이 <span class="text-primary font-medium">"{{ h.itemName }}"</span>을(를) {{ typeLabel[h.type] ?? h.type }}
-            </span>
-            <div class="mt-0.5 flex items-center gap-1 text-[10px] text-slate-400">
-              <Clock :size="10" />{{ timeAgo(h.at) }}
+            <div class="text-[12px] font-semibold text-slate-900 dark:text-slate-100 truncate">
+              {{ m.name }}<span v-if="m.me" class="text-slate-400 font-normal"> (본인)</span>
             </div>
           </div>
         </div>
+        <p v-if="!memberList.length" class="col-span-2 text-[11px] text-slate-400 dark:text-slate-500 py-1.5 px-1">
+          여행을 열면 멤버가 표시됩니다.
+        </p>
       </div>
-      <div v-else class="text-center text-[11px] text-slate-400 dark:text-slate-500 py-4">
-        활동 기록이 없습니다.
+
+      <!-- Inline invite -->
+      <div class="flex flex-col gap-2 pt-1">
+        <div class="text-[11px] font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+          <UserPlus :size="12" /> 이메일로 초대
+        </div>
+        <form class="flex items-stretch gap-2" @submit.prevent="invite">
+          <div class="relative flex-1">
+            <Mail :size="13" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              v-model="email"
+              type="email"
+              placeholder="chapyo@email.com"
+              class="w-full h-9 pl-8 pr-3 text-[12px] rounded-lg bg-slate-50 dark:bg-slate-800/60
+                     text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-primary/30 transition-all"
+            />
+          </div>
+          <button
+            type="submit"
+            :disabled="!canInvite || inviting"
+            class="px-3 h-9 rounded-lg text-[12px] font-medium transition-all duration-200
+                   flex items-center gap-1.5 shadow-sm bg-[#00B7EB] text-white
+                   hover:bg-[#0298c4] hover:-translate-y-0.5 hover:shadow-md
+                   disabled:opacity-50 disabled:hover:translate-y-0 disabled:cursor-not-allowed"
+          >
+            <Loader2 v-if="inviting" :size="13" class="animate-spin" />
+            <UserPlus v-else :size="13" />
+            초대
+          </button>
+        </form>
+        <p v-if="inviteError" class="text-[11px] text-red-500">{{ inviteError }}</p>
+        <p v-else-if="inviteSuccess" class="text-[11px] text-emerald-500 flex items-center gap-1">
+          <Check :size="12" /> {{ inviteSuccess }}
+        </p>
       </div>
     </section>
-
-    <InviteModal :open="inviteOpen" @close="collab.closeInvite" />
   </div>
 </template>

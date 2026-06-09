@@ -17,6 +17,8 @@ export class TravelItem {
     transitAfter = null,
     address = '',
     firstImage = null,
+    placeId = null,
+    serverId = null,
   } = {}) {
     this.id = id ?? newItemId()
     this.name = name
@@ -30,6 +32,8 @@ export class TravelItem {
     this.transitAfter = transitAfter ?? { cost: 0, mins: null, method: '' }
     this.address = address
     this.firstImage = firstImage ?? null
+    this.placeId = placeId != null ? Number(placeId) : null  // BE place 참조 ID
+    this.serverId = serverId != null ? Number(serverId) : null // BE item(itemId)
   }
 
   static fromJSON(raw = {}) {
@@ -50,6 +54,8 @@ export class TravelItem {
       transitAfter: this.transitAfter,
       address: this.address,
       firstImage: this.firstImage,
+      placeId: this.placeId,
+      serverId: this.serverId,
     }
   }
 

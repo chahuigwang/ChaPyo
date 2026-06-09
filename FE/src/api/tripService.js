@@ -1,57 +1,52 @@
 import { http } from './httpClient'
 import { ENDPOINTS } from './endpoints'
 import { TripPlan } from '@/models/TripPlan'
-import { TravelItem } from '@/models/TravelItem'
+
+// BaseResponse<T> 래퍼를 벗겨 data만 반환. (성공 응답은 { success, code, message, data })
+function unwrap(res) {
+  return res?.data?.data ?? null
+}
 
 export const tripService = {
+  // GET /api/v1/trips → 여행 계획 목록
   async list() {
     const { data } = await http.get(ENDPOINTS.trips.list)
-    const items = data?.data ?? data ?? []
+    const items = data?.data ?? []
     return items.map((raw) => TripPlan.fromJSON({ ...raw, id: String(raw.planId ?? raw.id) }))
   },
 
-  async detail(id) {
-    const { data, sync } = await http.get(ENDPOINTS.trips.detail(id))
-    const plan = TripPlan.fromJSON(data)
-    plan.applySync(sync)
-    return plan
-  },
-
+  // POST /api/v1/trips → 새 여행 계획 생성 (서버가 기본 제목/날짜 부여)
   async create() {
     const { data } = await http.post(ENDPOINTS.trips.create, {})
     const raw = data?.data ?? data
     return TripPlan.fromJSON({ ...raw, id: String(raw.planId ?? raw.id) })
   },
 
-  async update(plan) {
-    const { data, sync } = await http.put(ENDPOINTS.trips.update(plan.id), plan.toJSON())
-    const next = TripPlan.fromJSON(data)
-    next.applySync(sync)
-    return next
+  // GET /api/v1/trips/{planId} → 멤버 + 일정 포함 상세. raw 객체를 그대로 반환(매핑은 store에서).
+  async detail(planId) {
+    const res = await http.get(ENDPOINTS.trips.detail(planId))
+    return unwrap(res)
   },
 
-  async remove(id) {
-    await http.delete(ENDPOINTS.trips.remove(id))
-    return id
+  // PATCH /api/v1/trips/{planId} → 제목/시작일/종료일 수정
+  async update(planId, { title, startDate, endDate } = {}) {
+    await http.patch(ENDPOINTS.trips.update(planId), { title, startDate, endDate })
   },
 
-  async pollSync(id, lastSyncTime) {
-    const { data, sync } = await http.get(ENDPOINTS.trips.sync(id), { since: lastSyncTime })
-    return { plan: data ? TripPlan.fromJSON(data) : null, sync }
+  // POST /api/v1/trips/{planId}/items → 일정 추가 (응답 본문 없음, itemOrder는 서버가 부여)
+  async addItem(planId, { placeId, visitDate, visitTime, cost, memo } = {}) {
+    await http.post(ENDPOINTS.trips.items(planId), {
+      placeId,
+      visitDate,
+      visitTime: visitTime || null,
+      cost: cost ?? null,
+      memo: memo || null,
+    })
   },
 
-  async addItem(tripId, payload) {
-    const { data } = await http.post(ENDPOINTS.trips.items(tripId), payload)
-    return TravelItem.fromJSON(data)
-  },
-
-  async updateItem(tripId, itemId, patch) {
-    const { data } = await http.patch(ENDPOINTS.trips.item(tripId, itemId), patch)
-    return TravelItem.fromJSON(data)
-  },
-
-  async removeItem(tripId, itemId) {
-    await http.delete(ENDPOINTS.trips.item(tripId, itemId))
-    return itemId
+  // POST /api/v1/trips/{planId}/members → 이메일로 멤버 초대
+  async inviteMember(planId, email) {
+    const res = await http.post(ENDPOINTS.trips.members(planId), { email })
+    return res?.data?.message ?? '멤버 초대 성공'
   },
 }

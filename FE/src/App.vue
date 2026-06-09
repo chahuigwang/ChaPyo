@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia'
 import { useAuthStore } from '@/stores/authStore'
 import { useTripStore } from '@/stores/tripStore'
 import { useTheme } from '@/composables/useTheme'
+import ToastHost from '@/components/common/ToastHost.vue'
 
 useTheme()
 const auth = useAuthStore()
@@ -32,6 +33,8 @@ watch(isAuthed, (v) => {
         </Transition>
       </template>
     </RouterView>
+
+    <ToastHost />
   </div>
 </template>
 

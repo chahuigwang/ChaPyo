@@ -22,4 +22,7 @@ public interface TripMapper {
     List<TripPlanItemResponse> findItemsByPlanId(Long planId);
     void updatePlan(TripPlan plan);
     void deletePlan(Long planId);
+    TripPlanItem findItemById(Long itemId);
+    void updateItem(TripPlanItem item);
+    void deleteItem(Long itemId);
 }

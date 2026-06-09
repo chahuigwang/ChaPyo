@@ -2,6 +2,7 @@ package com.chapyo.trip.service;
 
 import com.chapyo.common.exception.CustomException;
 import com.chapyo.trip.dto.request.TripPlanItemRequest;
+import com.chapyo.trip.dto.request.TripPlanItemUpdateRequest;
 import com.chapyo.trip.dto.request.TripPlanUpdateRequest;
 import com.chapyo.trip.dto.response.MemberResponse;
 import com.chapyo.trip.dto.response.TripPlanDetailResponse;
@@ -152,5 +153,43 @@ public class TripServiceImpl implements TripService {
         }
 
         tripMapper.deletePlan(planId);
+    }
+
+    @Override
+    @Transactional
+    public void updateItem(Long planId, Long itemId, TripPlanItemUpdateRequest request, Long userId) {
+        if (!tripMapper.existsMember(planId, userId)) {
+            throw new CustomException(TripErrorCode.FORBIDDEN);
+        }
+
+        TripPlanItem item = tripMapper.findItemById(itemId);
+        if (item == null) {
+            throw new CustomException(TripErrorCode.ITEM_NOT_FOUND);
+        }
+
+        TripPlanItem updated = TripPlanItem.builder()
+                .itemId(itemId)
+                .visitDate(request.getVisitDate())
+                .visitTime(request.getVisitTime())
+                .cost(request.getCost())
+                .memo(request.getMemo())
+                .build();
+
+        tripMapper.updateItem(updated);
+    }
+
+    @Override
+    @Transactional
+    public void deleteItem(Long planId, Long itemId, Long userId) {
+        if (!tripMapper.existsMember(planId, userId)) {
+            throw new CustomException(TripErrorCode.FORBIDDEN);
+        }
+
+        TripPlanItem item = tripMapper.findItemById(itemId);
+        if (item == null) {
+            throw new CustomException(TripErrorCode.ITEM_NOT_FOUND);
+        }
+
+        tripMapper.deleteItem(itemId);
     }
 }

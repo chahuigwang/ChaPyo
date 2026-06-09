@@ -3,6 +3,7 @@ package com.chapyo.trip.controller;
 import com.chapyo.common.response.BaseResponse;
 import com.chapyo.trip.dto.request.InviteMemberRequest;
 import com.chapyo.trip.dto.request.TripPlanItemRequest;
+import com.chapyo.trip.dto.request.TripPlanItemUpdateRequest;
 import com.chapyo.trip.dto.request.TripPlanUpdateRequest;
 import com.chapyo.trip.dto.response.TripPlanDetailResponse;
 import com.chapyo.trip.dto.response.TripPlanResponse;
@@ -103,5 +104,28 @@ public class TripController {
 
         tripService.deletePlan(planId, userId);
         return ResponseEntity.ok(BaseResponse.success("여행 계획 삭제 성공"));
+    }
+
+    @Operation(summary = "여행 일정 수정")
+    @PatchMapping("/{planId}/items/{itemId}")
+    public ResponseEntity<BaseResponse<Void>> updateItem(
+            @PathVariable Long planId,
+            @PathVariable Long itemId,
+            @RequestBody TripPlanItemUpdateRequest request,
+            @AuthenticationPrincipal Long userId) {
+
+        tripService.updateItem(planId, itemId, request, userId);
+        return ResponseEntity.ok(BaseResponse.success("여행 일정 수정 성공"));
+    }
+
+    @Operation(summary = "여행 일정 삭제")
+    @DeleteMapping("/{planId}/items/{itemId}")
+    public ResponseEntity<BaseResponse<Void>> deleteItem(
+            @PathVariable Long planId,
+            @PathVariable Long itemId,
+            @AuthenticationPrincipal Long userId) {
+
+        tripService.deleteItem(planId, itemId, userId);
+        return ResponseEntity.ok(BaseResponse.success("여행 일정 삭제 성공"));
     }
 }

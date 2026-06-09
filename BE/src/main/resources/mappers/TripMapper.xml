@@ -78,4 +78,26 @@
         DELETE FROM trip_plans
         WHERE plan_id = #{planId}
     </delete>
+
+    <select id="findItemById" resultType="com.chapyo.trip.domain.TripPlanItem">
+        SELECT item_id, plan_id, place_id, user_id, visit_date, item_order, visit_time, cost, memo
+        FROM trip_plan_items
+        WHERE item_id = #{itemId}
+    </select>
+
+    <update id="updateItem">
+        UPDATE trip_plan_items
+        <set>
+            <if test="visitDate != null">visit_date = #{visitDate},</if>
+            <if test="visitTime != null">visit_time = #{visitTime},</if>
+            <if test="cost != null">cost = #{cost},</if>
+            <if test="memo != null">memo = #{memo}</if>
+        </set>
+        WHERE item_id = #{itemId}
+    </update>
+
+    <delete id="deleteItem">
+        DELETE FROM trip_plan_items
+        WHERE item_id = #{itemId}
+    </delete>
 </mapper>

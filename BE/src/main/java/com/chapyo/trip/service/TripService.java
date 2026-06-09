@@ -1,6 +1,7 @@
 package com.chapyo.trip.service;
 
 import com.chapyo.trip.dto.request.TripPlanItemRequest;
+import com.chapyo.trip.dto.request.TripPlanItemUpdateRequest;
 import com.chapyo.trip.dto.request.TripPlanUpdateRequest;
 import com.chapyo.trip.dto.response.TripPlanDetailResponse;
 import com.chapyo.trip.dto.response.TripPlanResponse;
@@ -14,4 +15,6 @@ public interface TripService {
     TripPlanDetailResponse getPlanDetail(Long planId, Long userId);
     void updatePlan(Long planId, TripPlanUpdateRequest request, Long userId);
     void deletePlan(Long planId, Long userId);
+    void updateItem(Long planId, Long itemId, TripPlanItemUpdateRequest request, Long userId);
+    void deleteItem(Long planId, Long itemId, Long userId);
 }

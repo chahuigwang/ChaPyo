@@ -3,17 +3,24 @@ import { watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useAuthStore } from '@/stores/authStore'
 import { useTripStore } from '@/stores/tripStore'
+import { useStorageStore } from '@/stores/storageStore'
 import { useTheme } from '@/composables/useTheme'
 import ToastHost from '@/components/common/ToastHost.vue'
 
 useTheme()
 const auth = useAuthStore()
 const trip = useTripStore()
+const storage = useStorageStore()
 const { isAuthed, initializing } = storeToRefs(auth)
 
 watch(isAuthed, (v) => {
-  if (v) trip.fetchTrips()
-  else trip.resetForLogout()
+  if (v) {
+    trip.fetchTrips()
+    storage.fetchLikes() // 전역 좋아요 적재 (size=1000)
+  } else {
+    trip.resetForLogout()
+    storage.reset()
+  }
 })
 </script>
 

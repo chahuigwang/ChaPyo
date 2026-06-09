@@ -199,19 +199,19 @@ function cancelRemove() { pendingDeletePersona.value = null }
 
       <div class="flex items-end gap-2 overflow-x-auto pb-1 scrollbar-hide">
         <div class="flex flex-col gap-1 shrink-0">
-          <label class="text-[10px] text-slate-400">성별</label>
+          <label class="text-[11px] text-slate-400">성별</label>
           <select v-model="form.gender" class="h-7 px-2 text-[11px] rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 outline-none">
             <option v-for="g in GENDERS" :key="g" :value="g">{{ g }}</option>
           </select>
         </div>
         <div class="flex flex-col gap-1 shrink-0">
-          <label class="text-[10px] text-slate-400">연령대</label>
+          <label class="text-[11px] text-slate-400">연령대</label>
           <select v-model="form.ageGroup" class="h-7 px-2 text-[11px] rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 outline-none">
             <option v-for="a in AGE_GROUPS" :key="a" :value="a">{{ a }}</option>
           </select>
         </div>
         <div class="flex flex-col gap-1 shrink-0">
-          <label class="text-[10px] text-slate-400">MBTI</label>
+          <label class="text-[11px] text-slate-400">MBTI</label>
           <select v-model="form.mbti" class="h-7 px-2 text-[11px] rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 outline-none">
             <option v-for="m in MBTI_TYPES" :key="m" :value="m">{{ m }}</option>
           </select>

@@ -9,7 +9,7 @@ const props = defineProps({
 })
 
 const SIZES = {
-  xs: 'h-6 w-6 text-[10px]',
+  xs: 'h-6 w-6 text-[11px]',
   sm: 'h-7 w-7 text-[11px]',
   md: 'h-9 w-9 text-xs',
   lg: 'h-11 w-11 text-sm',

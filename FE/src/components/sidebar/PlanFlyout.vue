@@ -152,25 +152,34 @@ async function confirmDeleteTrip() {
 <template>
   <div class="flex-1 flex flex-col min-h-0 overflow-y-auto">
     <div class="px-5 pt-5 pb-3">
-      <h2 class="text-[11px] uppercase tracking-wider text-slate-400 mb-2">여행 설정</h2>
+      <h2 class="text-[15px] font-bold text-slate-800 dark:text-slate-100 mb-3">여행 설정</h2>
 
       <!-- Trip Title Edit -->
       <div class="mb-4">
-        <div v-if="!titleEditing" class="group flex items-center gap-2 cursor-pointer" @click="startTitleEdit">
+        <p class="text-[11px] font-medium text-slate-400 mb-1.5">여행 이름</p>
+        <div
+          v-if="!titleEditing"
+          class="group flex items-center justify-between gap-2 cursor-pointer rounded-xl
+                 bg-slate-50 dark:bg-slate-800/60 px-3.5 py-2.5
+                 ring-1 ring-transparent hover:ring-primary/40 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+          @click="startTitleEdit"
+          title="클릭해서 이름 수정"
+        >
           <span class="text-xl font-bold text-slate-900 dark:text-slate-100 leading-tight truncate flex-1">
             {{ title || '여행 제목 없음' }}
           </span>
-          <Pencil :size="14" class="text-slate-300 dark:text-slate-600 opacity-0 group-hover:opacity-100 shrink-0 transition-opacity" />
+          <Pencil :size="18" class="shrink-0 text-primary" />
         </div>
-        <div v-else class="flex items-center gap-1.5">
+        <div v-else class="flex items-stretch gap-2">
           <input
             v-model="titleDraft"
             @keydown="onTitleKeydown"
             autofocus
-            class="flex-1 text-xl font-bold text-slate-900 dark:text-slate-100 bg-transparent border-b-2 border-primary outline-none leading-tight py-0.5"
+            class="flex-1 min-w-0 text-xl font-bold text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800
+                   rounded-xl px-3.5 py-2 border-2 border-primary outline-none leading-tight"
           />
-          <button @click="saveTitle" class="h-7 w-7 rounded-md bg-primary text-white flex items-center justify-center hover:bg-primary/90">
-            <Check :size="13" />
+          <button @click="saveTitle" class="w-11 shrink-0 rounded-xl bg-primary text-white flex items-center justify-center hover:bg-primary/90">
+            <Check :size="16" />
           </button>
         </div>
       </div>
@@ -180,7 +189,7 @@ async function confirmDeleteTrip() {
     <div class="mx-5 mb-3 flex items-center justify-between rounded-lg px-3 py-2.5
                 bg-sky-50 dark:bg-sky-900/15 transition-colors">
       <div class="flex items-center gap-2">
-        <span class="text-[10px] font-bold uppercase tracking-widest text-sky-500 dark:text-sky-400">FROM</span>
+        <span class="text-[11px] font-bold uppercase tracking-widest text-sky-500 dark:text-sky-400">FROM</span>
         <span class="text-[13px] font-semibold text-slate-900 dark:text-slate-100">
           {{ startDate || '날짜 선택' }}
         </span>
@@ -205,7 +214,7 @@ async function confirmDeleteTrip() {
         </div>
 
         <!-- Weekdays -->
-        <div class="grid grid-cols-7 gap-0.5 text-center text-[10px] font-medium text-slate-400 dark:text-slate-500 mb-1">
+        <div class="grid grid-cols-7 gap-0.5 text-center text-[11px] font-medium text-slate-400 dark:text-slate-500 mb-1">
           <div v-for="w in weekdays" :key="w">{{ w }}</div>
         </div>
 
@@ -244,7 +253,7 @@ async function confirmDeleteTrip() {
     <div class="mx-5 mb-5 flex items-center justify-between rounded-lg px-3 py-2.5
                 bg-violet-50 dark:bg-violet-900/15 transition-colors">
       <div class="flex items-center gap-2">
-        <span class="text-[10px] font-bold uppercase tracking-widest text-violet-500 dark:text-violet-400">TO</span>
+        <span class="text-[11px] font-bold uppercase tracking-widest text-violet-500 dark:text-violet-400">TO</span>
         <span class="text-[13px] font-semibold text-slate-900 dark:text-slate-100">
           {{ endDate || '날짜 선택' }}
         </span>
@@ -256,11 +265,11 @@ async function confirmDeleteTrip() {
     <div class="px-5 pb-4">
       <div class="rounded-xl bg-slate-50 dark:bg-slate-800/60 px-4 py-4 flex items-center justify-between">
         <div class="flex flex-col">
-          <span class="text-[10px] uppercase tracking-wider text-slate-400">총 기간</span>
+          <span class="text-[13px] font-semibold text-slate-500 dark:text-slate-400">총 기간</span>
           <span class="text-lg font-bold text-slate-900 dark:text-slate-100 leading-tight">{{ totalDays }}일</span>
         </div>
         <div class="flex flex-col items-end">
-          <span class="text-[10px] uppercase tracking-wider text-slate-400">총 비용</span>
+          <span class="text-[13px] font-semibold text-slate-500 dark:text-slate-400">총 비용</span>
           <span class="text-lg font-bold text-slate-900 dark:text-slate-100 leading-tight">{{ won(totalCost) }}</span>
         </div>
       </div>
@@ -269,7 +278,7 @@ async function confirmDeleteTrip() {
     <!-- 5. 카테고리 분포 -->
     <div class="px-5 pb-6">
       <div class="rounded-xl bg-slate-50 dark:bg-slate-800/60 px-4 py-4">
-        <p class="text-[10px] uppercase tracking-wider text-slate-400 mb-3">일정 구성</p>
+        <p class="text-[13px] font-semibold text-slate-500 dark:text-slate-400 mb-3">일정 구성</p>
 
         <div v-if="hasAnyItem" class="space-y-2.5">
           <div
@@ -309,7 +318,7 @@ async function confirmDeleteTrip() {
         <Trash2 :size="14" /> 여행 삭제
       </button>
       <div v-else class="flex flex-col gap-2">
-        <p class="text-[11px] text-red-500 font-medium text-center">
+        <p class="text-[13px] text-red-500 font-semibold text-center">
           이 여행을 삭제할까요? 되돌릴 수 없습니다.
         </p>
         <div class="flex gap-2">

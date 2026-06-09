@@ -1,5 +1,7 @@
 <script setup>
-defineProps({
+import { computed } from 'vue'
+
+const props = defineProps({
   date: { type: String, default: '' },
   dayLabel: { type: String, default: '' },
   dayColor: { type: Object, required: true },
@@ -8,6 +10,16 @@ defineProps({
 })
 
 const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
+
+const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
+// dayLabel("Day 1 · 6/9(화)") → "Day 1"
+const dayBadge = computed(() => (props.dayLabel || '').split('·')[0].trim() || 'Day')
+const dateWithWeekday = computed(() => {
+  if (!props.date) return ''
+  const d = new Date(props.date)
+  if (Number.isNaN(d.getTime())) return props.date
+  return `${props.date}(${WEEKDAYS[d.getDay()]})`
+})
 </script>
 
 <template>
@@ -15,14 +27,11 @@ const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
     <div class="flex items-center gap-3 min-w-0">
       <span
         v-if="date"
-        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap"
-        :style="{ backgroundColor: dayColor.bg, color: dayColor.fg }"
-      >
-        <span class="h-1.5 w-1.5 rounded-full" :style="{ backgroundColor: dayColor.pin }" />
-        {{ dayLabel }}
-      </span>
+        class="px-2.5 py-1 rounded-lg text-[13px] font-bold border whitespace-nowrap shrink-0"
+        :style="{ backgroundColor: dayColor.bg, borderColor: dayColor.pin, color: dayColor.fg }"
+      >{{ dayBadge }}</span>
       <div class="flex-1 min-w-0">
-        <p class="text-[15px] font-semibold text-slate-900 dark:text-slate-100">{{ date || '날짜를 선택하세요' }}</p>
+        <p class="text-[16px] font-bold text-slate-900 dark:text-slate-100 truncate">{{ dateWithWeekday || '날짜를 선택하세요' }}</p>
         <p class="mt-0.5 text-[12px] text-slate-500 dark:text-slate-400">{{ itemCount }}건의 일정</p>
       </div>
     </div>

@@ -10,6 +10,7 @@ import { useUiStore } from '@/stores/uiStore'
 import { useStorageStore } from '@/stores/storageStore'
 import { useCollabStore } from '@/stores/collabStore'
 import { findCategory, formatDayLabel } from '@/types/itinerary'
+import { dayColorFor } from '@/composables/useDayColor'
 
 const trip = useTripStore()
 const ui = useUiStore()
@@ -42,7 +43,7 @@ function onDayDrop(e, iso) {
     trip.moveItemToDate(p.fromDate, iso, p.item.id)
   } else {
     trip.addItemToDate(iso, p.item)
-    if (p.source === 'storage') storage.removeItem(p.item.id)
+    // 보관함(좋아요)에서 가져와도 좋아요는 유지(복사)
   }
   collab.pushHistory({ type: 'add', itemName: p.item.name, byName: collab.me.name })
 
@@ -74,11 +75,21 @@ function toggleDay(iso) {
   expanded.value = s
 }
 
+const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
+function dateWithWeekday(iso) {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
+  return `${iso}(${WEEKDAYS[d.getDay()]})`
+}
+
 const allDays = computed(() => {
   const t = currentTrip.value
   if (!t) return []
   return (days.value || []).map((iso, idx) => ({
     iso,
+    dayNum: idx + 1,
+    dateLabel: dateWithWeekday(iso),
+    color: dayColorFor(idx),
     label: formatDayLabel(iso, idx),
     items: t.itemsByDay?.[iso] ?? [],
   }))
@@ -145,13 +156,13 @@ function goDaily(iso) {
           </div>
           <div class="flex items-center justify-between mt-1">
             <div>
-              <div class="text-[10px] text-slate-400">일정 수</div>
+              <div class="text-[11px] text-slate-400">일정 수</div>
               <div class="text-[13px] font-bold text-slate-900 dark:text-slate-100">
                 {{ allDays.reduce((s, d) => s + d.items.length, 0) }}건
               </div>
             </div>
             <div class="text-right">
-              <div class="text-[10px] text-slate-400">총 비용</div>
+              <div class="text-[11px] text-slate-400">총 비용</div>
               <div class="text-[13px] font-bold text-slate-900 dark:text-slate-100">{{ won(totalCost) }}</div>
             </div>
           </div>
@@ -179,16 +190,19 @@ function goDaily(iso) {
               class="text-slate-400 shrink-0 transition-transform duration-300"
               :class="expanded.has(day.iso) ? 'rotate-0' : '-rotate-90'"
             />
-            <div class="flex-1 min-w-0">
-              <div class="text-[10px] text-slate-400">{{ day.iso }}</div>
-              <div class="text-[13px] font-bold text-slate-900 dark:text-slate-100">{{ day.label }}</div>
+            <div class="flex-1 min-w-0 flex items-center gap-2.5">
+              <span
+                class="px-2.5 py-1 rounded-lg text-[13px] font-bold border shrink-0"
+                :style="{ backgroundColor: day.color.bg, borderColor: day.color.pin, color: day.color.fg }"
+              >Day {{ day.dayNum }}</span>
+              <span class="text-[15px] font-bold text-slate-900 dark:text-slate-100 truncate">{{ day.dateLabel }}</span>
             </div>
             <div class="flex items-center gap-2 shrink-0">
               <span
                 v-if="dropTargetDay === day.iso"
-                class="text-[10px] font-semibold text-primary animate-pulse"
+                class="text-[11px] font-semibold text-primary animate-pulse"
               >여기에 추가</span>
-              <span v-else class="text-[11px] text-slate-400">{{ day.items.length }}건</span>
+              <span v-else class="text-[13px] font-semibold text-slate-600 dark:text-slate-300">{{ day.items.length }}건</span>
               <button
                 @click.stop="goDaily(day.iso)"
                 class="bg-cyan-50 dark:bg-cyan-900/20 text-cyan-500 hover:bg-cyan-100 dark:hover:bg-cyan-900/40 rounded-xl p-2.5 transition-all hover:-translate-y-0.5 hover:shadow-md"
@@ -208,13 +222,13 @@ function goDaily(iso) {
                 :key="item.id"
                 class="flex items-center gap-2.5 px-2.5 py-2 rounded-lg bg-slate-50 dark:bg-slate-800/60"
               >
-                <span class="shrink-0 inline-flex items-center justify-center h-5 w-5 rounded-full bg-primary text-white text-[10px] font-bold">
+                <span class="shrink-0 inline-flex items-center justify-center h-5 w-5 rounded-full bg-primary text-white text-[11px] font-bold">
                   {{ dayOffset[day.iso] + idx + 1 }}
                 </span>
                 <span class="text-sm shrink-0">{{ findCategory(item.category).emoji }}</span>
                 <div class="flex-1 min-w-0">
                   <div class="text-[12px] font-semibold text-slate-900 dark:text-slate-100">{{ item.name }}</div>
-                  <div class="text-[10px] text-slate-400">
+                  <div class="text-[11px] text-slate-400">
                     {{ findCategory(item.category).label }}<span v-if="item.time"> · {{ item.time }}</span>
                     <span v-if="item.cost"> · {{ won(item.cost) }}</span>
                   </div>
@@ -241,16 +255,15 @@ function goDaily(iso) {
 </template>
 
 <style scoped>
+/* 접힘 상태에서는 높이 0으로 완전히 숨김(초기엔 안 보임). 펼칠 때만 슬라이드. */
 .accordion-wrap {
-  display: grid;
-  grid-template-rows: 0fr;
-  overflow: hidden;
-  transition: grid-template-rows 0.3s ease, opacity 0.25s ease;
+  max-height: 0;
   opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.25s ease;
 }
-.accordion-wrap > div { min-height: 0; }
 .accordion-open {
-  grid-template-rows: 1fr;
+  max-height: 1000px;
   opacity: 1;
 }
 </style>

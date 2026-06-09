@@ -125,7 +125,7 @@ export const PLACE_TYPE_GROUPS = [
   { id: 'VE', label: '문화관광', children: PLACE_TYPES.filter((t) => t.parentId === 'VE') },
 ]
 
-function typeToCategory(categoryCode) {
+export function typeToCategory(categoryCode) {
   // categoryCode2(서브) → categoryCode1(부모) 순으로 매칭해 category 반환
   const t = PLACE_TYPES.find((x) => x.id === categoryCode)
   return t?.category ?? 'place'

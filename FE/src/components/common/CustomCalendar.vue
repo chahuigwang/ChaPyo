@@ -136,7 +136,7 @@ const displayValue = computed(() => {
         </div>
 
         <!-- Weekdays -->
-        <div class="grid grid-cols-7 gap-0.5 text-center text-[10px] font-medium text-slate-400 dark:text-slate-500 mb-1">
+        <div class="grid grid-cols-7 gap-0.5 text-center text-[11px] font-medium text-slate-400 dark:text-slate-500 mb-1">
           <div v-for="w in weekdays" :key="w">{{ w }}</div>
         </div>
 

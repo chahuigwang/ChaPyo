@@ -63,8 +63,8 @@ const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
           <span v-if="transitMethod" class="font-semibold text-slate-700 dark:text-slate-200 mr-1">{{ transitMethod }}</span>
           {{ displayMins }}분 · {{ displayKm }}km
         </div>
-        <div v-if="transitCost > 0" class="text-[10px] text-primary font-semibold mt-0.5">{{ won(transitCost) }}</div>
-        <div v-else class="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">이동 비용 없음</div>
+        <div v-if="transitCost > 0" class="text-[11px] text-primary font-semibold mt-0.5">{{ won(transitCost) }}</div>
+        <div v-else class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">이동 비용 없음</div>
       </div>
       <Pencil :size="12" class="text-slate-300 dark:text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
     </div>
@@ -77,7 +77,7 @@ const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
       </div>
       <div class="flex gap-2 mb-2">
         <label class="flex-1 flex flex-col gap-1">
-          <span class="text-[10px] text-slate-400">이동 수단</span>
+          <span class="text-[11px] text-slate-400">이동 수단</span>
           <input
             v-model="draftMethod"
             type="text" placeholder="택시, 도보, 지하철…"
@@ -88,7 +88,7 @@ const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
       </div>
       <div class="flex gap-2">
         <label class="flex-1 flex flex-col gap-1">
-          <span class="text-[10px] text-slate-400">소요 시간 (분)</span>
+          <span class="text-[11px] text-slate-400">소요 시간 (분)</span>
           <input
             v-model="draftMins"
             type="number" min="0" placeholder="분"
@@ -97,7 +97,7 @@ const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
           />
         </label>
         <label class="flex-1 flex flex-col gap-1">
-          <span class="text-[10px] text-slate-400">비용 (원)</span>
+          <span class="text-[11px] text-slate-400">비용 (원)</span>
           <input
             v-model="draftCost"
             type="number" min="0" placeholder="0"

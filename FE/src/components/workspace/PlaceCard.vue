@@ -1,7 +1,8 @@
 <script setup>
-import { ref } from 'vue'
-import { Clock, Pencil, Trash2, MapPin, Check } from 'lucide-vue-next'
+import { ref, computed } from 'vue'
+import { Clock, Pencil, Trash2, MapPin, Check, Heart, X } from 'lucide-vue-next'
 import { findCategory } from '@/types/itinerary'
+import { useStorageStore } from '@/stores/storageStore'
 
 const props = defineProps({
   item: { type: Object, required: true },
@@ -17,6 +18,9 @@ const emit = defineEmits([
 
 const rootEl = ref(null)
 defineExpose({ $el: rootEl })
+
+const storage = useStorageStore()
+const liked = computed(() => storage.isLiked(props.item))
 
 const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
 
@@ -77,7 +81,7 @@ function saveEdit() {
         <!-- Sequence badge -->
         <span
           class="absolute top-1.5 left-1.5 z-10 inline-flex items-center justify-center h-5 w-5
-                 rounded-full bg-[#00B7EB] text-white text-[10px] font-bold shadow
+                 rounded-full bg-[#00B7EB] text-white text-[11px] font-bold shadow
                  ring-2 ring-white dark:ring-slate-900"
         >{{ index + 1 }}</span>
       </div>
@@ -86,7 +90,7 @@ function saveEdit() {
       <div class="flex-1 min-w-0 py-2.5 px-3">
         <div class="flex items-start justify-between gap-1">
           <div class="min-w-0">
-            <p class="text-[10px] text-slate-400 dark:text-slate-500 mb-0.5 leading-none">
+            <p class="text-[11px] text-slate-400 dark:text-slate-500 mb-0.5 leading-none">
               {{ findCategory(item.category).label }}
             </p>
             <h4 class="text-[13px] font-semibold text-slate-900 dark:text-slate-100 truncate leading-snug">
@@ -94,30 +98,44 @@ function saveEdit() {
             </h4>
           </div>
 
-          <!-- Action buttons -->
-          <div class="flex items-center gap-0.5 shrink-0 mt-0.5"
-               :class="editOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 transition-opacity'">
-            <button
-              @click.stop="editOpen ? cancelEdit() : openEdit()"
-              class="h-6 w-6 rounded-md flex items-center justify-center transition-colors"
-              :class="editOpen
-                ? 'text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'
-                : 'text-slate-400 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800'"
-              :title="editOpen ? '닫기' : '수정'"
-            >
-              <X v-if="editOpen" :size="12" />
-              <Pencil v-else :size="12" />
-            </button>
+          <!-- Action buttons (edit/delete) + like below -->
+          <div class="flex flex-col items-end gap-1 shrink-0 mt-0.5">
+            <div class="flex items-center gap-0.5"
+                 :class="editOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 transition-opacity'">
+              <button
+                @click.stop="editOpen ? cancelEdit() : openEdit()"
+                class="h-6 w-6 rounded-md flex items-center justify-center transition-colors"
+                :class="editOpen
+                  ? 'text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  : 'text-slate-400 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800'"
+                :title="editOpen ? '닫기' : '수정'"
+              >
+                <X v-if="editOpen" :size="12" />
+                <Pencil v-else :size="12" />
+              </button>
 
+              <button
+                v-if="!editOpen"
+                @click.stop="pendingDelete === item.id ? emit('confirm-delete') : emit('request-delete')"
+                class="h-6 w-6 rounded-md flex items-center justify-center transition-all duration-150"
+                :class="pendingDelete === item.id
+                  ? 'text-white bg-red-500 hover:bg-red-600 scale-110'
+                  : 'text-slate-400 hover:text-red-500 hover:bg-slate-100 dark:hover:bg-slate-800'"
+                :title="pendingDelete === item.id ? '한 번 더 클릭하면 삭제됩니다' : '삭제'"
+              ><Trash2 :size="12" /></button>
+            </div>
+
+            <!-- Like toggle (삭제 버튼 아래, 오른쪽 아래) -->
             <button
-              v-if="!editOpen"
-              @click.stop="pendingDelete === item.id ? emit('confirm-delete') : emit('request-delete')"
-              class="h-6 w-6 rounded-md flex items-center justify-center transition-all duration-150"
-              :class="pendingDelete === item.id
-                ? 'text-white bg-red-500 hover:bg-red-600 scale-110'
+              @click.stop="storage.toggleLike(item)"
+              class="h-6 w-6 rounded-md flex items-center justify-center transition-colors"
+              :class="liked
+                ? 'text-red-500 bg-red-50 dark:bg-red-900/20'
                 : 'text-slate-400 hover:text-red-500 hover:bg-slate-100 dark:hover:bg-slate-800'"
-              :title="pendingDelete === item.id ? '한 번 더 클릭하면 삭제됩니다' : '삭제'"
-            ><Trash2 :size="12" /></button>
+              :title="liked ? '좋아요 취소' : '좋아요'"
+            >
+              <Heart :size="13" :class="liked ? 'fill-red-500' : ''" />
+            </button>
           </div>
         </div>
 
@@ -126,7 +144,7 @@ function saveEdit() {
             <Clock :size="10" /> {{ item.time }}
           </span>
           <span v-if="item.addr || item.address"
-                class="inline-flex items-center gap-1 text-[10px] text-slate-400 dark:text-slate-500 truncate max-w-[110px]">
+                class="inline-flex items-center gap-1 text-[11px] text-slate-400 dark:text-slate-500 truncate max-w-[110px]">
             <MapPin :size="10" /> {{ item.addr || item.address }}
           </span>
           <span v-if="item.cost" class="text-[11px] font-semibold text-primary ml-auto">
@@ -149,7 +167,7 @@ function saveEdit() {
           <!-- Time + Cost row -->
           <div class="grid grid-cols-2 gap-2">
             <label class="flex flex-col gap-1">
-              <span class="text-[10px] font-medium text-slate-400 uppercase tracking-wide">시간</span>
+              <span class="text-[11px] font-medium text-slate-400 uppercase tracking-wide">시간</span>
               <input
                 v-model="draft.time"
                 type="time"
@@ -161,7 +179,7 @@ function saveEdit() {
               />
             </label>
             <label class="flex flex-col gap-1">
-              <span class="text-[10px] font-medium text-slate-400 uppercase tracking-wide">비용 (원)</span>
+              <span class="text-[11px] font-medium text-slate-400 uppercase tracking-wide">비용 (원)</span>
               <input
                 v-model.number="draft.cost"
                 type="number"
@@ -178,7 +196,7 @@ function saveEdit() {
 
           <!-- Memo -->
           <label class="flex flex-col gap-1">
-            <span class="text-[10px] font-medium text-slate-400 uppercase tracking-wide">메모</span>
+            <span class="text-[11px] font-medium text-slate-400 uppercase tracking-wide">메모</span>
             <textarea
               v-model="draft.memo"
               rows="2"

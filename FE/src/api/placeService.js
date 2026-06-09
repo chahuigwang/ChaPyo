@@ -61,4 +61,34 @@ export const placeService = {
       hasNext: data.data?.hasNext ?? false,
     }
   },
+
+  /**
+   * 관광지 상세 조회. GET /api/v1/places/{placeId}
+   * @returns {Promise<Object|null>} PlaceDetailResponse (overview, tel, addr1, firstImage1, latitude, longitude …)
+   */
+  async detail(placeId) {
+    const { data } = await http.get(ENDPOINTS.tourism.detail(placeId))
+    return data?.data ?? null
+  },
+
+  /**
+   * 관광지 좋아요 토글. POST /api/v1/places/{placeId}/likes
+   * @returns {Promise<{liked: boolean, likeCount: number|null}>} 토글 후 좋아요 여부 + 갱신된 좋아요 수
+   */
+  async toggleLike(placeId) {
+    const { data } = await http.post(ENDPOINTS.tourism.like(placeId), {})
+    return {
+      liked: data?.data?.liked ?? false,
+      likeCount: data?.data?.likeCount ?? null,
+    }
+  },
+
+  /**
+   * 내 좋아요 목록. GET /api/v1/places/likes?size=1000
+   * @returns {Promise<Array>} PlaceResponse 배열 (placeId, title, addr1, firstImage1, categoryCode1/2, likeCount, liked)
+   */
+  async fetchLikes(size = 1000) {
+    const { data } = await http.get(ENDPOINTS.tourism.likes, { size })
+    return data?.data?.content ?? []
+  },
 }

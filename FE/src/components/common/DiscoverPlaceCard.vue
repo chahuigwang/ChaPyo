@@ -27,7 +27,7 @@ function addToItinerary(e) {
   const date = trip.selectedDate ?? trip.days?.[0] ?? null
   if (!date) return
   trip.addItemToDate(date, {
-    placeId: Number(props.item.id),
+    placeId: props.item.placeId ?? props.item.sourceId ?? Number(props.item.id),
     name: props.item.name,
     category: props.item.category,
     memo: props.item.memo || '',
@@ -85,14 +85,14 @@ function onDragEnd(e) { emit('dragend', e) }
         >
           <Heart :size="14" :class="liked ? 'fill-white' : ''" />
         </button>
-        <span v-if="item.likeCount > 0" class="text-[10px] font-semibold text-white drop-shadow leading-none">
+        <span v-if="item.likeCount > 0" class="text-[11px] font-semibold text-white drop-shadow leading-none">
           {{ item.likeCount }}
         </span>
       </div>
 
       <!-- Category badge -->
       <span class="absolute bottom-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full
-                   bg-black/30 backdrop-blur-sm text-white text-[10px] font-medium">
+                   bg-black/30 backdrop-blur-sm text-white text-[11px] font-medium">
         {{ findCategory(item.category)?.emoji }} {{ findCategory(item.category)?.label }}
       </span>
     </div>

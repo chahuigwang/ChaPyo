@@ -87,7 +87,7 @@ function onTimelineDrop(e) {
   } else {
     const snapped = snapTimeFor(insertAt ?? itemsOfSelectedDay.value.length)
     trip.addItemToDate(selectedDate.value, snapped ? { ...p.item, time: snapped } : p.item)
-    if (p.source === 'storage') storage.removeItem(p.item.id)
+    // 보관함(좋아요)에서 일정으로 가져와도 좋아요는 유지(복사)
   }
   storage.clearDragging()
 }

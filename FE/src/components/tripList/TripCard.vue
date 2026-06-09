@@ -98,17 +98,17 @@ onBeforeUnmount(() => {
       <!-- Main info: left ~67% -->
       <section class="col-span-8 p-6 pr-7 min-w-0 flex flex-col overflow-hidden">
         <div class="flex items-center gap-2 min-w-0">
-          <p class="text-[10px] tracking-[0.2em] uppercase text-slate-400 dark:text-slate-500 shrink-0">
+          <p class="text-[11px] tracking-[0.2em] uppercase text-slate-400 dark:text-slate-500 shrink-0">
             Boarding Pass
           </p>
           <span
             v-if="isPast"
-            class="px-1.5 py-0.5 rounded-full text-[9px] font-semibold tracking-wide
+            class="px-1.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wide
                    bg-slate-200/80 text-slate-600 dark:bg-slate-700/70 dark:text-slate-300"
           >종료</span>
           <span
             v-else-if="isOngoing"
-            class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold tracking-wide
+            class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wide
                    bg-[#00B7EB]/15 text-[#0891b2] dark:text-[#67e8f9]"
           >
             <span class="relative flex h-1.5 w-1.5">
@@ -119,7 +119,7 @@ onBeforeUnmount(() => {
           </span>
           <span
             v-else
-            class="px-1.5 py-0.5 rounded-full text-[9px] font-semibold tracking-wide
+            class="px-1.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wide
                    bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
           >D-{{ daysUntilStart }}</span>
         </div>
@@ -132,11 +132,11 @@ onBeforeUnmount(() => {
         </h3>
         <div class="mt-auto pt-3 flex items-center justify-between gap-2 min-w-0">
           <div class="flex flex-col gap-0.5 min-w-0">
-            <span class="text-[10px] uppercase tracking-wider text-slate-400 shrink-0">From</span>
+            <span class="text-[11px] uppercase tracking-wider text-slate-400 shrink-0">From</span>
             <span class="text-[12px] font-semibold text-slate-800 dark:text-slate-100 tabular-nums">{{ trip.startDate }}</span>
           </div>
           <div class="flex flex-col items-end gap-0.5 min-w-0">
-            <span class="text-[10px] uppercase tracking-wider text-slate-400 shrink-0">To</span>
+            <span class="text-[11px] uppercase tracking-wider text-slate-400 shrink-0">To</span>
             <span class="text-[12px] font-semibold text-slate-800 dark:text-slate-100 tabular-nums">{{ trip.endDate }}</span>
           </div>
         </div>

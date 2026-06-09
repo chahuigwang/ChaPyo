@@ -26,8 +26,9 @@ export const ENDPOINTS = {
   },
   tourism: {
     places: '/api/v1/places',
-    detail: (contentId) => `/tourism/detail/${contentId}`,
-    keyword: '/tourism/search',
+    detail: (placeId) => `/api/v1/places/${placeId}`,
+    like: (placeId) => `/api/v1/places/${placeId}/likes`,
+    likes: '/api/v1/places/likes',
   },
   ai: {
     recommend: '/ai/recommend',

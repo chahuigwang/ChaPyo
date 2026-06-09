@@ -69,7 +69,7 @@ const row =
 <template>
   <div class="flex-1 flex flex-col min-h-0 p-5 gap-5 overflow-y-auto">
     <header>
-      <h2 class="text-xl font-bold text-gray-900 dark:text-slate-100 mb-6">내 프로필</h2>
+      <h2 class="text-xl font-bold text-gray-900 dark:text-slate-100">내 프로필</h2>
     </header>
 
     <!-- User info -->
@@ -116,15 +116,19 @@ const row =
         <div
           v-for="m in memberList"
           :key="m.id"
-          class="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60"
+          class="flex items-center gap-2 px-3 py-2.5 rounded-xl transition-colors"
+          :class="m.me
+            ? 'bg-primary/10 ring-1 ring-primary/40'
+            : 'bg-slate-50 dark:bg-slate-800/60'"
         >
           <div
             class="h-8 w-8 rounded-full flex items-center justify-center text-[12px] font-semibold text-white shrink-0"
             :style="{ backgroundColor: m.color }"
           >{{ initialOf(m.name) }}</div>
           <div class="min-w-0">
-            <div class="text-[12px] font-semibold text-slate-900 dark:text-slate-100 truncate">
-              {{ m.name }}<span v-if="m.me" class="text-slate-400 font-normal"> (본인)</span>
+            <div class="text-[12px] font-semibold truncate"
+                 :class="m.me ? 'text-primary' : 'text-slate-900 dark:text-slate-100'">
+              {{ m.name }}
             </div>
           </div>
         </div>
@@ -135,8 +139,8 @@ const row =
 
       <!-- Inline invite -->
       <div class="flex flex-col gap-2 pt-1">
-        <div class="text-[11px] font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-          <UserPlus :size="12" /> 이메일로 초대
+        <div class="text-[13px] font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+          <UserPlus :size="14" /> 이메일로 초대
         </div>
         <form class="flex items-stretch gap-2" @submit.prevent="invite">
           <div class="relative flex-1">

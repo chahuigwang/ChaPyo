@@ -1,13 +1,15 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { storeToRefs } from 'pinia'
-import { Search, X, MapPin, Loader2, RotateCcw, Heart, CalendarPlus, ChevronDown } from 'lucide-vue-next'
+import { Search, X, MapPin, Loader2, RotateCcw, Heart, CalendarPlus, ChevronDown, Phone } from 'lucide-vue-next'
 import { useSearchStore, PROVINCES, PLACE_TYPE_GROUPS } from '@/stores/searchStore'
 import { useStorageStore } from '@/stores/storageStore'
 import { useChatStore } from '@/stores/chatStore'
 import { useTripStore } from '@/stores/tripStore'
+import { placeService } from '@/api/placeService'
 import { findCategory } from '@/types/itinerary'
 import DiscoverPlaceCard from '@/components/common/DiscoverPlaceCard.vue'
+import PlaceMiniMap from '@/components/common/PlaceMiniMap.vue'
 
 const search = useSearchStore()
 const storage = useStorageStore()
@@ -98,6 +100,33 @@ function clearAll() {
 }
 
 const detailItem = ref(null)
+const detailLoading = ref(false)
+const detailError = ref(false)
+
+// 카드 클릭 → 기본 정보 즉시 표시 후 GET /places/{placeId} 로 상세(개요/전화 등) 보강
+async function openDetail(item) {
+  detailItem.value = { ...item }
+  detailLoading.value = true
+  detailError.value = false
+  try {
+    const d = await placeService.detail(Number(item.id))
+    if (!detailItem.value || String(detailItem.value.id) !== String(item.id)) return
+    if (!d) { detailError.value = true; return }
+    detailItem.value = {
+      ...detailItem.value,
+      address: d.addr1 || detailItem.value.address,
+      overview: d.overview ?? detailItem.value.overview,
+      tel: d.tel || '',
+      firstImage: d.firstImage1 || detailItem.value.firstImage,
+      lat: d.latitude != null ? Number(d.latitude) : detailItem.value.lat,
+      lng: d.longitude != null ? Number(d.longitude) : detailItem.value.lng,
+    }
+  } catch {
+    detailError.value = true // 상세 조회 실패 — 기본 정보만 유지
+  } finally {
+    detailLoading.value = false
+  }
+}
 
 // ── Province custom dropdown ─────────────────────────────────
 const provinceOpen = ref(false)
@@ -267,7 +296,7 @@ function onDistrictOutside(e) {
               :class="!typeId ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'"
             >카테고리 전체</button>
             <template v-for="group in PLACE_TYPE_GROUPS" :key="group.id">
-              <div class="px-3 pt-2 pb-0.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">{{ group.label }}</div>
+              <div class="px-3 pt-2 pb-0.5 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">{{ group.label }}</div>
               <button
                 v-for="t in group.children"
                 :key="t.id"
@@ -301,7 +330,7 @@ function onDistrictOutside(e) {
           :key="item.id"
           :item="item"
           :draggable="true"
-          @detail="detailItem = $event"
+          @detail="openDetail($event)"
           @dragstart="onSearchDragStart($event, item)"
           @dragend="onSearchDragEnd"
         />
@@ -340,68 +369,92 @@ function onDistrictOutside(e) {
           class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4"
           @click.self="detailItem = null"
         >
-          <div class="w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden">
-            <!-- Image -->
-            <div class="relative w-full h-48 bg-slate-100 dark:bg-slate-800">
-              <img
-                v-if="detailItem.firstImage"
-                :src="detailItem.firstImage"
-                :alt="detailItem.name"
-                class="w-full h-full object-cover"
-              />
-              <div v-else class="w-full h-full flex items-center justify-center text-slate-300 dark:text-slate-600">
-                <MapPin :size="32" />
-              </div>
-              <button
-                @click="detailItem = null"
-                class="absolute top-3 right-3 p-1.5 rounded-full bg-black/30 hover:bg-black/60 text-white backdrop-blur-sm transition-colors"
-              >
-                <X :size="14" />
-              </button>
-            </div>
+          <div class="relative w-full max-w-3xl max-h-[88vh] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl flex flex-col sm:flex-row overflow-y-auto sm:overflow-hidden">
+            <!-- Close -->
+            <button
+              @click="detailItem = null"
+              class="absolute top-3 right-3 z-20 p-1.5 rounded-full bg-black/35 hover:bg-black/60 text-white backdrop-blur-sm transition-colors"
+            >
+              <X :size="16" />
+            </button>
 
-            <!-- Content -->
-            <div class="p-5 space-y-3">
-              <div class="flex items-start gap-3">
-                <div class="text-2xl leading-none mt-0.5">{{ findCategory(detailItem.category)?.emoji }}</div>
-                <div class="min-w-0 flex-1">
-                  <h3 class="text-[16px] font-bold text-slate-900 dark:text-slate-100 leading-snug">{{ detailItem.name }}</h3>
-                  <p class="mt-0.5 text-[11px] text-slate-400 dark:text-slate-500">{{ findCategory(detailItem.category)?.label }}</p>
+            <!-- Left: info -->
+            <div class="flex flex-col sm:w-[55%] sm:min-h-0">
+              <!-- Image -->
+              <div class="relative w-full h-44 sm:h-52 shrink-0 bg-slate-100 dark:bg-slate-800">
+                <img
+                  v-if="detailItem.firstImage"
+                  :src="detailItem.firstImage"
+                  :alt="detailItem.name"
+                  class="w-full h-full object-cover"
+                />
+                <div v-else class="w-full h-full flex items-center justify-center text-slate-300 dark:text-slate-600">
+                  <MapPin :size="32" />
                 </div>
               </div>
 
-              <div v-if="detailItem.overview || detailItem.description" class="text-[12px] text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-4">
-                {{ detailItem.overview ?? detailItem.description }}
-              </div>
+              <!-- Scrollable content -->
+              <div class="p-5 space-y-3 sm:flex-1 sm:overflow-y-auto">
+                <div class="flex items-start gap-3">
+                  <div class="text-2xl leading-none mt-0.5">{{ findCategory(detailItem.category)?.emoji }}</div>
+                  <div class="min-w-0 flex-1">
+                    <h3 class="text-[17px] font-bold text-slate-900 dark:text-slate-100 leading-snug">{{ detailItem.name }}</h3>
+                    <p class="mt-0.5 text-[12px] text-slate-400 dark:text-slate-500">{{ findCategory(detailItem.category)?.label }}</p>
+                  </div>
+                </div>
 
-              <div class="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400">
-                <MapPin :size="12" class="shrink-0 text-slate-400" />
-                <span>{{ detailItem.address }}</span>
-              </div>
-
-              <div v-if="detailItem.likeCount > 0" class="flex items-center gap-1 text-[11px] text-slate-400">
-                <Heart :size="11" class="fill-red-400 text-red-400" />
-                {{ detailItem.likeCount.toLocaleString() }}
-              </div>
-
-              <div class="flex gap-2">
-                <button
-                  @click="storage.toggleLike(detailItem)"
-                  class="flex-1 h-10 rounded-xl text-[13px] font-semibold transition-colors flex items-center justify-center gap-2"
-                  :class="storage.isLiked(detailItem)
-                    ? 'bg-red-50 dark:bg-red-900/20 text-red-500 hover:bg-red-100'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'"
+                <div
+                  v-if="detailLoading && !(detailItem.overview || detailItem.description)"
+                  class="flex items-center gap-1.5 text-[12px] text-slate-400"
                 >
-                  <Heart :size="14" :class="storage.isLiked(detailItem) ? 'fill-red-500' : ''" />
-                  {{ storage.isLiked(detailItem) ? '좋아요 취소' : '좋아요' }}
-                </button>
-                <button
-                  @click="addToItinerary(detailItem); detailItem = null"
-                  class="flex-1 h-10 rounded-xl bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-brand-600 transition-colors flex items-center justify-center gap-2"
-                >
-                  <CalendarPlus :size="15" /> 일정에 추가
-                </button>
+                  <Loader2 :size="13" class="animate-spin" /> 상세 정보 불러오는 중…
+                </div>
+                <p v-else-if="detailItem.overview || detailItem.description" class="text-[13px] text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line">
+                  {{ detailItem.overview ?? detailItem.description }}
+                </p>
+                <div v-else-if="detailError" class="text-[12px] text-slate-400 dark:text-slate-500">
+                  상세 정보를 불러오지 못했어요.
+                </div>
+
+                <div v-if="detailItem.address" class="flex items-start gap-1.5 text-[12px] text-slate-500 dark:text-slate-400">
+                  <MapPin :size="13" class="shrink-0 text-slate-400 mt-0.5" />
+                  <span>{{ detailItem.address }}</span>
+                </div>
+
+                <div v-if="detailItem.tel" class="flex items-center gap-1.5 text-[12px] text-slate-500 dark:text-slate-400">
+                  <Phone :size="13" class="shrink-0 text-slate-400" />
+                  <span>{{ detailItem.tel }}</span>
+                </div>
+
+                <div v-if="detailItem.likeCount > 0" class="flex items-center gap-1 text-[12px] text-slate-400">
+                  <Heart :size="12" class="fill-red-400 text-red-400" />
+                  {{ detailItem.likeCount.toLocaleString() }}
+                </div>
+
+                <div class="flex gap-2 pt-1">
+                  <button
+                    @click="storage.toggleLike(detailItem)"
+                    class="flex-1 h-10 rounded-xl text-[13px] font-semibold transition-colors flex items-center justify-center gap-2"
+                    :class="storage.isLiked(detailItem)
+                      ? 'bg-red-50 dark:bg-red-900/20 text-red-500 hover:bg-red-100'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'"
+                  >
+                    <Heart :size="14" :class="storage.isLiked(detailItem) ? 'fill-red-500' : ''" />
+                    {{ storage.isLiked(detailItem) ? '좋아요 취소' : '좋아요' }}
+                  </button>
+                  <button
+                    @click="addToItinerary(detailItem); detailItem = null"
+                    class="flex-1 h-10 rounded-xl bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-brand-600 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <CalendarPlus :size="15" /> 일정에 추가
+                  </button>
+                </div>
               </div>
+            </div>
+
+            <!-- Right: map -->
+            <div class="sm:w-[45%] h-64 sm:h-auto sm:min-h-[340px] shrink-0">
+              <PlaceMiniMap :lat="detailItem.lat ?? null" :lng="detailItem.lng ?? null" :name="detailItem.name" />
             </div>
           </div>
         </div>

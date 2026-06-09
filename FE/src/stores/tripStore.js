@@ -92,15 +92,16 @@ export const useTripStore = defineStore('trip', {
       }
     },
 
-    createTrip(payload = {}) {
-      const t = new TripPlan({
-        ...payload,
-        startDate: payload.startDate ?? todayISO(0),
-        endDate: payload.endDate ?? todayISO(2),
-      })
-      this.trips.unshift(t)
-      this.currentTripId = t.id
-      return t
+    async createTrip() {
+      try {
+        const t = await tripService.create()
+        this.trips.unshift(t)
+        this.currentTripId = t.id
+        return t
+      } catch (err) {
+        this.lastError = err?.message ?? 'createTrip failed'
+        return null
+      }
     },
     deleteTrip(id) {
       this.trips = this.trips.filter((t) => t.id !== id)

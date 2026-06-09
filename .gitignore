@@ -11,3 +11,8 @@ docker-compose.local.yml
 
 # VSCode
 .vscode/
+
+
+.claudeignore
+README.md
+checklist.md

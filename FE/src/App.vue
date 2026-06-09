@@ -11,7 +11,7 @@ const trip = useTripStore()
 const { isAuthed, initializing } = storeToRefs(auth)
 
 watch(isAuthed, (v) => {
-  if (v) trip.ensureSeed()
+  if (v) trip.fetchTrips()
   else trip.resetForLogout()
 })
 </script>

@@ -96,9 +96,9 @@ onBeforeUnmount(() => {
     <!-- Top row: left main + right stub -->
     <div class="grid grid-cols-12">
       <!-- Main info: left ~67% -->
-      <section class="col-span-8 p-6 pr-7 min-w-0 flex flex-col">
-        <div class="flex items-center gap-2">
-          <p class="text-[10px] tracking-[0.2em] uppercase text-slate-400 dark:text-slate-500">
+      <section class="col-span-8 p-6 pr-7 min-w-0 flex flex-col overflow-hidden">
+        <div class="flex items-center gap-2 min-w-0">
+          <p class="text-[10px] tracking-[0.2em] uppercase text-slate-400 dark:text-slate-500 shrink-0">
             Boarding Pass
           </p>
           <span
@@ -127,33 +127,34 @@ onBeforeUnmount(() => {
           v-if="isOngoing"
           class="mt-1 text-[11px] font-medium text-[#0891b2] dark:text-[#67e8f9]"
         >오늘은 Day {{ currentDay }}</p>
-        <h3 class="mt-2 text-lg font-semibold text-gray-900 dark:text-slate-100 truncate">
+        <h3 class="mt-2 text-lg font-semibold text-gray-900 dark:text-slate-100 truncate leading-snug">
           {{ trip.title }}
         </h3>
-        <div class="mt-auto pt-3 flex items-center justify-between gap-2 text-[12px] text-slate-600 dark:text-slate-300">
-          <div class="flex flex-col gap-0.5">
-            <span class="text-[10px] uppercase tracking-wider text-slate-400">From</span>
-            <span class="font-semibold text-slate-800 dark:text-slate-100">{{ trip.startDate }}</span>
+        <div class="mt-auto pt-3 flex items-center justify-between gap-2 min-w-0">
+          <div class="flex flex-col gap-0.5 min-w-0">
+            <span class="text-[10px] uppercase tracking-wider text-slate-400 shrink-0">From</span>
+            <span class="text-[12px] font-semibold text-slate-800 dark:text-slate-100 tabular-nums">{{ trip.startDate }}</span>
           </div>
-          <div class="flex flex-col items-end gap-0.5">
-            <span class="text-[10px] uppercase tracking-wider text-slate-400">To</span>
-            <span class="font-semibold text-slate-800 dark:text-slate-100">{{ trip.endDate }}</span>
+          <div class="flex flex-col items-end gap-0.5 min-w-0">
+            <span class="text-[10px] uppercase tracking-wider text-slate-400 shrink-0">To</span>
+            <span class="text-[12px] font-semibold text-slate-800 dark:text-slate-100 tabular-nums">{{ trip.endDate }}</span>
           </div>
         </div>
       </section>
 
       <!-- Stub: right ~33% — Trash top-right, vertical stacked summaries -->
       <section class="col-span-4 p-5 pl-6 flex flex-col gap-4 relative">
-        <div class="absolute top-3 right-4" @click.stop>
+        <div class="absolute top-3 right-3" @click.stop>
           <button
-            :title="confirming ? '한 번 더 클릭하면 삭제됩니다' : '삭제'"
-            class="p-1.5 rounded-md transition-all duration-200"
+            title="삭제"
+            class="flex items-center gap-1 rounded-md transition-all duration-200"
             :class="confirming
-              ? 'bg-red-500 text-white hover:bg-red-600 scale-110'
-              : 'opacity-0 group-hover:opacity-100 text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'"
+              ? 'px-2 py-1 bg-red-500 text-white hover:bg-red-600'
+              : 'p-1.5 opacity-0 group-hover:opacity-100 text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'"
             @click="confirming ? onConfirmDelete() : onTrashClick()"
           >
-            <Trash2 :size="14" />
+            <Trash2 :size="13" class="shrink-0" />
+            <span v-if="confirming" class="text-[11px] font-medium whitespace-nowrap">삭제</span>
           </button>
         </div>
         <div class="flex flex-col mt-6">

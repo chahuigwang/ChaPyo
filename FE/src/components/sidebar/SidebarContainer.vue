@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, markRaw } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import {
@@ -43,6 +43,15 @@ const railBtnActive =
 function isActive(name) {
   return activePanel.value === name
 }
+
+const PANEL_MAP = {
+  chat: markRaw(ChatFlyout),
+  search: markRaw(SearchFlyout),
+  plan: markRaw(PlanFlyout),
+  profile: markRaw(ProfileFlyout),
+  storage: markRaw(StorageFlyout),
+}
+const currentPanel = computed(() => PANEL_MAP[activePanel.value] ?? null)
 </script>
 
 <template>
@@ -139,11 +148,24 @@ function isActive(name) {
         sidebarOpen ? 'w-[22rem] border-r border-gray-200/80 dark:border-slate-700/60' : 'w-0 border-r-0',
       ]"
     >
-      <ChatFlyout v-if="activePanel === 'chat'" />
-      <SearchFlyout v-else-if="activePanel === 'search'" />
-      <PlanFlyout v-else-if="activePanel === 'plan'" />
-      <ProfileFlyout v-else-if="activePanel === 'profile'" />
-      <StorageFlyout v-else-if="activePanel === 'storage'" />
+      <Transition name="panel-switch" mode="out-in">
+        <component :is="currentPanel" :key="activePanel ?? 'none'" />
+      </Transition>
     </div>
   </aside>
 </template>
+
+<style scoped>
+.panel-switch-enter-active,
+.panel-switch-leave-active {
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+.panel-switch-enter-from {
+  opacity: 0;
+  transform: translateX(10px);
+}
+.panel-switch-leave-to {
+  opacity: 0;
+  transform: translateX(-10px);
+}
+</style>

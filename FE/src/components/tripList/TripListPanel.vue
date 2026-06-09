@@ -35,9 +35,14 @@ function handleOpen(id) {
   trip.selectTrip(id)
   router.push(`/trip/${id}`)
 }
-function handleCreateTrip() {
-  const t = trip.createTrip({ title: '새 여행' })
-  router.push(`/trip/${t.id}`)
+
+const creating = ref(false)
+async function handleCreateTrip() {
+  if (creating.value) return
+  creating.value = true
+  const t = await trip.createTrip()
+  creating.value = false
+  if (t) router.push(`/trip/${t.id}`)
 }
 
 // ── Logout two-click confirm ─────────────────────────────────
@@ -181,7 +186,7 @@ async function confirmDelete() {
                 title="로그아웃"
               >
                 <LogOut :size="14" class="shrink-0" />
-                <span v-if="logoutPending" class="text-[11px] font-medium whitespace-nowrap">정말요?</span>
+                <span v-if="logoutPending" class="text-[11px] font-medium whitespace-nowrap">로그아웃</span>
               </button>
             </div>
           </div>
@@ -260,8 +265,10 @@ async function confirmDelete() {
 
       <!-- Toolbar -->
       <div class="flex items-center justify-between mb-5">
-        <Button @click="handleCreateTrip">
-          <Plus :size="15" /> 새 여행
+        <Button @click="handleCreateTrip" :disabled="creating">
+          <Loader2 v-if="creating" :size="15" class="animate-spin" />
+          <Plus v-else :size="15" />
+          새 여행
         </Button>
         <div v-if="trips.length" class="inline-flex p-1 rounded-lg bg-slate-100 dark:bg-slate-800/60">
           <button

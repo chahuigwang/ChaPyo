@@ -9,8 +9,8 @@ export const ENDPOINTS = {
     password: '/api/v1/auth/password',
   },
   trips: {
-    list: '/trips',
-    create: '/trips',
+    list: '/api/v1/trips',
+    create: '/api/v1/trips',
     detail: (id) => `/trips/${id}`,
     update: (id) => `/trips/${id}`,
     remove: (id) => `/trips/${id}`,

@@ -6,7 +6,8 @@ import { TravelItem } from '@/models/TravelItem'
 export const tripService = {
   async list() {
     const { data } = await http.get(ENDPOINTS.trips.list)
-    return (data ?? []).map((raw) => TripPlan.fromJSON(raw))
+    const items = data?.data ?? data ?? []
+    return items.map((raw) => TripPlan.fromJSON({ ...raw, id: String(raw.planId ?? raw.id) }))
   },
 
   async detail(id) {
@@ -16,9 +17,10 @@ export const tripService = {
     return plan
   },
 
-  async create(payload) {
-    const { data } = await http.post(ENDPOINTS.trips.create, TripPlan.fromJSON(payload).toJSON())
-    return TripPlan.fromJSON(data)
+  async create() {
+    const { data } = await http.post(ENDPOINTS.trips.create, {})
+    const raw = data?.data ?? data
+    return TripPlan.fromJSON({ ...raw, id: String(raw.planId ?? raw.id) })
   },
 
   async update(plan) {

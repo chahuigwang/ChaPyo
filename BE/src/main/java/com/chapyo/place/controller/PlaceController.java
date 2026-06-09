@@ -1,9 +1,14 @@
 package com.chapyo.place.controller;
 
+import com.chapyo.place.dto.response.LikeResponse;
+import com.chapyo.place.dto.response.PlaceDetailResponse;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -39,5 +44,24 @@ public class PlaceController {
     		@ParameterObject @ModelAttribute PlaceSearchRequest request) {
         PageResponse<PlaceResponse> result = placeService.searchPlaces(request);
         return ResponseEntity.ok(BaseResponse.success(result));
+    }
+
+    @Operation(summary = "장소 상세 조회")
+    @GetMapping("/{placeId}")
+    public ResponseEntity<BaseResponse<PlaceDetailResponse>> getPlaceDetail(
+            @PathVariable Long placeId) {
+
+        PlaceDetailResponse response = placeService.getPlaceDetails(placeId);
+        return ResponseEntity.ok(BaseResponse.success(response));
+    }
+
+    @Operation(summary = "관광지 좋아요 기능")
+    @PostMapping("/{placeId}/likes")
+    public ResponseEntity<BaseResponse<LikeResponse>> toggleLike(
+            @PathVariable Long placeId,
+            @AuthenticationPrincipal Long userId) {
+
+        LikeResponse response = placeService.toggleLike(placeId, userId);
+        return ResponseEntity.ok(BaseResponse.success(response));
     }
 }

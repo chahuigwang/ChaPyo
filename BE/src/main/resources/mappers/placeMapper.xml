@@ -40,4 +40,28 @@
         OFFSET #{offset}
     </select>
 
+	<select id="findPlaceById" resultType="PlaceDetailResponse">
+		SELECT place_id, content_id, title, addr1, addr2,
+		       latitude, longitude, first_image1, first_image2,
+		       area_code, district_code, category_code1, category_code2,
+		       zipcode, tel, overview
+		FROM places
+		WHERE place_id = #{placeId}
+	</select>
+
+	<select id="existsLike" resultType="boolean">
+		SELECT COUNT(*) > 0
+		FROM place_likes
+		WHERE place_id = #{placeId} AND user_id = #{userId}
+	</select>
+
+	<insert id="insertLike">
+		INSERT INTO place_likes (place_id, user_id)
+		VALUES (#{placeId}, #{userId})
+	</insert>
+
+	<delete id="deleteLike">
+		DELETE FROM place_likes
+		WHERE place_id = #{placeId} AND user_id = #{userId}
+	</delete>
 </mapper>

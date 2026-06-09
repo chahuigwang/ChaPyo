@@ -110,6 +110,10 @@ export const useTripStore = defineStore('trip', {
       for (const it of items) {
         const date = String(it.visitDate)
         const enrich = this.placeCache[it.placeId] ?? {}
+        // 서버가 내려주는 좌표 우선, 없으면 캐시 보강값
+        const lat = it.latitude ?? enrich.lat ?? null
+        const lng = it.longitude ?? enrich.lng ?? null
+        if (lat != null && lng != null) this._cachePlace(it.placeId, { ...enrich, lat, lng })
         if (!itemsByDay[date]) itemsByDay[date] = []
         itemsByDay[date].push(new TravelItem({
           id: `srv_${it.itemId}`,
@@ -122,8 +126,8 @@ export const useTripStore = defineStore('trip', {
           memo: it.memo ?? '',
           address: enrich.address ?? '',
           firstImage: enrich.firstImage ?? null,
-          lat: enrich.lat ?? null,
-          lng: enrich.lng ?? null,
+          lat,
+          lng,
         }))
       }
       return new TripPlan({

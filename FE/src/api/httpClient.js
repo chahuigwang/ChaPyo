@@ -38,20 +38,36 @@ function normalizeError(err) {
   })
 }
 
-httpClient.interceptors.response.use(normalizeSuccess, async (err) => {
-  const original = err.config
-
-  // 401 시 HttpOnly 쿠키로 Access Token 재발급 시도
-  if (err.response?.status === 401 && !original._retry) {
-    original._retry = true
-    try {
-      const res = await axios.post(
+// Access Token 재발급을 single-flight 로 묶는다.
+// 동시에 여러 요청이 401을 받아도 reissue 는 한 번만 호출 → refresh 토큰 회전 경합 방지.
+let _refreshPromise = null
+function reissueAccessToken() {
+  if (!_refreshPromise) {
+    _refreshPromise = axios
+      .post(
         `${API_BASE}${ENDPOINTS.auth.reissue}`,
         {},
         { headers: { 'Content-Type': 'application/json' }, withCredentials: true },
       )
-      const accessToken = res.data?.data?.accessToken
-      setAccessToken(accessToken)
+      .then((res) => {
+        const token = res.data?.data?.accessToken ?? null
+        setAccessToken(token)
+        return token
+      })
+      .finally(() => { _refreshPromise = null })
+  }
+  return _refreshPromise
+}
+
+httpClient.interceptors.response.use(normalizeSuccess, async (err) => {
+  const original = err.config
+
+  // 401 시 HttpOnly 쿠키로 Access Token 재발급 시도 (동시 401 은 하나의 reissue 를 공유)
+  if (err.response?.status === 401 && original && !original._retry) {
+    original._retry = true
+    try {
+      const accessToken = await reissueAccessToken()
+      if (!accessToken) throw new Error('reissue failed')
       original.headers.Authorization = `Bearer ${accessToken}`
       return httpClient(original)
     } catch {

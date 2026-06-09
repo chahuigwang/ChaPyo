@@ -21,9 +21,16 @@ public class GlobalExceptionHandler {
     public ResponseEntity<BaseResponse<?>> handleValidationException(MethodArgumentNotValidException e) {
         String message = e.getBindingResult()
                 .getFieldErrors()
-                .get(0)
+                .getFirst()
                 .getDefaultMessage();
         return ResponseEntity.badRequest()
                 .body(BaseResponse.fail(message));
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<BaseResponse<?>> handleException(Exception e) {
+        log.error("Unexpected error: ", e);
+        return ResponseEntity.internalServerError()
+                .body(BaseResponse.fail("서버 오류가 발생했습니다."));
     }
 }

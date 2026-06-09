@@ -1,5 +1,6 @@
 package com.chapyo.place.controller;
 
+import com.chapyo.place.dto.request.LikedPlaceRequest;
 import com.chapyo.place.dto.response.LikeResponse;
 import com.chapyo.place.dto.response.PlaceDetailResponse;
 import org.springdoc.core.annotations.ParameterObject;
@@ -41,17 +42,18 @@ public class PlaceController {
     })
 	@GetMapping
     public ResponseEntity<BaseResponse<PageResponse<PlaceResponse>>> searchPlaces(
-    		@ParameterObject @ModelAttribute PlaceSearchRequest request) {
-        PageResponse<PlaceResponse> result = placeService.searchPlaces(request);
+            @ParameterObject @ModelAttribute PlaceSearchRequest request,
+            @AuthenticationPrincipal Long userId) {
+        PageResponse<PlaceResponse> result = placeService.searchPlaces(request, userId);
         return ResponseEntity.ok(BaseResponse.success(result));
     }
 
     @Operation(summary = "관광지 상세 조회")
     @GetMapping("/{placeId}")
     public ResponseEntity<BaseResponse<PlaceDetailResponse>> getPlaceDetail(
-            @PathVariable Long placeId) {
-
-        PlaceDetailResponse response = placeService.getPlaceDetails(placeId);
+            @PathVariable Long placeId,
+            @AuthenticationPrincipal Long userId) {
+        PlaceDetailResponse response = placeService.getPlaceDetails(placeId, userId);
         return ResponseEntity.ok(BaseResponse.success(response));
     }
 
@@ -63,5 +65,15 @@ public class PlaceController {
 
         LikeResponse response = placeService.toggleLike(placeId, userId);
         return ResponseEntity.ok(BaseResponse.success(response));
+    }
+
+    @Operation(summary = "좋아요 목록 조회")
+    @GetMapping("/likes")
+    public ResponseEntity<BaseResponse<PageResponse<PlaceResponse>>> getLikedPlaces(
+            @ParameterObject @ModelAttribute LikedPlaceRequest request,
+            @AuthenticationPrincipal Long userId) {
+
+        PageResponse<PlaceResponse> result = placeService.getLikedPlaces(request, userId);
+        return ResponseEntity.ok(BaseResponse.success(result));
     }
 }

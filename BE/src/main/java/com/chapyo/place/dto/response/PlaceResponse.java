@@ -31,4 +31,7 @@ public class PlaceResponse {
     
     @Schema(description = "좋아요 수", example = "5")
     private Long likeCount;
+
+    @Schema(description = "좋아요 여부", example = "true")
+    private boolean liked;
 }

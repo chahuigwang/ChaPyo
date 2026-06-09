@@ -61,4 +61,14 @@
         WHERE tpi.plan_id = #{planId}
         ORDER BY tpi.visit_date, tpi.item_order
     </select>
+
+    <update id="updatePlan">
+        UPDATE trip_plans
+        <set>
+            <if test="title != null">title = #{title},</if>
+            <if test="startDate != null">start_date = #{startDate},</if>
+            <if test="endDate != null">end_date = #{endDate}</if>
+        </set>
+        WHERE plan_id = #{planId}
+    </update>
 </mapper>

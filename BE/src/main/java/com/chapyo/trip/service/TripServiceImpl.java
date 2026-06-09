@@ -2,6 +2,7 @@ package com.chapyo.trip.service;
 
 import com.chapyo.common.exception.CustomException;
 import com.chapyo.trip.dto.request.TripPlanItemRequest;
+import com.chapyo.trip.dto.request.TripPlanUpdateRequest;
 import com.chapyo.trip.dto.response.MemberResponse;
 import com.chapyo.trip.dto.response.TripPlanDetailResponse;
 import com.chapyo.trip.dto.response.TripPlanItemResponse;
@@ -124,5 +125,22 @@ public class TripServiceImpl implements TripService {
                 .members(members)
                 .items(items)
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public void updatePlan(Long planId, TripPlanUpdateRequest request, Long userId) {
+        if (!tripMapper.existsMember(planId, userId)) {
+            throw new CustomException(TripErrorCode.FORBIDDEN);
+        }
+
+        TripPlan plan = TripPlan.builder()
+                .planId(planId)
+                .title(request.getTitle())
+                .startDate(request.getStartDate())
+                .endDate(request.getEndDate())
+                .build();
+
+        tripMapper.updatePlan(plan);
     }
 }

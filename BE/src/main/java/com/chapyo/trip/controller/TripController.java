@@ -3,6 +3,7 @@ package com.chapyo.trip.controller;
 import com.chapyo.common.response.BaseResponse;
 import com.chapyo.trip.dto.request.InviteMemberRequest;
 import com.chapyo.trip.dto.request.TripPlanItemRequest;
+import com.chapyo.trip.dto.request.TripPlanUpdateRequest;
 import com.chapyo.trip.dto.response.TripPlanDetailResponse;
 import com.chapyo.trip.dto.response.TripPlanResponse;
 import com.chapyo.trip.service.TripService;
@@ -15,6 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -79,5 +81,16 @@ public class TripController {
 
         TripPlanDetailResponse response = tripService.getPlanDetail(planId, userId);
         return ResponseEntity.ok(BaseResponse.success(response));
+    }
+
+    @Operation(summary = "여행 계획 수정")
+    @PatchMapping("/{planId}")
+    public ResponseEntity<BaseResponse<Void>> updatePlan(
+            @PathVariable Long planId,
+            @RequestBody TripPlanUpdateRequest request,
+            @AuthenticationPrincipal Long userId) {
+
+        tripService.updatePlan(planId, request, userId);
+        return ResponseEntity.ok(BaseResponse.success(null));
     }
 }

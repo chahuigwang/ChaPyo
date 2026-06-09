@@ -49,8 +49,7 @@ public class PlaceController {
     @Operation(summary = "관광지 상세 조회")
     @GetMapping("/{placeId}")
     public ResponseEntity<BaseResponse<PlaceDetailResponse>> getPlaceDetail(
-            @PathVariable Long placeId,
-            @AuthenticationPrincipal Long userId) {
+            @PathVariable Long placeId) {
 
         PlaceDetailResponse response = placeService.getPlaceDetails(placeId);
         return ResponseEntity.ok(BaseResponse.success(response));

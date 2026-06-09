@@ -40,7 +40,7 @@
         OFFSET #{offset}
     </select>
 
-	<select id="findPlaceById" resultType="PlaceDetailResponse">
+	<select id="findById" resultType="PlaceDetailResponse">
 		SELECT place_id, content_id, title, addr1, addr2,
 		       latitude, longitude, first_image1, first_image2,
 		       area_code, district_code, category_code1, category_code2,

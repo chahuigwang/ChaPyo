@@ -22,6 +22,9 @@ const ui = useUiStore()
 const { itemsOfSelectedDay, selectedDate } = storeToRefs(trip)
 const { hoveredItemId } = storeToRefs(ui)
 
+// 드래그(추가/순서변경) 진행 중 여부 — 이동거리 숨김 + 드롭 영역 확대에 사용
+const isDragging = computed(() => !!storage.dragging)
+
 const selectedDayIndex = computed(() => (trip.days || []).indexOf(selectedDate.value))
 const selectedDayColor = computed(() => dayColorFor(selectedDayIndex.value))
 const selectedDayLabel = computed(() => {
@@ -77,11 +80,14 @@ function onTimelineDrop(e) {
       const snapped = snapTimeFor(newIdx)
       if (snapped) trip.updateItem(p.item.id, { time: snapped })
     }
+  } else if (p.source === 'timeline') {
+    // 다른 날짜의 기존 일정 → 현재 날짜로 이동 (PATCH visitDate)
+    const snapped = snapTimeFor(insertAt ?? itemsOfSelectedDay.value.length)
+    trip.moveItemToDate(p.fromDate, selectedDate.value, p.item.id, snapped ? { time: snapped } : {})
   } else {
     const snapped = snapTimeFor(insertAt ?? itemsOfSelectedDay.value.length)
     trip.addItemToDate(selectedDate.value, snapped ? { ...p.item, time: snapped } : p.item)
     if (p.source === 'storage') storage.removeItem(p.item.id)
-    else if (p.source === 'timeline') trip.removeItemFromDate(p.fromDate, p.item.id)
   }
   storage.clearDragging()
 }
@@ -146,9 +152,13 @@ const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
       @drop="onTimelineDrop"
     >
       <div v-if="itemsOfSelectedDay.length" class="flex flex-col pb-4">
+        <!-- 맨 앞 드롭 영역 -->
         <div
           @dragover="onSlotDragOver($event, 0)"
-          :class="['mx-4 rounded-full transition-all', dropIndex === 0 ? 'h-1.5 bg-primary/70 mb-1' : 'h-1']"
+          class="mx-4 rounded-lg transition-all"
+          :class="isDragging
+            ? (dropIndex === 0 ? 'h-9 bg-primary/15 ring-2 ring-dashed ring-primary/50 mb-1' : 'h-6')
+            : 'h-1'"
         />
         <template v-for="(item, idx) in itemsOfSelectedDay" :key="item.id">
           <PlaceCard
@@ -170,9 +180,13 @@ const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
           <div
             @dragover="onSlotDragOver($event, idx + 1)"
             class="relative flex flex-col items-center transition-all"
-            :class="dropIndex === idx + 1 ? 'py-0.5' : ''"
           >
-            <div v-if="dropIndex === idx + 1" class="w-full h-1.5 rounded-full bg-primary/70" />
+            <!-- 드래그 중: 이동거리 숨기고 잡기 쉬운 드롭 영역 표시 (맨 뒤 영역 포함) -->
+            <div
+              v-if="isDragging"
+              class="w-full mx-4 rounded-lg transition-all"
+              :class="dropIndex === idx + 1 ? 'h-9 bg-primary/15 ring-2 ring-dashed ring-primary/50' : 'h-6'"
+            />
             <TransitItem
               v-else-if="idx < itemsOfSelectedDay.length - 1"
               :item="item"

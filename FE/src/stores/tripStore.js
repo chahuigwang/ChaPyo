@@ -212,9 +212,19 @@ export const useTripStore = defineStore('trip', {
         useToastStore().error('변경 사항 저장에 실패했습니다.')
       }
     },
-    deleteTrip(id) {
+    // 낙관적 로컬 삭제 후 DELETE /trips/{id}
+    async deleteTrip(id) {
+      const existed = this.trips.some((t) => t.id === id)
       this.trips = this.trips.filter((t) => t.id !== id)
       if (this.currentTripId === id) this.currentTripId = null
+      if (existed && isServerId(id)) {
+        try {
+          await tripService.remove(id)
+        } catch (err) {
+          this.lastError = err?.message ?? 'deleteTrip failed'
+          useToastStore().error('여행 삭제에 실패했습니다.')
+        }
+      }
     },
     selectTrip(id) {
       if (this.trips.some((t) => t.id === id)) this.currentTripId = id
@@ -286,23 +296,92 @@ export const useTripStore = defineStore('trip', {
       }
       return item
     },
+    // 기존 서버 일정을 다른 날짜로 이동: 추가+삭제 대신 PATCH(visitDate)로 단일 처리
+    moveItemToDate(fromDate, toDate, id, patch = {}) {
+      const trip = this.currentTrip
+      if (!trip || !fromDate || !toDate) return null
+      if (!enumerateDays(trip.startDate, trip.endDate).includes(toDate)) return null
+      const fromList = trip.itemsByDay[fromDate]
+      if (!fromList) return null
+      const idx = fromList.findIndex((i) => i.id === id)
+      if (idx < 0) return null
+      const moved = fromList[idx]
+      if (patch.time != null) moved.time = patch.time
+      fromList.splice(idx, 1)
+      if (!trip.itemsByDay[toDate]) trip.itemsByDay[toDate] = []
+      trip.itemsByDay[toDate].push(moved)
+      trip.touch()
+      if (moved.serverId && isServerId(trip.id)) {
+        tripService.updateItem(trip.id, moved.serverId, {
+          visitDate: toDate,
+          visitTime: moved.time,
+          cost: moved.cost,
+          memo: moved.memo,
+        }).catch((err) => {
+          this.lastError = err?.message ?? 'moveItem failed'
+          useToastStore().error('일정 이동에 실패했습니다.')
+        })
+      }
+      return moved
+    },
+    // 낙관적 로컬 수정 후 PATCH /items/{itemId} (날짜/시간/비용/메모)
     updateItem(id, patch) {
       const trip = this.currentTrip
       if (!trip) return
-      const list = trip.itemsByDay[trip.selectedDate]
+      const date = trip.selectedDate
+      const list = trip.itemsByDay[date]
       if (!list) return
       const idx = list.findIndex((i) => i.id === id)
-      if (idx >= 0) {
-        list[idx] = new TravelItem({ ...list[idx], ...patch })
-        trip.touch()
+      if (idx < 0) return
+      const merged = new TravelItem({ ...list[idx], ...patch })
+      list[idx] = merged
+      trip.touch()
+      if (merged.serverId && isServerId(trip.id)) {
+        tripService.updateItem(trip.id, merged.serverId, {
+          visitDate: date,
+          visitTime: merged.time,
+          cost: merged.cost,
+          memo: merged.memo,
+        }).catch((err) => {
+          this.lastError = err?.message ?? 'updateItem failed'
+          useToastStore().error('일정 수정에 실패했습니다.')
+        })
       }
+    },
+    // 서버 일정 삭제 헬퍼 (serverId 있는 항목만)
+    _deleteItemOnServer(planId, item) {
+      if (!item?.serverId || !isServerId(planId)) return
+      tripService.removeItem(planId, item.serverId).catch((err) => {
+        this.lastError = err?.message ?? 'removeItem failed'
+        useToastStore().error('일정 삭제에 실패했습니다.')
+      })
+    },
+    // 해당 날짜의 현재 순서를 서버에 일괄 반영
+    _persistItemOrders(planId, list) {
+      if (!isServerId(planId)) return
+      const itemOrders = list
+        .map((it, i) => ({ itemId: it.serverId, order: i + 1 }))
+        .filter((o) => o.itemId != null)
+      if (!itemOrders.length) return
+      tripService.updateItemOrders(planId, itemOrders).catch((err) => {
+        this.lastError = err?.message ?? 'reorder failed'
+        useToastStore().error('순서 변경에 실패했습니다.')
+      })
     },
     patchItemCoords(id, lat, lng) {
       const trip = this.currentTrip
       if (!trip) return
       for (const list of Object.values(trip.itemsByDay)) {
         const item = list.find((i) => i.id === id)
-        if (item) { item.lat = lat; item.lng = lng; return }
+        if (item) {
+          item.lat = lat
+          item.lng = lng
+          // 지오코딩으로 얻은 좌표를 캐시에 보존 → 폴링 재조회 시 좌표 유실(깜빡임) 방지
+          if (item.placeId) {
+            this.placeCache[item.placeId] = { ...this.placeCache[item.placeId], lat, lng }
+          }
+          return
+        }
       }
     },
     removeItem(id) {
@@ -310,8 +389,10 @@ export const useTripStore = defineStore('trip', {
       if (!trip) return
       const list = trip.itemsByDay[trip.selectedDate]
       if (!list) return
+      const removed = list.find((i) => i.id === id) ?? null
       trip.itemsByDay[trip.selectedDate] = list.filter((i) => i.id !== id)
       trip.touch()
+      this._deleteItemOnServer(trip.id, removed)
     },
     updateTransit(id, patch) {
       const trip = this.currentTrip
@@ -329,6 +410,7 @@ export const useTripStore = defineStore('trip', {
       const removed = list.find((i) => i.id === id) ?? null
       trip.itemsByDay[date] = list.filter((i) => i.id !== id)
       trip.touch()
+      this._deleteItemOnServer(trip.id, removed)
       return removed
     },
     reorderInDate(date, fromIdx, toIdx) {
@@ -339,6 +421,7 @@ export const useTripStore = defineStore('trip', {
       const [moved] = list.splice(fromIdx, 1)
       list.splice(toIdx > fromIdx ? toIdx - 1 : toIdx, 0, moved)
       trip.touch()
+      this._persistItemOrders(trip.id, list)
     },
   },
 })

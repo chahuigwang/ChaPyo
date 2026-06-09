@@ -14,7 +14,7 @@ const trip = useTripStore()
 const search = useSearchStore()
 const toast = useToastStore()
 
-const SYNC_INTERVAL_MS = 15_000
+const SYNC_INTERVAL_MS = 5_000
 let syncTimer = null
 
 onMounted(async () => {

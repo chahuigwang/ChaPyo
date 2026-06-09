@@ -139,11 +139,21 @@ function buildPinEl(num, name, itemId, color) {
   return wrap
 }
 
+// 현재 좌표 구성의 지문. 동일하면 다시 그리지 않아 폴링 시 지도 깜빡임/점프를 막는다.
+let lastSig = ''
+function routeSignature(items) {
+  return items.map((i) => `${i.id}:${i.lat}:${i.lng}`).join('|')
+}
+
 function renderRoute() {
   if (!mapInstance || !window.kakao?.maps) return
   const kakao = window.kakao
-  clearOverlays()
   const items = positionedItems.value
+  const sig = routeSignature(items)
+  // 좌표 구성이 그대로면(예: 폴링으로 동일 데이터 재수신) 재렌더 생략 → 지도 유지
+  if (sig === lastSig && overlays.length) return
+  lastSig = sig
+  clearOverlays()
   const pts = items.map((i) => new kakao.maps.LatLng(i.lat, i.lng))
   if (!pts.length) return
 

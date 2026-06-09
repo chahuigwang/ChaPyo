@@ -1,12 +1,14 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import { ChevronLeft, ChevronRight, Pencil, Check } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
+import { ChevronLeft, ChevronRight, Pencil, Check, Trash2, Loader2 } from 'lucide-vue-next'
 import { useTripStore } from '@/stores/tripStore'
 import { useUiStore } from '@/stores/uiStore'
 import { CATEGORIES } from '@/types/itinerary'
 import CustomCalendar from '@/components/common/CustomCalendar.vue'
 
+const router = useRouter()
 const trip = useTripStore()
 const ui = useUiStore()
 const { startDate, endDate, selectedDate, currentTrip, title } = storeToRefs(trip)
@@ -46,7 +48,7 @@ function initCursor() {
   else cursor.value = { year: new Date().getFullYear(), month: new Date().getMonth() + 1 }
 }
 initCursor()
-watch(() => currentTrip.value?.id, initCursor)
+watch(() => currentTrip.value?.id, () => { initCursor(); deletePending.value = false })
 watch(selectedDate, (v) => {
   const p = parseISO(v)
   if (p) cursor.value = { year: p.y, month: p.m }
@@ -132,6 +134,19 @@ const categoryStats = computed(() => {
 })
 
 const hasAnyItem = computed(() => categoryStats.value.some((s) => s.count > 0))
+
+// ── 여행 삭제 (2단계 확인) ───────────────────────────────────
+const deletePending = ref(false)
+const deleting = ref(false)
+async function confirmDeleteTrip() {
+  const id = currentTrip.value?.id
+  if (!id || deleting.value) return
+  deleting.value = true
+  await trip.deleteTrip(id)
+  deleting.value = false
+  deletePending.value = false
+  router.push('/list')
+}
 </script>
 
 <template>
@@ -280,6 +295,39 @@ const hasAnyItem = computed(() => categoryStats.value.some((s) => s.count > 0))
         <p v-else class="text-[11px] text-slate-400 dark:text-slate-500 text-center py-1">
           아직 일정이 없습니다.
         </p>
+      </div>
+    </div>
+
+    <!-- 6. 여행 삭제 -->
+    <div class="px-5 pb-6 mt-auto">
+      <button
+        v-if="!deletePending"
+        @click="deletePending = true"
+        class="w-full flex items-center justify-center gap-2 h-10 rounded-xl text-[12px] font-medium
+               text-red-500 bg-red-50/70 dark:bg-red-900/15 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+      >
+        <Trash2 :size="14" /> 여행 삭제
+      </button>
+      <div v-else class="flex flex-col gap-2">
+        <p class="text-[11px] text-red-500 font-medium text-center">
+          이 여행을 삭제할까요? 되돌릴 수 없습니다.
+        </p>
+        <div class="flex gap-2">
+          <button
+            @click="deletePending = false"
+            :disabled="deleting"
+            class="flex-1 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 text-[12px] text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
+          >취소</button>
+          <button
+            @click="confirmDeleteTrip"
+            :disabled="deleting"
+            class="flex-1 h-9 rounded-xl bg-red-500 text-white text-[12px] font-semibold hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+          >
+            <Loader2 v-if="deleting" :size="13" class="animate-spin" />
+            <Trash2 v-else :size="13" />
+            삭제
+          </button>
+        </div>
       </div>
     </div>
   </div>

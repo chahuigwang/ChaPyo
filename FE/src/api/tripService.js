@@ -33,6 +33,32 @@ export const tripService = {
     await http.patch(ENDPOINTS.trips.update(planId), { title, startDate, endDate })
   },
 
+  // DELETE /api/v1/trips/{planId} → 여행 계획 삭제
+  async remove(planId) {
+    await http.delete(ENDPOINTS.trips.remove(planId))
+  },
+
+  // PATCH /api/v1/trips/{planId}/items/{itemId} → 일정 수정 (날짜/시간/비용/메모)
+  async updateItem(planId, itemId, { visitDate, visitTime, cost, memo } = {}) {
+    await http.patch(ENDPOINTS.trips.item(planId, itemId), {
+      visitDate: visitDate || null,
+      visitTime: visitTime || null,
+      cost: cost ?? null,
+      memo: memo || null,
+    })
+  },
+
+  // DELETE /api/v1/trips/{planId}/items/{itemId} → 일정 삭제
+  async removeItem(planId, itemId) {
+    await http.delete(ENDPOINTS.trips.item(planId, itemId))
+  },
+
+  // PATCH /api/v1/trips/{planId}/items/orders → 일정 순서 일괄 변경
+  // itemOrders: [{ itemId, order }]
+  async updateItemOrders(planId, itemOrders) {
+    await http.patch(ENDPOINTS.trips.itemOrders(planId), { itemOrders })
+  },
+
   // POST /api/v1/trips/{planId}/items → 일정 추가 (응답 본문 없음, itemOrder는 서버가 부여)
   async addItem(planId, { placeId, visitDate, visitTime, cost, memo } = {}) {
     await http.post(ENDPOINTS.trips.items(planId), {

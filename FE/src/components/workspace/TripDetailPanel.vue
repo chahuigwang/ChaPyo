@@ -37,11 +37,14 @@ function onDayDrop(e, iso) {
   dropTargetDay.value = null
   if (!p?.item) { storage.clearDragging(); return }
 
-  trip.addItemToDate(iso, p.item)
+  if (p.source === 'timeline') {
+    // 다른 날짜의 기존 일정 → 이 날짜로 이동 (PATCH visitDate)
+    trip.moveItemToDate(p.fromDate, iso, p.item.id)
+  } else {
+    trip.addItemToDate(iso, p.item)
+    if (p.source === 'storage') storage.removeItem(p.item.id)
+  }
   collab.pushHistory({ type: 'add', itemName: p.item.name, byName: collab.me.name })
-
-  if (p.source === 'storage') storage.removeItem(p.item.id)
-  else if (p.source === 'timeline') trip.removeItemFromDate(p.fromDate, p.item.id)
 
   storage.clearDragging()
 }

@@ -13,7 +13,10 @@ export const ENDPOINTS = {
     create: '/api/v1/trips',
     detail: (id) => `/api/v1/trips/${id}`,
     update: (id) => `/api/v1/trips/${id}`,
+    remove: (id) => `/api/v1/trips/${id}`,
     items: (id) => `/api/v1/trips/${id}/items`,
+    item: (id, itemId) => `/api/v1/trips/${id}/items/${itemId}`,
+    itemOrders: (id) => `/api/v1/trips/${id}/items/orders`,
     members: (id) => `/api/v1/trips/${id}/members`,
   },
   users: {

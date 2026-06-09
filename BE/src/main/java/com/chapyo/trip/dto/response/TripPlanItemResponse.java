@@ -1,0 +1,41 @@
+package com.chapyo.trip.dto.response;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Getter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@Schema(description = "여행 일정 응답")
+public class TripPlanItemResponse {
+
+    @Schema(description = "아이템 ID", example = "1")
+    private Long itemId;
+
+    @Schema(description = "장소 ID", example = "1")
+    private Long placeId;
+
+    @Schema(description = "장소명", example = "경복궁")
+    private String title;
+
+    @Schema(description = "방문 날짜", example = "2026-06-08")
+    private LocalDate visitDate;
+
+    @Schema(description = "순서", example = "1")
+    private Integer itemOrder;
+
+    @Schema(description = "방문 시간", example = "10:00")
+    private LocalTime visitTime;
+
+    @Schema(description = "비용", example = "3000")
+    private Integer cost;
+
+    @Schema(description = "메모", example = "입장권 미리 예매")
+    private String memo;
+}

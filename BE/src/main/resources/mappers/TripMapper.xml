@@ -22,4 +22,53 @@
         WHERE tpm.user_id = #{userId}
         ORDER BY tp.created_at DESC
     </select>
+
+    <select id="existsMember" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM trip_plan_members
+        WHERE plan_id = #{planId} AND user_id = #{userId}
+    </select>
+
+    <select id="countItemsByDate" resultType="int">
+        SELECT COUNT(*)
+        FROM trip_plan_items
+        WHERE plan_id = #{planId} AND visit_date = #{visitDate}
+    </select>
+
+    <insert id="insertItem" useGeneratedKeys="true" keyProperty="itemId">
+        INSERT INTO trip_plan_items (plan_id, place_id, user_id, visit_date, item_order, visit_time, cost, memo)
+        VALUES (#{planId}, #{placeId}, #{userId}, #{visitDate}, #{itemOrder}, #{visitTime}, #{cost}, #{memo})
+    </insert>
+
+    <select id="findPlanById" resultType="TripPlan">
+        SELECT plan_id, title, start_date, end_date
+        FROM trip_plans
+        WHERE plan_id = #{planId}
+    </select>
+
+    <select id="findMembersByPlanId" resultType="MemberResponse">
+        SELECT u.user_id, u.nickname
+        FROM trip_plan_members tpm
+                 JOIN users u ON tpm.user_id = u.user_id
+        WHERE tpm.plan_id = #{planId}
+    </select>
+
+    <select id="findItemsByPlanId" resultType="TripPlanItemResponse">
+        SELECT tpi.item_id, tpi.place_id, p.title, tpi.visit_date,
+               tpi.item_order, tpi.visit_time, tpi.cost, tpi.memo
+        FROM trip_plan_items tpi
+                 JOIN places p ON tpi.place_id = p.place_id
+        WHERE tpi.plan_id = #{planId}
+        ORDER BY tpi.visit_date, tpi.item_order
+    </select>
+
+    <update id="updatePlan">
+        UPDATE trip_plans
+        <set>
+            <if test="title != null">title = #{title},</if>
+            <if test="startDate != null">start_date = #{startDate},</if>
+            <if test="endDate != null">end_date = #{endDate}</if>
+        </set>
+        WHERE plan_id = #{planId}
+    </update>
 </mapper>

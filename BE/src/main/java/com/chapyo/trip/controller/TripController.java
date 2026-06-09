@@ -2,7 +2,9 @@ package com.chapyo.trip.controller;
 
 import com.chapyo.common.response.BaseResponse;
 import com.chapyo.trip.dto.request.InviteMemberRequest;
+import com.chapyo.trip.dto.request.TripItemOrderRequest;
 import com.chapyo.trip.dto.request.TripPlanItemRequest;
+import com.chapyo.trip.dto.request.TripPlanItemUpdateRequest;
 import com.chapyo.trip.dto.request.TripPlanUpdateRequest;
 import com.chapyo.trip.dto.response.TripPlanDetailResponse;
 import com.chapyo.trip.dto.response.TripPlanResponse;
@@ -15,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -91,6 +94,50 @@ public class TripController {
             @AuthenticationPrincipal Long userId) {
 
         tripService.updatePlan(planId, request, userId);
-        return ResponseEntity.ok(BaseResponse.success(null));
+        return ResponseEntity.ok(BaseResponse.success("여행 계획 수정 성공"));
+    }
+
+    @Operation(summary = "여행 계획 삭제")
+    @DeleteMapping("/{planId}")
+    public ResponseEntity<BaseResponse<Void>> deletePlan(
+            @PathVariable Long planId,
+            @AuthenticationPrincipal Long userId) {
+
+        tripService.deletePlan(planId, userId);
+        return ResponseEntity.ok(BaseResponse.success("여행 계획 삭제 성공"));
+    }
+
+    @Operation(summary = "여행 일정 수정")
+    @PatchMapping("/{planId}/items/{itemId}")
+    public ResponseEntity<BaseResponse<Void>> updateItem(
+            @PathVariable Long planId,
+            @PathVariable Long itemId,
+            @RequestBody TripPlanItemUpdateRequest request,
+            @AuthenticationPrincipal Long userId) {
+
+        tripService.updateItem(planId, itemId, request, userId);
+        return ResponseEntity.ok(BaseResponse.success("여행 일정 수정 성공"));
+    }
+
+    @Operation(summary = "여행 일정 삭제")
+    @DeleteMapping("/{planId}/items/{itemId}")
+    public ResponseEntity<BaseResponse<Void>> deleteItem(
+            @PathVariable Long planId,
+            @PathVariable Long itemId,
+            @AuthenticationPrincipal Long userId) {
+
+        tripService.deleteItem(planId, itemId, userId);
+        return ResponseEntity.ok(BaseResponse.success("여행 일정 삭제 성공"));
+    }
+
+    @Operation(summary = "여행 일정 순서 변경")
+    @PatchMapping("/{planId}/items/orders")
+    public ResponseEntity<BaseResponse<Void>> updateItemOrders(
+            @PathVariable Long planId,
+            @RequestBody @Valid TripItemOrderRequest request,
+            @AuthenticationPrincipal Long userId) {
+
+        tripService.updateItemOrders(planId, request, userId);
+        return ResponseEntity.ok(BaseResponse.success("일정 순서가 변경 성공"));
     }
 }

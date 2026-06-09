@@ -88,8 +88,14 @@
 			     LEFT JOIN place_likes pl2 ON p.place_id = pl2.place_id
 		WHERE p.addr1 IS NOT NULL AND p.addr1 != ''
 		GROUP BY p.place_id
-		ORDER BY pl.created_at DESC
+		ORDER BY MIN(pl.created_at) DESC
 		LIMIT #{limitSize}
 			OFFSET #{offset}
+	</select>
+
+	<select id="countLikes" resultType="long">
+		SELECT COUNT(*)
+		FROM place_likes
+		WHERE place_id = #{placeId}
 	</select>
 </mapper>

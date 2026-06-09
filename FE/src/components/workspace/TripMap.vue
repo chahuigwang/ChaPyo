@@ -43,9 +43,8 @@ let polylines = [] // daily segments: [{ polyline, color }] indexed by segment p
 let sdkPromise = null
 let animFrame = null
 
-const sortedItems = computed(() =>
-  [...itemsOfSelectedDay.value].sort((a, b) => (a.time || '99:99').localeCompare(b.time || '99:99')),
-)
+// 핀 번호/경로는 일정(타임라인) 배열 순서를 따른다 — 순서 변경 시 핀 번호도 함께 갱신됨
+const sortedItems = computed(() => itemsOfSelectedDay.value)
 
 // Items that need geocoding (have an address but no coords)
 const itemsMissingCoords = computed(() => {

@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref, watch, nextTick, onBeforeUnmount } from 'vue'
 import { storeToRefs } from 'pinia'
-import { Trash2, Clock } from 'lucide-vue-next'
+import { Trash2 } from 'lucide-vue-next'
 import PlaceCard from './PlaceCard.vue'
 import DailySummary from './DailySummary.vue'
 import TransitItem from './TransitItem.vue'
@@ -10,10 +10,10 @@ import { useStorageStore } from '@/stores/storageStore'
 import { useCollabStore } from '@/stores/collabStore'
 import { useUiStore } from '@/stores/uiStore'
 import { useTimelineLogic, snapTimeFor } from '@/composables/useTimelineLogic'
-import { findCategory, formatDayLabel } from '@/types/itinerary'
+import { formatDayLabel } from '@/types/itinerary'
 import { dayColorFor } from '@/composables/useDayColor'
-import BaseModal from '@/components/common/BaseModal.vue'
-import { Card, CardHeader, CardContent, Button } from '@/components/common'
+import PlaceDetailModal from '@/components/common/PlaceDetailModal.vue'
+import { Card, CardHeader, CardContent } from '@/components/common'
 
 const trip = useTripStore()
 const storage = useStorageStore()
@@ -204,39 +204,7 @@ const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
       </div>
     </CardContent>
 
-    <!-- 상세보기 모달 (조회 전용) -->
-    <BaseModal :open="!!detail" :title="detail?.name ?? ''" @close="detail = null">
-      <div v-if="detail" class="space-y-4 text-sm">
-        <div class="flex items-center gap-3 text-[12px] text-slate-500 dark:text-slate-400">
-          <span>{{ findCategory(detail.category).emoji }} {{ findCategory(detail.category).label }}</span>
-          <span v-if="detail.time" class="inline-flex items-center gap-1">
-            <Clock :size="11" /> {{ detail.time }}
-          </span>
-        </div>
-        <div v-if="detail.cost">
-          <div class="text-[11px] text-slate-500 dark:text-slate-400">예상 비용</div>
-          <div class="mt-1 text-lg font-semibold text-slate-900 dark:text-slate-100">{{ won(detail.cost) }}</div>
-        </div>
-        <div v-if="detail.memo">
-          <div class="text-[11px] text-slate-500 dark:text-slate-400">메모</div>
-          <p class="mt-1.5 whitespace-pre-wrap text-[13px] text-slate-700 dark:text-slate-300 leading-relaxed">
-            {{ detail.memo }}
-          </p>
-        </div>
-        <div v-else class="text-[12px] text-slate-400 dark:text-slate-500">추가 메모가 없습니다.</div>
-      </div>
-      <template #footer>
-        <Button
-          variant="ghost" size="sm"
-          :class="pendingDelete === detail?.id
-            ? 'bg-red-500 text-white hover:bg-red-600'
-            : 'text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30'"
-          @click.stop="pendingDelete === detail?.id ? confirmDelete(detail) : requestDelete(detail)"
-        >
-          <Trash2 :size="13" />
-          {{ pendingDelete === detail?.id ? '한 번 더 누르면 삭제' : '삭제' }}
-        </Button>
-      </template>
-    </BaseModal>
+    <!-- 상세보기 모달 (검색과 동일한 리치 모달 + 메모) -->
+    <PlaceDetailModal :item="detail" :show-add="false" @close="detail = null" />
   </Card>
 </template>

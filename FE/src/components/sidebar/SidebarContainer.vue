@@ -5,7 +5,7 @@ import { useRouter } from 'vue-router'
 import {
   PanelLeftClose,
   PanelLeftOpen,
-  UserRound,
+  Users,
   Sun,
   Moon,
   Heart,
@@ -112,7 +112,7 @@ const currentPanel = computed(() => PANEL_MAP[activePanel.value] ?? null)
           :class="isActive('profile') ? railBtnActive : railBtn"
           title="내 프로필"
         >
-          <UserRound :size="18" />
+          <Users :size="18" />
         </button>
       </div>
 

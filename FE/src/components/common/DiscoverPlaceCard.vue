@@ -16,6 +16,7 @@ const storage = useStorageStore()
 const trip = useTripStore()
 
 const liked = computed(() => storage.isLiked(props.item))
+const likeCount = computed(() => storage.likeCountOf(props.item))
 
 function toggleLike(e) {
   e.stopPropagation()
@@ -85,8 +86,8 @@ function onDragEnd(e) { emit('dragend', e) }
         >
           <Heart :size="14" :class="liked ? 'fill-white' : ''" />
         </button>
-        <span v-if="item.likeCount > 0" class="text-[11px] font-semibold text-white drop-shadow leading-none">
-          {{ item.likeCount }}
+        <span v-if="likeCount > 0" class="text-[11px] font-semibold text-white drop-shadow leading-none">
+          {{ likeCount }}
         </span>
       </div>
 
@@ -115,9 +116,9 @@ function onDragEnd(e) { emit('dragend', e) }
 
       <!-- Footer -->
       <div class="mt-auto pt-2 flex items-center justify-between border-t border-slate-100 dark:border-slate-700/50">
-        <span v-if="item.likeCount > 0" class="inline-flex items-center gap-1 text-[11px] text-slate-400">
+        <span v-if="likeCount > 0" class="inline-flex items-center gap-1 text-[11px] text-slate-400">
           <Heart :size="11" class="fill-red-400 text-red-400" />
-          {{ item.likeCount.toLocaleString() }}
+          {{ likeCount.toLocaleString() }}
         </span>
         <span v-else class="flex-1" />
         <button

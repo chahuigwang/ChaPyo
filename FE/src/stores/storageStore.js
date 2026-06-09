@@ -31,7 +31,8 @@ function toCard(src) {
 
 export const useStorageStore = defineStore('storage', {
   state: () => ({
-    items: [],     // 좋아요한 장소 카드 — 전역 단일 진실(placeId 기준)
+    items: [],        // 좋아요한 장소 카드 — 전역 단일 진실(placeId 기준)
+    likeCounts: {},   // placeId → 최신 좋아요 수(토글 후 서버값). 전역 동기화용 오버라이드
     dragging: null,
     loaded: false,
   }),
@@ -41,6 +42,12 @@ export const useStorageStore = defineStore('storage', {
       const key = likeKeyOf(item)
       if (key != null) return state.items.some((i) => i.placeId === key)
       return item?.name ? state.items.some((i) => i.name === item.name) : false
+    },
+    // placeId 의 최신 좋아요 수. 토글된 값이 있으면 그걸, 없으면 항목 자체 값
+    likeCountOf: (state) => (item) => {
+      const key = likeKeyOf(item)
+      if (key != null && state.likeCounts[key] != null) return state.likeCounts[key]
+      return item?.likeCount ?? 0
     },
   },
   actions: {
@@ -56,6 +63,7 @@ export const useStorageStore = defineStore('storage', {
     },
     reset() {
       this.items = []
+      this.likeCounts = {}
       this.dragging = null
       this.loaded = false
     },
@@ -104,8 +112,9 @@ export const useStorageStore = defineStore('storage', {
         useToastStore().error('좋아요 처리에 실패했습니다.')
       }
     },
-    // 좋아요 수를 토글한 원본 항목과 좋아요 리스트 카드에 반영
+    // 갱신된 좋아요 수를 전역 맵에 기록(모든 화면이 likeCountOf 로 참조) + 원본/카드에도 반영
     _applyLikeCount(placeId, count, srcItem) {
+      this.likeCounts[placeId] = count
       if (srcItem && typeof srcItem === 'object') srcItem.likeCount = count
       const card = this.items.find((i) => i.placeId === placeId)
       if (card) card.likeCount = count

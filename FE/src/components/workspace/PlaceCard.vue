@@ -65,7 +65,7 @@ function saveEdit() {
     <div class="flex gap-0 cursor-pointer" @click="!editOpen && emit('click')">
 
       <!-- Thumbnail -->
-      <div class="shrink-0 w-20 h-20 bg-slate-100 dark:bg-slate-800 overflow-hidden relative">
+      <div class="shrink-0 w-20 self-stretch min-h-20 bg-slate-100 dark:bg-slate-800 overflow-hidden relative">
         <img
           v-if="item.firstImage || item.thumbnail || item.firstimage"
           :src="item.firstImage || item.thumbnail || item.firstimage"

@@ -72,6 +72,10 @@ const row =
       <h2 class="text-xl font-bold text-gray-900 dark:text-slate-100">내 프로필</h2>
     </header>
 
+    <!-- ── 내 정보 ───────────────────────────────────────── -->
+    <section class="flex flex-col gap-2.5">
+      <span class="text-[13px] font-bold text-slate-700 dark:text-slate-200">내 정보</span>
+
     <!-- User info -->
     <div
       v-if="isAuthed"
@@ -107,10 +111,14 @@ const row =
       </button>
       <button v-else :class="row" @click="auth.openLogin"><LogIn :size="15" /> 로그인</button>
     </div>
+    </section>
 
-    <!-- Members + inline invite -->
+    <!-- 구분선 -->
+    <div class="h-px bg-slate-200/70 dark:bg-slate-800 -mx-1" />
+
+    <!-- ── 참여자 ───────────────────────────────────────── -->
     <section class="flex flex-col gap-3">
-      <span class="text-[12px] font-semibold text-slate-600 dark:text-slate-300">멤버 ({{ memberList.length }})</span>
+      <span class="text-[13px] font-bold text-slate-700 dark:text-slate-200">참여자 ({{ memberList.length }})</span>
 
       <div class="grid grid-cols-2 gap-2">
         <div

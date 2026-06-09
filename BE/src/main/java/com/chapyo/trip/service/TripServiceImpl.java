@@ -143,4 +143,14 @@ public class TripServiceImpl implements TripService {
 
         tripMapper.updatePlan(plan);
     }
+
+    @Override
+    @Transactional
+    public void deletePlan(Long planId, Long userId) {
+        if (!tripMapper.existsMember(planId, userId)) {
+            throw new CustomException(TripErrorCode.FORBIDDEN);
+        }
+
+        tripMapper.deletePlan(planId);
+    }
 }

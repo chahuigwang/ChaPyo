@@ -13,4 +13,5 @@ public interface TripService {
     void addItem(Long planId, TripPlanItemRequest request, Long userId);
     TripPlanDetailResponse getPlanDetail(Long planId, Long userId);
     void updatePlan(Long planId, TripPlanUpdateRequest request, Long userId);
+    void deletePlan(Long planId, Long userId);
 }

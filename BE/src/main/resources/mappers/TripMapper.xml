@@ -73,4 +73,9 @@
         </set>
         WHERE plan_id = #{planId}
     </update>
+
+    <delete id="deletePlan">
+        DELETE FROM trip_plans
+        WHERE plan_id = #{planId}
+    </delete>
 </mapper>

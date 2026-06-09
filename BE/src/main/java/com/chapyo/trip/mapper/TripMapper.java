@@ -21,4 +21,5 @@ public interface TripMapper {
     List<MemberResponse> findMembersByPlanId(Long planId);
     List<TripPlanItemResponse> findItemsByPlanId(Long planId);
     void updatePlan(TripPlan plan);
+    void deletePlan(Long planId);
 }

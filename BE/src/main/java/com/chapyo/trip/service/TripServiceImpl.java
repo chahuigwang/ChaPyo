@@ -117,7 +117,7 @@ public class TripServiceImpl implements TripService {
         }
 
         List<MemberResponse> members = tripMapper.findMembersByPlanId(planId);
-        List<TripPlanItemResponse> items = tripMapper.findItemsByPlanId(planId);
+        List<TripPlanItemResponse> items = tripMapper.findItemsByPlanId(planId, userId);
 
         return TripPlanDetailResponse.builder()
                 .planId(plan.getPlanId())

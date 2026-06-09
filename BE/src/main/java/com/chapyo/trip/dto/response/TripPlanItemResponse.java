@@ -51,4 +51,7 @@ public class TripPlanItemResponse {
 
     @Schema(description = "경도", example = "126.977041")
     private BigDecimal longitude;
+
+    @Schema(description = "좋아요 여부", example = "true")
+    private boolean liked;
 }

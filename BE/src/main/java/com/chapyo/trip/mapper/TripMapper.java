@@ -19,7 +19,7 @@ public interface TripMapper {
     void insertItem(TripPlanItem item);
     TripPlan findPlanById(Long planId);
     List<MemberResponse> findMembersByPlanId(Long planId);
-    List<TripPlanItemResponse> findItemsByPlanId(Long planId);
+    List<TripPlanItemResponse> findItemsByPlanId(@Param("planId") Long planId, @Param("userId") Long userId);
     void updatePlan(TripPlan plan);
     void deletePlan(Long planId);
     TripPlanItem findItemById(Long itemId);

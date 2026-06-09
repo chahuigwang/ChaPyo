@@ -5,46 +5,54 @@
 
 <mapper namespace="com.chapyo.place.repository.PlaceMapper">
 
-    <select id="findByLocationAndCategory" resultType="PlaceResponse">
-        SELECT
-            p.place_id,
-            p.title,
-            p.addr1,
-            p.first_image1,
-            p.category_code1,
-            p.category_code2,
-            COUNT(pl.user_id) AS like_count
-        FROM places p
-        LEFT JOIN place_likes pl ON p.place_id = pl.place_id
-        <where>
-		    <if test="areaCode != null and areaCode != ''">
-		        AND p.area_code = #{areaCode}
-		    </if>
-		    <if test="districtCode != null and districtCode != ''">
-		        AND p.district_code = #{districtCode}
-		    </if>
-		    <if test="category1 != null and category1 != ''">
-		        AND p.category_code1 = #{category1}
-		    </if>
-		    <if test="category2 != null and category2 != ''">
-		        AND p.category_code2 = #{category2}
-		    </if>
-		    <if test="keyword != null and keyword != ''">
-		        AND p.title LIKE CONCAT('%', #{keyword}, '%')
-		    </if>
-		    AND p.addr1 IS NOT NULL AND p.addr1 != ''
+	<select id="findByLocationAndCategory" resultType="PlaceResponse">
+		SELECT
+		p.place_id,
+		p.title,
+		p.addr1,
+		p.first_image1,
+		p.category_code1,
+		p.category_code2,
+		COUNT(pl.user_id) AS like_count,
+		EXISTS (
+		SELECT 1 FROM place_likes
+		WHERE place_id = p.place_id AND user_id = #{userId}
+		) AS liked
+		FROM places p
+		LEFT JOIN place_likes pl ON p.place_id = pl.place_id
+		<where>
+			<if test="req.areaCode != null and req.areaCode != ''">
+				AND p.area_code = #{req.areaCode}
+			</if>
+			<if test="req.districtCode != null and req.districtCode != ''">
+				AND p.district_code = #{req.districtCode}
+			</if>
+			<if test="req.category1 != null and req.category1 != ''">
+				AND p.category_code1 = #{req.category1}
+			</if>
+			<if test="req.category2 != null and req.category2 != ''">
+				AND p.category_code2 = #{req.category2}
+			</if>
+			<if test="req.keyword != null and req.keyword != ''">
+				AND p.title LIKE CONCAT('%', #{req.keyword}, '%')
+			</if>
+			AND p.addr1 IS NOT NULL AND p.addr1 != ''
 		</where>
-        GROUP BY p.place_id
-        ORDER BY like_count DESC, p.place_id
-        LIMIT #{limitSize}
-        OFFSET #{offset}
-    </select>
+		GROUP BY p.place_id
+		ORDER BY like_count DESC, p.place_id
+		LIMIT #{req.limitSize}
+		OFFSET #{req.offset}
+	</select>
 
 	<select id="findById" resultType="PlaceDetailResponse">
 		SELECT place_id, content_id, title, addr1, addr2,
 		       latitude, longitude, first_image1, first_image2,
 		       area_code, district_code, category_code1, category_code2,
-		       zipcode, tel, overview
+		       zipcode, tel, overview,
+		       EXISTS (
+				   SELECT 1 FROM place_likes
+			       WHERE place_id = #{placeId} AND user_id = #{userId}
+			   ) AS liked
 		FROM places
 		WHERE place_id = #{placeId}
 	</select>
@@ -64,4 +72,24 @@
 		DELETE FROM place_likes
 		WHERE place_id = #{placeId} AND user_id = #{userId}
 	</delete>
+
+	<select id="findLikedPlaces" resultType="PlaceResponse">
+		SELECT
+			p.place_id,
+			p.title,
+			p.addr1,
+			p.first_image1,
+			p.category_code1,
+			p.category_code2,
+			COUNT(pl2.user_id) AS like_count,
+			true AS liked
+		FROM places p
+				 JOIN place_likes pl ON p.place_id = pl.place_id AND pl.user_id = #{userId}
+			     LEFT JOIN place_likes pl2 ON p.place_id = pl2.place_id
+		WHERE p.addr1 IS NOT NULL AND p.addr1 != ''
+		GROUP BY p.place_id
+		ORDER BY pl.created_at DESC
+		LIMIT #{limitSize}
+			OFFSET #{offset}
+	</select>
 </mapper>

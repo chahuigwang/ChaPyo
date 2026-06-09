@@ -57,7 +57,11 @@
         SELECT tpi.item_id, tpi.place_id, p.title, tpi.visit_date,
                tpi.item_order, tpi.visit_time, tpi.cost, tpi.memo,
                tpi.user_id, u.nickname,
-               p.latitude, p.longitude
+               p.latitude, p.longitude,
+               EXISTS (
+                   SELECT 1 FROM place_likes
+                   WHERE place_id = p.place_id AND user_id = #{userId}
+               ) AS liked
         FROM trip_plan_items tpi
                  JOIN places p ON tpi.place_id = p.place_id
                  JOIN users u ON tpi.user_id = u.user_id

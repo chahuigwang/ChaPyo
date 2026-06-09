@@ -1,6 +1,7 @@
 package com.chapyo.place.service;
 
 import com.chapyo.common.exception.CustomException;
+import com.chapyo.place.dto.request.LikedPlaceRequest;
 import com.chapyo.place.dto.response.LikeResponse;
 import com.chapyo.place.exception.PlaceErrorCode;
 import java.util.List;
@@ -21,16 +22,16 @@ import org.springframework.transaction.annotation.Transactional;
 public class PlaceServiceImpl implements PlaceService {
 
 	private final PlaceMapper placeMapper;
-	
-	@Override
-    public PageResponse<PlaceResponse> searchPlaces(PlaceSearchRequest request) {
-        List<PlaceResponse> places = placeMapper.findByLocationAndCategory(request);
-        return new PageResponse<>(places, request.getSize());
-    }
 
 	@Override
-	public PlaceDetailResponse getPlaceDetails(Long placeId) {
-		PlaceDetailResponse place = placeMapper.findById(placeId);
+	public PageResponse<PlaceResponse> searchPlaces(PlaceSearchRequest request, Long userId) {
+		List<PlaceResponse> places = placeMapper.findByLocationAndCategory(request, userId);
+		return new PageResponse<>(places, request.getSize());
+	}
+
+	@Override
+	public PlaceDetailResponse getPlaceDetails(Long placeId, Long userId) {
+		PlaceDetailResponse place = placeMapper.findById(placeId, userId);
 		if (place == null) {
 			throw new CustomException(PlaceErrorCode.PLACE_NOT_FOUND);
 		}
@@ -49,4 +50,9 @@ public class PlaceServiceImpl implements PlaceService {
 		return LikeResponse.builder().liked(true).build();
 	}
 
+	@Override
+	public PageResponse<PlaceResponse> getLikedPlaces(LikedPlaceRequest request, Long userId) {
+		List<PlaceResponse> places = placeMapper.findLikedPlaces(userId, request.getLimitSize(), request.getOffset());
+		return new PageResponse<>(places, request.getSize());
+	}
 }

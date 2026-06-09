@@ -1,6 +1,7 @@
 package com.chapyo.trip.dto.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import lombok.AllArgsConstructor;
@@ -44,4 +45,10 @@ public class TripPlanItemResponse {
 
     @Schema(description = "추가한 사용자 닉네임", example = "번개최광")
     private String nickname;
+
+    @Schema(description = "위도", example = "37.579617")
+    private BigDecimal latitude;
+
+    @Schema(description = "경도", example = "126.977041")
+    private BigDecimal longitude;
 }

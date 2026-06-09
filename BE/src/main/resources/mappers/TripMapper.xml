@@ -56,7 +56,8 @@
     <select id="findItemsByPlanId" resultType="TripPlanItemResponse">
         SELECT tpi.item_id, tpi.place_id, p.title, tpi.visit_date,
                tpi.item_order, tpi.visit_time, tpi.cost, tpi.memo,
-               tpi.user_id, u.nickname
+               tpi.user_id, u.nickname,
+               p.latitude, p.longitude
         FROM trip_plan_items tpi
                  JOIN places p ON tpi.place_id = p.place_id
                  JOIN users u ON tpi.user_id = u.user_id

@@ -2,6 +2,8 @@ package com.chapyo.trip.controller;
 
 import com.chapyo.common.response.BaseResponse;
 import com.chapyo.trip.dto.request.InviteMemberRequest;
+import com.chapyo.trip.dto.request.TripPlanItemRequest;
+import com.chapyo.trip.dto.response.TripPlanDetailResponse;
 import com.chapyo.trip.dto.response.TripPlanResponse;
 import com.chapyo.trip.service.TripService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -55,5 +57,27 @@ public class TripController {
 
         tripService.inviteMember(planId, request.getEmail(), userId);
         return ResponseEntity.ok(BaseResponse.success("멤버 초대 성공"));
+    }
+
+    @Operation(summary = "여행 일정 추가")
+    @PostMapping("/{planId}/items")
+    public ResponseEntity<BaseResponse<Void>> addItem(
+            @PathVariable Long planId,
+            @RequestBody @Valid TripPlanItemRequest request,
+            @AuthenticationPrincipal Long userId) {
+
+        tripService.addItem(planId, request, userId);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(BaseResponse.success("여행 일정 추가 성공"));
+    }
+
+    @Operation(summary = "여행 계획 조회")
+    @GetMapping("/{planId}")
+    public ResponseEntity<BaseResponse<TripPlanDetailResponse>> getPlanDetail(
+            @PathVariable Long planId,
+            @AuthenticationPrincipal Long userId) {
+
+        TripPlanDetailResponse response = tripService.getPlanDetail(planId, userId);
+        return ResponseEntity.ok(BaseResponse.success(response));
     }
 }

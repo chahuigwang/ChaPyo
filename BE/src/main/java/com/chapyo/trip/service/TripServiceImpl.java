@@ -1,8 +1,12 @@
 package com.chapyo.trip.service;
 
+import com.chapyo.common.exception.CustomException;
 import com.chapyo.trip.dto.response.TripPlanResponse;
 import com.chapyo.trip.entity.TripPlan;
+import com.chapyo.trip.exception.TripErrorCode;
 import com.chapyo.trip.mapper.TripMapper;
+import com.chapyo.user.entity.User;
+import com.chapyo.user.repository.UserMapper;
 import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class TripServiceImpl implements TripService {
 
     private final TripMapper tripMapper;
+    private final UserMapper userMapper;
 
     @Override
     @Transactional
@@ -47,5 +52,25 @@ public class TripServiceImpl implements TripService {
                         .endDate(plan.getEndDate())
                         .build())
                 .toList();
+    }
+
+    @Override
+    @Transactional
+    public void inviteMember(Long planId, String email, Long requesterId) {
+        // 요청자가 해당 plan 멤버인지 확인
+        if (!tripMapper.existsMember(planId, requesterId)) {
+            throw new CustomException(TripErrorCode.FORBIDDEN);
+        }
+
+        // 이메일로 사용자 조회
+        User invitee = userMapper.findByEmail(email)
+                .orElseThrow(() -> new CustomException(TripErrorCode.USER_NOT_FOUND));
+
+        // 이미 멤버인지 확인
+        if (tripMapper.existsMember(planId, invitee.getUserId())) {
+            throw new CustomException(TripErrorCode.ALREADY_MEMBER);
+        }
+
+        tripMapper.insertMember(planId, invitee.getUserId());
     }
 }

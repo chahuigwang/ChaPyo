@@ -10,4 +10,5 @@ public interface TripMapper {
     void insertPlan(TripPlan tripPlan);
     void insertMember(@Param("planId") Long planId, @Param("userId") Long userId);
     List<TripPlan> findPlansByUserId(@Param("userId") Long userId);
+    boolean existsMember(@Param("planId") Long planId, @Param("userId") Long userId);
 }

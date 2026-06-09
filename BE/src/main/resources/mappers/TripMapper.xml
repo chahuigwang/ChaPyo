@@ -22,4 +22,10 @@
         WHERE tpm.user_id = #{userId}
         ORDER BY tp.created_at DESC
     </select>
+
+    <select id="existsMember" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM trip_plan_members
+        WHERE plan_id = #{planId} AND user_id = #{userId}
+    </select>
 </mapper>

@@ -53,11 +53,13 @@
         WHERE tpm.plan_id = #{planId}
     </select>
 
-    <select id="findItemsByPlanId" resultType="TripPlanItemResponse">
+    <select id="findItemsByPlanId" resultType="com.chapyo.trip.dto.response.TripPlanItemResponse">
         SELECT tpi.item_id, tpi.place_id, p.title, tpi.visit_date,
-               tpi.item_order, tpi.visit_time, tpi.cost, tpi.memo
+               tpi.item_order, tpi.visit_time, tpi.cost, tpi.memo,
+               tpi.user_id, u.nickname
         FROM trip_plan_items tpi
                  JOIN places p ON tpi.place_id = p.place_id
+                 JOIN users u ON tpi.user_id = u.user_id
         WHERE tpi.plan_id = #{planId}
         ORDER BY tpi.visit_date, tpi.item_order
     </select>

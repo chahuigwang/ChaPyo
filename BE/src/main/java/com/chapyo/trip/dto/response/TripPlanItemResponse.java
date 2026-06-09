@@ -38,4 +38,10 @@ public class TripPlanItemResponse {
 
     @Schema(description = "메모", example = "입장권 미리 예매")
     private String memo;
+
+    @Schema(description = "추가한 사용자 ID", example = "1")
+    private Long userId;
+
+    @Schema(description = "추가한 사용자 닉네임", example = "번개최광")
+    private String nickname;
 }

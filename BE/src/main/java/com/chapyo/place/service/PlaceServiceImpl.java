@@ -41,13 +41,21 @@ public class PlaceServiceImpl implements PlaceService {
 	@Override
 	@Transactional
 	public LikeResponse toggleLike(Long placeId, Long userId) {
+		boolean liked;
 		if (placeMapper.existsLike(placeId, userId)) {
 			placeMapper.deleteLike(placeId, userId);
-			return LikeResponse.builder().liked(false).build();
+			liked = false;
+		} else {
+			placeMapper.insertLike(placeId, userId);
+			liked = true;
 		}
 
-		placeMapper.insertLike(placeId, userId);
-		return LikeResponse.builder().liked(true).build();
+		long likeCount = placeMapper.countLikes(placeId);
+
+		return LikeResponse.builder()
+				.liked(liked)
+				.likeCount(likeCount)
+				.build();
 	}
 
 	@Override

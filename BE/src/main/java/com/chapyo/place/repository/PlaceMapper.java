@@ -18,4 +18,5 @@ public interface PlaceMapper {
 	void insertLike(@Param("placeId") Long placeId, @Param("userId") Long userId);
 	void deleteLike(@Param("placeId") Long placeId, @Param("userId") Long userId);
 	List<PlaceResponse> findLikedPlaces(@Param("userId") Long userId, @Param("limitSize") int limitSize, @Param("offset") int offset);
+	long countLikes(Long placeId);
 }

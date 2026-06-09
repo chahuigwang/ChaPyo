@@ -60,4 +60,7 @@ public class PlaceDetailResponse {
 
     @Schema(description = "개요", example = "경복궁은 조선 왕조의 법궁입니다.")
     private String overview;
+
+    @Schema(description = "좋아요 여부", example = "true")
+    private boolean liked;
 }

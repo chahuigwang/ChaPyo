@@ -2,6 +2,7 @@ package com.chapyo.trip.controller;
 
 import com.chapyo.common.response.BaseResponse;
 import com.chapyo.trip.dto.request.InviteMemberRequest;
+import com.chapyo.trip.dto.request.TripItemOrderRequest;
 import com.chapyo.trip.dto.request.TripPlanItemRequest;
 import com.chapyo.trip.dto.request.TripPlanItemUpdateRequest;
 import com.chapyo.trip.dto.request.TripPlanUpdateRequest;
@@ -127,5 +128,16 @@ public class TripController {
 
         tripService.deleteItem(planId, itemId, userId);
         return ResponseEntity.ok(BaseResponse.success("여행 일정 삭제 성공"));
+    }
+
+    @Operation(summary = "여행 일정 순서 변경")
+    @PatchMapping("/{planId}/items/orders")
+    public ResponseEntity<BaseResponse<Void>> updateItemOrders(
+            @PathVariable Long planId,
+            @RequestBody @Valid TripItemOrderRequest request,
+            @AuthenticationPrincipal Long userId) {
+
+        tripService.updateItemOrders(planId, request, userId);
+        return ResponseEntity.ok(BaseResponse.success("일정 순서가 변경 성공"));
     }
 }

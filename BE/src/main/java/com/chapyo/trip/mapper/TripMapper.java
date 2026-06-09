@@ -25,4 +25,5 @@ public interface TripMapper {
     TripPlanItem findItemById(Long itemId);
     void updateItem(TripPlanItem item);
     void deleteItem(Long itemId);
+    void updateItemOrder(@Param("itemId") Long itemId, @Param("order") Integer order);
 }

@@ -53,7 +53,7 @@
         WHERE tpm.plan_id = #{planId}
     </select>
 
-    <select id="findItemsByPlanId" resultType="com.chapyo.trip.dto.response.TripPlanItemResponse">
+    <select id="findItemsByPlanId" resultType="TripPlanItemResponse">
         SELECT tpi.item_id, tpi.place_id, p.title, tpi.visit_date,
                tpi.item_order, tpi.visit_time, tpi.cost, tpi.memo,
                tpi.user_id, u.nickname
@@ -79,7 +79,7 @@
         WHERE plan_id = #{planId}
     </delete>
 
-    <select id="findItemById" resultType="com.chapyo.trip.domain.TripPlanItem">
+    <select id="findItemById" resultType="TripPlanItem">
         SELECT item_id, plan_id, place_id, user_id, visit_date, item_order, visit_time, cost, memo
         FROM trip_plan_items
         WHERE item_id = #{itemId}
@@ -100,4 +100,10 @@
         DELETE FROM trip_plan_items
         WHERE item_id = #{itemId}
     </delete>
+
+    <update id="updateItemOrder">
+        UPDATE trip_plan_items
+        SET item_order = #{order}
+        WHERE item_id = #{itemId}
+    </update>
 </mapper>

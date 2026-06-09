@@ -1,6 +1,7 @@
 package com.chapyo.trip.service;
 
 import com.chapyo.common.exception.CustomException;
+import com.chapyo.trip.dto.request.TripItemOrderRequest;
 import com.chapyo.trip.dto.request.TripPlanItemRequest;
 import com.chapyo.trip.dto.request.TripPlanItemUpdateRequest;
 import com.chapyo.trip.dto.request.TripPlanUpdateRequest;
@@ -191,5 +192,17 @@ public class TripServiceImpl implements TripService {
         }
 
         tripMapper.deleteItem(itemId);
+    }
+
+    @Override
+    @Transactional
+    public void updateItemOrders(Long planId, TripItemOrderRequest request, Long userId) {
+        if (!tripMapper.existsMember(planId, userId)) {
+            throw new CustomException(TripErrorCode.FORBIDDEN);
+        }
+
+        for (TripItemOrderRequest.ItemOrder itemOrder : request.getItemOrders()) {
+            tripMapper.updateItemOrder(itemOrder.getItemId(), itemOrder.getOrder());
+        }
     }
 }

@@ -22,6 +22,7 @@ public interface TripMapper {
     List<TripPlanItemResponse> findItemsByPlanId(@Param("planId") Long planId, @Param("userId") Long userId);
     void updatePlan(TripPlan plan);
     void deletePlan(Long planId);
+    boolean isOwner(@Param("planId") Long planId, @Param("userId") Long userId);
     TripPlanItem findItemById(Long itemId);
     void updateItem(TripPlanItem item);
     void deleteItem(Long itemId);

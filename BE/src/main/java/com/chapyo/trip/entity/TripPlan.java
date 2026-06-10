@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class TripPlan {
     private Long planId;
+    private Long ownerId;
     private String title;
     private LocalDate startDate;
     private LocalDate endDate;

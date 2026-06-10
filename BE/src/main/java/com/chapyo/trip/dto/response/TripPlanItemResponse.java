@@ -43,7 +43,7 @@ public class TripPlanItemResponse {
     @Schema(description = "추가한 사용자 ID", example = "1")
     private Long userId;
 
-    @Schema(description = "추가한 사용자 닉네임", example = "번개최광")
+    @Schema(description = "추가한 사용자 닉네임", example = "chapyo")
     private String nickname;
 
     @Schema(description = "위도", example = "37.579617")

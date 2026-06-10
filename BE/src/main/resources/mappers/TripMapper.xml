@@ -98,12 +98,10 @@
 
     <update id="updateItem">
         UPDATE trip_plan_items
-        <set>
-            <if test="visitDate != null">visit_date = #{visitDate},</if>
-            <if test="visitTime != null">visit_time = #{visitTime},</if>
-            <if test="cost != null">cost = #{cost},</if>
-            <if test="memo != null">memo = #{memo}</if>
-        </set>
+        SET visit_date = #{visitDate},
+            visit_time = #{visitTime},
+            cost = #{cost},
+            memo = #{memo}
         WHERE item_id = #{itemId}
     </update>
 

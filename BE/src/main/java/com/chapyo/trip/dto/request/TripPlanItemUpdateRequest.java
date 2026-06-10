@@ -1,6 +1,7 @@
 package com.chapyo.trip.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import lombok.Getter;
@@ -11,6 +12,7 @@ import lombok.NoArgsConstructor;
 public class TripPlanItemUpdateRequest {
 
     @Schema(description = "방문 날짜", example = "2026-06-08")
+    @NotNull(message = "방문 날짜를 입력해주세요.")
     private LocalDate visitDate;
 
     @Schema(description = "방문 시간", example = "10:00")

@@ -84,6 +84,12 @@
         WHERE plan_id = #{planId}
     </delete>
 
+    <select id="isOwner" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM trip_plans
+        WHERE plan_id = #{planId} AND owner_id = #{userId}
+    </select>
+
     <select id="findItemById" resultType="TripPlanItem">
         SELECT item_id, plan_id, place_id, user_id, visit_date, item_order, visit_time, cost, memo
         FROM trip_plan_items

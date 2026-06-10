@@ -125,8 +125,9 @@ function goDaily(iso) {
 <template>
   <div class="flex-1 h-full flex flex-col min-h-0 relative">
 
+    <Transition name="view-switch" mode="out-in">
     <!-- Daily view: flex (timeline fixed-width left, map fluid right) -->
-    <div v-if="currentView === 'daily'" class="flex-1 flex min-h-0 overflow-hidden">
+    <div v-if="currentView === 'daily'" key="daily" class="flex-1 flex min-h-0 overflow-hidden">
       <div class="w-96 shrink-0 h-full overflow-y-auto bg-slate-50 dark:bg-slate-950 px-4 py-4 transition-colors">
         <!-- Bento navigator -->
         <div class="mb-3">
@@ -140,7 +141,7 @@ function goDaily(iso) {
     </div>
 
     <!-- Total view: flex (accordion fixed-width left, map fluid right) -->
-    <div v-else class="flex-1 flex min-h-0 overflow-hidden">
+    <div v-else key="total" class="flex-1 flex min-h-0 overflow-hidden">
       <!-- Left: scrollable accordion itinerary -->
       <div class="w-96 shrink-0 h-full overflow-y-auto bg-slate-50 dark:bg-slate-950 px-4 py-4 transition-colors">
         <div class="flex flex-col gap-3">
@@ -250,11 +251,26 @@ function goDaily(iso) {
         <TripMap ref="totalMapRef" class="h-full w-full rounded-2xl shadow-sm overflow-hidden" :show-all="true" />
       </div>
     </div>
+    </Transition>
 
   </div>
 </template>
 
 <style scoped>
+/* 전체 일정 ↔ 일별 일정 전환 애니메이션 */
+.view-switch-enter-active,
+.view-switch-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.view-switch-enter-from {
+  opacity: 0;
+  transform: translateY(10px) scale(0.99);
+}
+.view-switch-leave-to {
+  opacity: 0;
+  transform: translateY(-10px) scale(0.99);
+}
+
 /* 접힘 상태에서는 높이 0으로 완전히 숨김(초기엔 안 보임). 펼칠 때만 슬라이드. */
 .accordion-wrap {
   max-height: 0;

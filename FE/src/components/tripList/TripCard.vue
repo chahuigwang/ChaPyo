@@ -95,8 +95,8 @@ onBeforeUnmount(() => {
   >
     <!-- Top row: left main + right stub -->
     <div class="grid grid-cols-12">
-      <!-- Main info: left ~67% -->
-      <section class="col-span-8 p-6 pr-7 min-w-0 flex flex-col overflow-hidden">
+      <!-- Main info: left ~75% -->
+      <section class="col-span-9 p-6 pr-7 min-w-0 flex flex-col overflow-hidden">
         <div class="flex items-center gap-2 min-w-0">
           <p class="text-[11px] tracking-[0.2em] uppercase text-slate-400 dark:text-slate-500 shrink-0">
             Boarding Pass
@@ -142,8 +142,8 @@ onBeforeUnmount(() => {
         </div>
       </section>
 
-      <!-- Stub: right ~33% — Trash top-right, vertical stacked summaries -->
-      <section class="col-span-4 p-5 pl-6 flex flex-col gap-4 relative">
+      <!-- Stub: right ~25% — Trash top-right, vertical stacked summaries -->
+      <section class="col-span-3 p-5 pl-6 flex flex-col gap-4 relative">
         <div v-if="trip.isOwner" class="absolute top-3 right-3" @click.stop>
           <button
             title="삭제"
@@ -170,7 +170,7 @@ onBeforeUnmount(() => {
 
     <!-- Bottom row: total price -->
     <div class="trip-ticket-total flex items-center justify-between px-6 py-3 bg-slate-50 dark:bg-slate-800/40">
-      <span class="text-[11px] text-slate-500 dark:text-slate-400">총 비용</span>
+      <span class="text-[14px] font-semibold text-slate-500 dark:text-slate-400">총 비용</span>
       <span class="text-base font-bold tracking-tight text-slate-900 dark:text-slate-100 whitespace-nowrap">
         ₩{{ costLabel }}
       </span>
@@ -203,7 +203,7 @@ onBeforeUnmount(() => {
   position: absolute;
   top: 16px;
   bottom: 64px;
-  left: 66.666%;
+  left: 75%;
   width: 0;
   border-left: 2px dashed rgb(209 213 219); /* gray-300 */
   pointer-events: none;
@@ -218,7 +218,7 @@ onBeforeUnmount(() => {
 /* Semi-circle cutouts that punch through to the page background */
 .trip-ticket-notch {
   position: absolute;
-  left: 66.666%;
+  left: 75%;
   width: 18px;
   height: 18px;
   border-radius: 9999px;

@@ -2,9 +2,10 @@
 import { ref, computed, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
-import { UserRound, LogOut, LogIn, UserPlus, Mail, Loader2, Check } from 'lucide-vue-next'
+import { UserRound, LogOut, LogIn, UserPlus, Mail, Loader2, Check, X, DoorOpen } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/authStore'
 import { useTripStore } from '@/stores/tripStore'
+import { colorForUser } from '@/composables/useUserColor'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -32,25 +33,40 @@ watch(logoutPending, (v) => {
 function initialOf(name) { return (name || '?').trim().charAt(0) }
 
 // ── Members (서버 상세 조회 결과) ─────────────────────────────
-const MEMBER_COLORS = ['#10B981', '#A855F7', '#EF4444', '#3B82F6', '#EC4899', '#14B8A6']
 function isMe(m) { return m.nickname === user.value?.nickname }
-// 방장: 내가 방장이면 나, 아니면 첫 멤버(생성자) 추정
+const iAmOwner = computed(() => !!trip.currentTrip?.isOwner)
+// 방장(생성자) 추정: 내가 방장이면 나, 아니면 첫 멤버 — 내보내기 버튼 제어용(표시는 안 함)
 const ownerName = computed(() => {
-  if (trip.currentTrip?.isOwner) return user.value?.nickname ?? null
+  if (iAmOwner.value) return user.value?.nickname ?? null
   return members.value?.[0]?.nickname ?? null
 })
 const memberList = computed(() =>
-  (members.value ?? []).map((m, i) => {
-    const owner = ownerName.value != null && m.nickname === ownerName.value
-    return {
-      id: m.userId ?? m.nickname,
-      name: m.nickname,
-      me: isMe(m),
-      owner,
-      color: owner ? '#D97706' : isMe(m) ? '#00B7EB' : MEMBER_COLORS[i % MEMBER_COLORS.length],
-    }
-  }),
+  (members.value ?? []).map((m) => ({
+    id: m.userId ?? m.nickname,
+    userId: m.userId,
+    name: m.nickname,
+    me: isMe(m),
+    owner: ownerName.value != null && m.nickname === ownerName.value,
+    color: colorForUser(m.userId ?? m.nickname),
+  })),
 )
+const myUserId = computed(() => members.value?.find((m) => m.nickname === user.value?.nickname)?.userId ?? null)
+
+// ── 내보내기 / 나가기 ─────────────────────────────────────────
+async function kick(m) {
+  if (m.userId == null) return
+  await trip.kickMember(m.userId)
+}
+const leavePending = ref(false)
+const leaving = ref(false)
+async function leaveTrip() {
+  if (myUserId.value == null || leaving.value) return
+  leaving.value = true
+  const res = await trip.leaveTrip(myUserId.value)
+  leaving.value = false
+  leavePending.value = false
+  if (res.ok) router.push('/list')
+}
 
 // ── Inline invite ────────────────────────────────────────────
 const email = ref('')
@@ -133,28 +149,60 @@ const row =
         <div
           v-for="m in memberList"
           :key="m.id"
-          class="flex items-center gap-2 px-3 py-2.5 rounded-xl transition-colors"
-          :class="m.owner
-            ? 'bg-amber-50 dark:bg-amber-900/15 ring-1 ring-amber-300/70 dark:ring-amber-500/30'
-            : m.me
-              ? 'bg-primary/10 ring-1 ring-primary/40'
-              : 'bg-slate-50 dark:bg-slate-800/60'"
+          class="group/member flex items-center gap-2 px-3 py-2.5 rounded-xl transition-colors"
+          :class="m.me ? 'bg-primary/10 ring-1 ring-primary/40' : 'bg-slate-50 dark:bg-slate-800/60'"
         >
           <div
             class="h-8 w-8 rounded-full flex items-center justify-center text-[12px] font-semibold text-white shrink-0"
             :style="{ backgroundColor: m.color }"
           >{{ initialOf(m.name) }}</div>
-          <div class="min-w-0">
+          <div class="min-w-0 flex-1">
             <div class="text-[12px] font-semibold truncate"
-                 :class="m.owner ? 'text-amber-700 dark:text-amber-400' : m.me ? 'text-primary' : 'text-slate-900 dark:text-slate-100'">
+                 :class="m.me ? 'text-primary' : 'text-slate-900 dark:text-slate-100'">
               {{ m.name }}
             </div>
-            <div v-if="m.owner" class="text-[11px] font-bold text-amber-600 dark:text-amber-400 leading-none mt-0.5">방장</div>
           </div>
+          <!-- 내보내기 (방장만, 본인/방장 제외) -->
+          <button
+            v-if="iAmOwner && !m.me && !m.owner"
+            @click="kick(m)"
+            class="shrink-0 h-6 w-6 rounded-md flex items-center justify-center text-slate-400
+                   hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors
+                   opacity-0 group-hover/member:opacity-100"
+            title="내보내기"
+          >
+            <X :size="14" />
+          </button>
         </div>
         <p v-if="!memberList.length" class="col-span-2 text-[11px] text-slate-400 dark:text-slate-500 py-1.5 px-1">
           여행을 열면 멤버가 표시됩니다.
         </p>
+      </div>
+
+      <!-- 여행 나가기 (방장이 아닌 참여자) -->
+      <div v-if="memberList.length && !iAmOwner && myUserId != null">
+        <button
+          v-if="!leavePending"
+          @click="leavePending = true"
+          class="w-full flex items-center justify-center gap-2 h-9 rounded-xl text-[12px] font-medium
+                 text-red-500 bg-red-50/70 dark:bg-red-900/15 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+        >
+          <DoorOpen :size="14" /> 여행 나가기
+        </button>
+        <div v-else class="flex gap-2">
+          <button
+            @click="leavePending = false"
+            :disabled="leaving"
+            class="flex-1 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 text-[12px] text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition-colors disabled:opacity-50"
+          >취소</button>
+          <button
+            @click="leaveTrip"
+            :disabled="leaving"
+            class="flex-1 h-9 rounded-xl bg-red-500 text-white text-[12px] font-semibold hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+          >
+            <Loader2 v-if="leaving" :size="13" class="animate-spin" /> 나가기
+          </button>
+        </div>
       </div>
 
       <!-- Inline invite -->

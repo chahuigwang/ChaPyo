@@ -5,6 +5,7 @@ import { findCategory } from '@/types/itinerary'
 import { useStorageStore } from '@/stores/storageStore'
 import { placeService } from '@/api/placeService'
 import PlaceMiniMap from '@/components/common/PlaceMiniMap.vue'
+import knightImg from '@/assets/knight.png'
 
 // item 이 null 이면 닫힘. 검색결과/타임라인 아이템 모두 받을 수 있다.
 const props = defineProps({
@@ -75,7 +76,7 @@ watch(() => props.item, async (item) => {
         class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4"
         @click.self="emit('close')"
       >
-        <div class="relative w-full max-w-3xl max-h-[88vh] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl flex flex-col sm:flex-row overflow-y-auto sm:overflow-hidden">
+        <div class="relative w-full max-w-5xl max-h-[88vh] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl flex flex-col sm:flex-row overflow-y-auto sm:overflow-hidden">
           <!-- Close -->
           <button
             @click="emit('close')"
@@ -85,18 +86,15 @@ watch(() => props.item, async (item) => {
           </button>
 
           <!-- Left: info -->
-          <div class="flex flex-col sm:w-[55%] sm:min-h-0">
+          <div class="flex flex-col sm:w-[42%] sm:min-h-0">
             <!-- Image -->
             <div class="relative w-full h-44 sm:h-52 shrink-0 bg-slate-100 dark:bg-slate-800">
               <img
-                v-if="data.firstImage"
-                :src="data.firstImage"
+                :src="data.firstImage || knightImg"
                 :alt="data.name"
                 class="w-full h-full object-cover"
+                :class="data.firstImage ? '' : 'opacity-40 object-[center_25%]'"
               />
-              <div v-else class="w-full h-full flex items-center justify-center text-slate-300 dark:text-slate-600">
-                <MapPin :size="32" />
-              </div>
             </div>
 
             <!-- Scrollable content -->
@@ -212,7 +210,7 @@ watch(() => props.item, async (item) => {
           </div>
 
           <!-- Right: map (패딩으로 정보 영역과 구분) -->
-          <div class="sm:w-[45%] shrink-0 p-3 sm:pl-1.5">
+          <div class="sm:w-[58%] shrink-0 p-3 sm:pl-1.5">
             <div class="h-64 sm:h-full sm:min-h-[316px] rounded-xl overflow-hidden ring-1 ring-slate-200/70 dark:ring-slate-700/60">
               <PlaceMiniMap :lat="data.lat ?? null" :lng="data.lng ?? null" :name="data.name" />
             </div>

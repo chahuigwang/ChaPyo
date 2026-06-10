@@ -136,7 +136,7 @@ async function confirmDelete() {
 
 <template>
   <div class="flex-1 overflow-y-auto">
-    <div class="mx-auto max-w-5xl px-8 py-16">
+    <div class="mx-auto max-w-4xl px-8 py-16">
 
       <!-- Header -->
       <div class="flex items-start justify-between mb-10 gap-6">
@@ -284,7 +284,7 @@ async function confirmDelete() {
       </div>
 
       <!-- Trip grid -->
-      <div v-if="trips.length" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div v-if="trips.length" class="grid grid-cols-1 md:grid-cols-2 gap-5">
         <TripCard
           v-for="t in sortedTrips"
           :key="t.id"

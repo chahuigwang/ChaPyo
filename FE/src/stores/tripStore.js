@@ -204,6 +204,35 @@ export const useTripStore = defineStore('trip', {
       }
     },
 
+    // DELETE /members/{userId} → 방장이 멤버 내보내기 (후 멤버 재조회)
+    async kickMember(targetUserId) {
+      const id = this.currentTripId
+      if (!id || !isServerId(id) || targetUserId == null) return { ok: false }
+      try {
+        await tripService.removeMember(id, targetUserId)
+        await this.fetchDetail(id)
+        return { ok: true }
+      } catch (err) {
+        useToastStore().error('내보내기에 실패했습니다.')
+        return { ok: false }
+      }
+    },
+
+    // DELETE /members/{myUserId} → 본인이 여행에서 나가기 (목록에서 제거)
+    async leaveTrip(myUserId) {
+      const id = this.currentTripId
+      if (!id || !isServerId(id) || myUserId == null) return { ok: false }
+      try {
+        await tripService.removeMember(id, myUserId)
+        this.trips = this.trips.filter((t) => t.id !== id)
+        this.currentTripId = null
+        return { ok: true }
+      } catch (err) {
+        useToastStore().error('여행 나가기에 실패했습니다.')
+        return { ok: false }
+      }
+    },
+
     // PATCH /api/v1/trips/{id} → 제목/날짜 서버 반영
     async _persistPlan() {
       const t = this.currentTrip

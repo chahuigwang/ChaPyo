@@ -18,6 +18,7 @@ export const ENDPOINTS = {
     item: (id, itemId) => `/api/v1/trips/${id}/items/${itemId}`,
     itemOrders: (id) => `/api/v1/trips/${id}/items/orders`,
     members: (id) => `/api/v1/trips/${id}/members`,
+    member: (id, userId) => `/api/v1/trips/${id}/members/${userId}`,
   },
   users: {
     me: '/api/v1/users/me',

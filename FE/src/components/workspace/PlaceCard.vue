@@ -1,8 +1,9 @@
 <script setup>
 import { ref, computed } from 'vue'
-import { Clock, Pencil, Trash2, MapPin, Check, Heart, X } from 'lucide-vue-next'
+import { Clock, Trash2, MapPin, Heart } from 'lucide-vue-next'
 import { findCategory } from '@/types/itinerary'
 import { useStorageStore } from '@/stores/storageStore'
+import { colorForUser } from '@/composables/useUserColor'
 
 const props = defineProps({
   item: { type: Object, required: true },
@@ -21,48 +22,27 @@ defineExpose({ $el: rootEl })
 
 const storage = useStorageStore()
 const liked = computed(() => storage.isLiked(props.item))
+const nicknameColor = computed(() => colorForUser(props.item.addedByUserId ?? props.item.nickname))
 
 const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
 
 const PLACEHOLDER = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"%3E%3Crect width="80" height="80" fill="%23f1f5f9"/%3E%3Ctext x="50%25" y="54%25" dominant-baseline="middle" text-anchor="middle" font-size="30"%3E' + encodeURIComponent('🗺') + '%3C/text%3E%3C/svg%3E'
-
-// ── Inline edit ──────────────────────────────────────────────
-const editOpen = ref(false)
-const draft = ref({ time: '', cost: 0, memo: '' })
-
-function openEdit() {
-  draft.value = {
-    time: props.item.time || '',
-    cost: props.item.cost || 0,
-    memo: props.item.memo || '',
-  }
-  editOpen.value = true
-}
-function cancelEdit() { editOpen.value = false }
-function saveEdit() {
-  emit('save', {
-    time: draft.value.time,
-    cost: Number(draft.value.cost) || 0,
-    memo: draft.value.memo.trim(),
-  })
-  editOpen.value = false
-}
 </script>
 
 <template>
   <div
     ref="rootEl"
-    :draggable="!editOpen"
-    @dragstart="!editOpen && emit('dragstart', $event)"
+    :draggable="true"
+    @dragstart="emit('dragstart', $event)"
     @dragend="emit('dragend')"
     @mouseenter="emit('mouseenter')"
     @mouseleave="emit('mouseleave')"
     class="place-card group relative rounded-xl bg-white dark:bg-slate-900 shadow-sm
            hover:shadow-md transition-all duration-200 overflow-hidden"
-    :class="hovered && !editOpen ? 'place-card--hovered' : ''"
+    :class="hovered ? 'place-card--hovered' : ''"
   >
     <!-- ── Main row ─────────────────────────────────────────── -->
-    <div class="flex gap-0 cursor-pointer" @click="!editOpen && emit('click')">
+    <div class="flex gap-0 cursor-pointer" @click="emit('click')">
 
       <!-- Thumbnail -->
       <div class="shrink-0 w-20 self-stretch min-h-20 bg-slate-100 dark:bg-slate-800 overflow-hidden relative">
@@ -98,139 +78,50 @@ function saveEdit() {
             </h4>
           </div>
 
-          <!-- Action buttons (edit/delete) + like below -->
-          <div class="flex flex-col items-end gap-1 shrink-0 mt-0.5">
-            <div class="flex items-center gap-0.5"
-                 :class="editOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 transition-opacity'">
-              <button
-                @click.stop="editOpen ? cancelEdit() : openEdit()"
-                class="h-6 w-6 rounded-md flex items-center justify-center transition-colors"
-                :class="editOpen
-                  ? 'text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'
-                  : 'text-slate-400 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800'"
-                :title="editOpen ? '닫기' : '수정'"
-              >
-                <X v-if="editOpen" :size="12" />
-                <Pencil v-else :size="12" />
-              </button>
-
-              <button
-                v-if="!editOpen"
-                @click.stop="pendingDelete === item.id ? emit('confirm-delete') : emit('request-delete')"
-                class="h-6 w-6 rounded-md flex items-center justify-center transition-all duration-150"
-                :class="pendingDelete === item.id
-                  ? 'text-white bg-red-500 hover:bg-red-600 scale-110'
-                  : 'text-slate-400 hover:text-red-500 hover:bg-slate-100 dark:hover:bg-slate-800'"
-                :title="pendingDelete === item.id ? '한 번 더 클릭하면 삭제됩니다' : '삭제'"
-              ><Trash2 :size="12" /></button>
-            </div>
-
-            <!-- Like toggle (삭제 버튼 아래, 오른쪽 아래) -->
+          <!-- 좋아요 + 삭제 (같은 라인, 큰 아이콘) -->
+          <div class="flex items-center gap-1.5 shrink-0 mt-0.5">
             <button
               @click.stop="storage.toggleLike(item)"
-              class="h-6 w-6 rounded-md flex items-center justify-center transition-colors"
+              class="h-7 w-7 rounded-lg flex items-center justify-center transition-colors"
               :class="liked
                 ? 'text-red-500 bg-red-50 dark:bg-red-900/20'
-                : 'text-slate-400 hover:text-red-500 hover:bg-slate-100 dark:hover:bg-slate-800'"
+                : 'text-slate-400 bg-slate-100 dark:bg-slate-800 hover:text-red-500'"
               :title="liked ? '좋아요 취소' : '좋아요'"
             >
-              <Heart :size="13" :class="liked ? 'fill-red-500' : ''" />
+              <Heart :size="16" :class="liked ? 'fill-red-500' : ''" />
             </button>
-
-            <!-- 추가한 사람 -->
-            <span
-              v-if="item.nickname"
-              class="max-w-[84px] truncate px-1.5 py-0.5 rounded-md bg-primary/10 text-primary text-[11px] font-semibold"
-              :title="`${item.nickname} 님이 추가`"
-            >{{ item.nickname }}</span>
+            <button
+              @click.stop="pendingDelete === item.id ? emit('confirm-delete') : emit('request-delete')"
+              class="h-7 w-7 rounded-lg flex items-center justify-center transition-all duration-150"
+              :class="pendingDelete === item.id
+                ? 'text-white bg-red-500 hover:bg-red-600 scale-110'
+                : 'text-red-500 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40'"
+              :title="pendingDelete === item.id ? '한 번 더 클릭하면 삭제됩니다' : '삭제'"
+            ><Trash2 :size="16" /></button>
           </div>
         </div>
 
-        <div class="mt-1.5 flex items-center gap-2 flex-wrap">
-          <span v-if="item.time" class="inline-flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
+        <div v-if="item.time || item.addr || item.address" class="mt-1.5 flex items-center gap-2 min-w-0">
+          <span v-if="item.time" class="shrink-0 inline-flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
             <Clock :size="10" /> {{ item.time }}
           </span>
           <span v-if="item.addr || item.address"
-                class="inline-flex items-center gap-1 text-[11px] text-slate-400 dark:text-slate-500 truncate">
-            <MapPin :size="10" /> {{ item.addr || item.address }}
-          </span>
-          <span v-if="item.cost" class="text-[11px] font-semibold text-primary ml-auto">
-            {{ won(item.cost) }}
+                class="min-w-0 flex-1 inline-flex items-center gap-1 text-[11px] text-slate-400 dark:text-slate-500">
+            <MapPin :size="10" class="shrink-0" />
+            <span class="truncate">{{ item.addr || item.address }}</span>
           </span>
         </div>
 
-        <p v-if="item.memo && !editOpen"
-           class="mt-1 text-[11px] text-slate-400 dark:text-slate-500 line-clamp-1 leading-relaxed">
-          {{ item.memo }}
-        </p>
-      </div>
-    </div>
-
-    <!-- ── Inline edit panel (grid expand) ──────────────────── -->
-    <div class="edit-wrap" :class="editOpen ? 'edit-open' : ''">
-      <div>
-        <div class="px-3 pb-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 space-y-2.5"
-             @click.stop>
-          <!-- Time + Cost row -->
-          <div class="grid grid-cols-2 gap-2">
-            <label class="flex flex-col gap-1">
-              <span class="text-[11px] font-medium text-slate-400 uppercase tracking-wide">시간</span>
-              <input
-                v-model="draft.time"
-                type="time"
-                class="h-8 w-full rounded-lg bg-slate-50 dark:bg-slate-800 px-2.5 text-[12px]
-                       text-slate-900 dark:text-slate-100 outline-none
-                       focus:ring-2 focus:ring-primary/30 transition-all"
-                @keydown.enter.prevent="saveEdit"
-                @keydown.escape.prevent="cancelEdit"
-              />
-            </label>
-            <label class="flex flex-col gap-1">
-              <span class="text-[11px] font-medium text-slate-400 uppercase tracking-wide">비용 (원)</span>
-              <input
-                v-model.number="draft.cost"
-                type="number"
-                min="0"
-                placeholder="0"
-                class="h-8 w-full rounded-lg bg-slate-50 dark:bg-slate-800 px-2.5 text-[12px]
-                       text-slate-900 dark:text-slate-100 outline-none
-                       focus:ring-2 focus:ring-primary/30 transition-all"
-                @keydown.enter.prevent="saveEdit"
-                @keydown.escape.prevent="cancelEdit"
-              />
-            </label>
-          </div>
-
-          <!-- Memo -->
-          <label class="flex flex-col gap-1">
-            <span class="text-[11px] font-medium text-slate-400 uppercase tracking-wide">메모</span>
-            <textarea
-              v-model="draft.memo"
-              rows="2"
-              placeholder="추천 메뉴, 예약 정보 등"
-              class="w-full rounded-lg bg-slate-50 dark:bg-slate-800 px-2.5 py-1.5 text-[12px]
-                     text-slate-900 dark:text-slate-100 resize-none outline-none
-                     focus:ring-2 focus:ring-primary/30 transition-all placeholder:text-slate-400"
-              @keydown.escape.prevent="cancelEdit"
-            />
-          </label>
-
-          <!-- Save / Cancel -->
-          <div class="flex justify-end gap-1.5">
-            <button
-              @click="cancelEdit"
-              class="h-7 px-3 rounded-lg text-[11px] font-medium text-slate-500
-                     hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            >취소</button>
-            <button
-              @click="saveEdit"
-              class="h-7 px-3 rounded-lg text-[11px] font-semibold
-                     bg-primary text-white hover:bg-primary/90 transition-colors
-                     inline-flex items-center gap-1"
-            >
-              <Check :size="11" /> 저장
-            </button>
-          </div>
+        <!-- 닉네임 · 금액 · 메모 (왼쪽 같은 라인) -->
+        <div v-if="item.nickname || item.cost || item.memo" class="mt-1.5 flex items-center gap-2 min-w-0">
+          <span
+            v-if="item.nickname"
+            class="shrink-0 max-w-[84px] truncate px-1.5 py-0.5 rounded-md text-[11px] font-semibold"
+            :style="{ color: nicknameColor, backgroundColor: nicknameColor + '1f' }"
+            :title="`${item.nickname} 님이 추가`"
+          >{{ item.nickname }}</span>
+          <span v-if="item.cost" class="shrink-0 text-[11px] font-semibold text-primary">{{ won(item.cost) }}</span>
+          <span v-if="item.memo" class="min-w-0 flex-1 truncate text-[11px] text-slate-400 dark:text-slate-500">{{ item.memo }}</span>
         </div>
       </div>
     </div>
@@ -241,18 +132,5 @@ function saveEdit() {
 .place-card--hovered {
   transform: translateY(-1px);
   box-shadow: 0 0 0 1.5px rgba(0,183,235,.5), 0 8px 22px -6px rgba(0,183,235,.35);
-}
-
-.edit-wrap {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows 240ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-.edit-wrap > div {
-  min-height: 0;
-  overflow: hidden;
-}
-.edit-open {
-  grid-template-rows: 1fr;
 }
 </style>

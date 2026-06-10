@@ -83,4 +83,9 @@ export const tripService = {
     const res = await http.post(ENDPOINTS.trips.members(planId), { email })
     return res?.data?.message ?? '멤버 초대 성공'
   },
+
+  // DELETE /api/v1/trips/{planId}/members/{userId} → 멤버 내보내기 / 본인 나가기
+  async removeMember(planId, targetUserId) {
+    await http.delete(ENDPOINTS.trips.member(planId, targetUserId))
+  },
 }

@@ -1,6 +1,6 @@
 <script setup>
 import { ref, watch } from 'vue'
-import { X, MapPin, Phone, Heart, CalendarPlus, Loader2, Clock } from 'lucide-vue-next'
+import { X, MapPin, Phone, Heart, CalendarPlus, Loader2, Clock, UserRound, Check } from 'lucide-vue-next'
 import { findCategory } from '@/types/itinerary'
 import { useStorageStore } from '@/stores/storageStore'
 import { placeService } from '@/api/placeService'
@@ -10,14 +10,23 @@ import PlaceMiniMap from '@/components/common/PlaceMiniMap.vue'
 const props = defineProps({
   item: { type: Object, default: null },
   showAdd: { type: Boolean, default: false },
+  editable: { type: Boolean, default: false }, // 타임라인 아이템이면 메모/비용 편집
 })
-const emit = defineEmits(['close', 'add'])
+const emit = defineEmits(['close', 'add', 'save'])
 
 const storage = useStorageStore()
 
 const data = ref(null)
 const loading = ref(false)
 const error = ref(false)
+
+// 편집용 드래프트(메모/비용)
+const memoDraft = ref('')
+const costDraft = ref(0)
+function saveEdit() {
+  emit('save', { memo: (memoDraft.value || '').trim(), cost: Number(costDraft.value) || 0 })
+  emit('close')
+}
 
 const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
 
@@ -31,6 +40,8 @@ function placeIdOf(item) {
 watch(() => props.item, async (item) => {
   if (!item) { data.value = null; return }
   data.value = { ...item }
+  memoDraft.value = item.memo || ''
+  costDraft.value = item.cost || 0
   error.value = false
   const pid = placeIdOf(item)
   if (!pid) return
@@ -96,10 +107,26 @@ watch(() => props.item, async (item) => {
                   <h3 class="text-[17px] font-bold text-slate-900 dark:text-slate-100 leading-snug">{{ data.name }}</h3>
                   <p class="mt-0.5 text-[12px] text-slate-400 dark:text-slate-500">{{ findCategory(data.category)?.label }}</p>
                 </div>
+                <!-- 좋아요 (이름/카테고리 줄 오른쪽 끝) -->
+                <button
+                  @click="storage.toggleLike(data)"
+                  class="shrink-0 h-9 w-9 rounded-xl flex items-center justify-center transition-colors"
+                  :class="storage.isLiked(data)
+                    ? 'bg-red-50 dark:bg-red-900/20 text-red-500 hover:bg-red-100'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-red-500 hover:bg-slate-200'"
+                  :title="storage.isLiked(data) ? '좋아요 취소' : '좋아요'"
+                >
+                  <Heart :size="18" :class="storage.isLiked(data) ? 'fill-red-500' : ''" />
+                </button>
               </div>
 
-              <!-- 일정 정보(타임라인 아이템) -->
-              <div v-if="data.time || data.cost" class="flex items-center gap-3 text-[12px] text-slate-500 dark:text-slate-400">
+              <!-- 추가한 사람 -->
+              <div v-if="data.nickname" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-[12px] font-semibold">
+                <UserRound :size="13" /> {{ data.nickname }} 님이 추가
+              </div>
+
+              <!-- 일정 정보(읽기 전용) -->
+              <div v-if="!editable && (data.time || data.cost)" class="flex items-center gap-3 text-[12px] text-slate-500 dark:text-slate-400">
                 <span v-if="data.time" class="inline-flex items-center gap-1">
                   <Clock :size="13" class="text-slate-400" /> {{ data.time }}
                 </span>
@@ -119,12 +146,43 @@ watch(() => props.item, async (item) => {
                 상세 정보를 불러오지 못했어요.
               </div>
 
-              <!-- 메모 -->
-              <div v-if="data.memo">
+              <!-- 메모 (읽기 전용) -->
+              <div v-if="!editable && data.memo">
                 <div class="text-[11px] font-medium text-slate-400 dark:text-slate-500 mb-1">메모</div>
                 <p class="text-[13px] text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap rounded-lg bg-slate-50 dark:bg-slate-800/60 px-3 py-2">
                   {{ data.memo }}
                 </p>
+              </div>
+
+              <!-- 비용/메모 편집 (타임라인 아이템) -->
+              <div v-if="editable" class="space-y-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 p-3">
+                <div v-if="data.time" class="flex items-center gap-1.5 text-[12px] text-slate-500 dark:text-slate-400">
+                  <Clock :size="13" class="text-slate-400" /> {{ data.time }}
+                </div>
+                <label class="block">
+                  <span class="text-[11px] font-medium text-slate-400 dark:text-slate-500">비용 (원)</span>
+                  <input
+                    v-model.number="costDraft"
+                    type="number" min="0" placeholder="0"
+                    class="mt-1 w-full h-9 rounded-lg bg-white dark:bg-slate-900 px-3 text-[13px]
+                           text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-primary/30 transition-all"
+                  />
+                </label>
+                <label class="block">
+                  <span class="text-[11px] font-medium text-slate-400 dark:text-slate-500">메모</span>
+                  <textarea
+                    v-model="memoDraft"
+                    rows="3" placeholder="추천 메뉴, 예약 정보 등"
+                    class="mt-1 w-full rounded-lg bg-white dark:bg-slate-900 px-3 py-2 text-[13px]
+                           text-slate-900 dark:text-slate-100 resize-none outline-none focus:ring-2 focus:ring-primary/30 transition-all"
+                  />
+                </label>
+                <button
+                  @click="saveEdit"
+                  class="w-full h-9 rounded-lg bg-primary text-white text-[13px] font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <Check :size="14" /> 저장
+                </button>
               </div>
 
               <div v-if="data.address" class="flex items-start gap-1.5 text-[12px] text-slate-500 dark:text-slate-400">
@@ -142,21 +200,10 @@ watch(() => props.item, async (item) => {
                 {{ storage.likeCountOf(data).toLocaleString() }}
               </div>
 
-              <div class="flex gap-2 pt-1">
+              <div v-if="showAdd" class="pt-1">
                 <button
-                  @click="storage.toggleLike(data)"
-                  class="flex-1 h-10 rounded-xl text-[13px] font-semibold transition-colors flex items-center justify-center gap-2"
-                  :class="storage.isLiked(data)
-                    ? 'bg-red-50 dark:bg-red-900/20 text-red-500 hover:bg-red-100'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'"
-                >
-                  <Heart :size="14" :class="storage.isLiked(data) ? 'fill-red-500' : ''" />
-                  {{ storage.isLiked(data) ? '좋아요 취소' : '좋아요' }}
-                </button>
-                <button
-                  v-if="showAdd"
                   @click="emit('add', item)"
-                  class="flex-1 h-10 rounded-xl bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-brand-600 transition-colors flex items-center justify-center gap-2"
+                  class="w-full h-10 rounded-xl bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-brand-600 transition-colors flex items-center justify-center gap-2"
                 >
                   <CalendarPlus :size="15" /> 일정에 추가
                 </button>

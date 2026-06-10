@@ -19,6 +19,8 @@ export class TravelItem {
     firstImage = null,
     placeId = null,
     serverId = null,
+    nickname = '',
+    addedByUserId = null,
   } = {}) {
     this.id = id ?? newItemId()
     this.name = name
@@ -34,6 +36,8 @@ export class TravelItem {
     this.firstImage = firstImage ?? null
     this.placeId = placeId != null ? Number(placeId) : null  // BE place 참조 ID
     this.serverId = serverId != null ? Number(serverId) : null // BE item(itemId)
+    this.nickname = nickname // 이 일정을 추가한 사용자 닉네임
+    this.addedByUserId = addedByUserId
   }
 
   static fromJSON(raw = {}) {
@@ -56,6 +60,8 @@ export class TravelItem {
       firstImage: this.firstImage,
       placeId: this.placeId,
       serverId: this.serverId,
+      nickname: this.nickname,
+      addedByUserId: this.addedByUserId,
     }
   }
 

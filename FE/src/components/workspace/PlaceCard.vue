@@ -57,7 +57,7 @@ function saveEdit() {
     @dragend="emit('dragend')"
     @mouseenter="emit('mouseenter')"
     @mouseleave="emit('mouseleave')"
-    class="place-card group relative mx-4 rounded-xl bg-white dark:bg-slate-900 shadow-sm
+    class="place-card group relative rounded-xl bg-white dark:bg-slate-900 shadow-sm
            hover:shadow-md transition-all duration-200 overflow-hidden"
     :class="hovered && !editOpen ? 'place-card--hovered' : ''"
   >
@@ -136,6 +136,13 @@ function saveEdit() {
             >
               <Heart :size="13" :class="liked ? 'fill-red-500' : ''" />
             </button>
+
+            <!-- 추가한 사람 -->
+            <span
+              v-if="item.nickname"
+              class="max-w-[84px] truncate px-1.5 py-0.5 rounded-md bg-primary/10 text-primary text-[11px] font-semibold"
+              :title="`${item.nickname} 님이 추가`"
+            >{{ item.nickname }}</span>
           </div>
         </div>
 
@@ -144,7 +151,7 @@ function saveEdit() {
             <Clock :size="10" /> {{ item.time }}
           </span>
           <span v-if="item.addr || item.address"
-                class="inline-flex items-center gap-1 text-[11px] text-slate-400 dark:text-slate-500 truncate max-w-[110px]">
+                class="inline-flex items-center gap-1 text-[11px] text-slate-400 dark:text-slate-500 truncate">
             <MapPin :size="10" /> {{ item.addr || item.address }}
           </span>
           <span v-if="item.cost" class="text-[11px] font-semibold text-primary ml-auto">

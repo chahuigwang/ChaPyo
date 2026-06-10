@@ -128,6 +128,8 @@ export const useTripStore = defineStore('trip', {
           firstImage: enrich.firstImage ?? null,
           lat,
           lng,
+          nickname: it.nickname ?? '',
+          addedByUserId: it.userId ?? null,
         }))
       }
       return new TripPlan({
@@ -137,6 +139,7 @@ export const useTripStore = defineStore('trip', {
         endDate: String(raw.endDate),
         itemsByDay,
         members: raw.members ?? [],
+        isOwner: raw.owner ?? raw.isOwner ?? false,
         selectedDate: prev?.selectedDate, // 보던 선택 날짜 유지
         updatedAt: Date.now(),
       })

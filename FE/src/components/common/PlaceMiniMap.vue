@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, onBeforeUnmount } from 'vue'
+import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 
 const props = defineProps({
   lat: { type: Number, default: null },
@@ -14,6 +14,7 @@ const mapEl = ref(null)
 let mapInstance = null
 let marker = null
 let sdkPromise = null
+let ro = null
 
 function loadSdk() {
   if (sdkPromise) return sdkPromise
@@ -38,8 +39,12 @@ function loadSdk() {
   return sdkPromise
 }
 
+const hasCoords = () => props.lat != null && props.lng != null
+
 async function render() {
-  if (!hasKey || props.lat == null || props.lng == null || !mapEl.value) return
+  if (!hasKey || !hasCoords() || !mapEl.value) return
+  // 컨테이너가 아직 0 크기면(모달 오픈 직후) 그릴 수 없음 — ResizeObserver가 이후 다시 호출
+  if (mapEl.value.clientWidth === 0 || mapEl.value.clientHeight === 0) return
   try {
     const kakao = await loadSdk()
     const pos = new kakao.maps.LatLng(props.lat, props.lng)
@@ -49,23 +54,33 @@ async function render() {
     if (!marker) marker = new kakao.maps.Marker({ position: pos })
     marker.setPosition(pos)
     marker.setMap(mapInstance)
-    // 모달이 막 열려 컨테이너 크기가 0이었을 수 있으니 레이아웃 재계산
-    setTimeout(() => { mapInstance.relayout(); mapInstance.setCenter(pos) }, 60)
+    mapInstance.relayout()
+    mapInstance.setCenter(pos)
   } catch {
-    /* SDK 로드 실패 시 placeholder 유지 */
+    /* SDK 실패 시 placeholder 유지 */
   }
 }
 
-watch(() => [props.lat, props.lng], render, { immediate: true, flush: 'post' })
-onBeforeUnmount(() => { try { marker?.setMap(null) } catch {} marker = null; mapInstance = null })
+onMounted(() => {
+  if (!mapEl.value) return
+  ro = new ResizeObserver(() => render())
+  ro.observe(mapEl.value)
+  render()
+})
+watch(() => [props.lat, props.lng], render, { flush: 'post' })
+onBeforeUnmount(() => {
+  try { ro?.disconnect() } catch {}
+  try { marker?.setMap(null) } catch {}
+  ro = null; marker = null; mapInstance = null
+})
 </script>
 
 <template>
   <div class="relative w-full h-full bg-slate-100 dark:bg-slate-800">
-    <div v-if="hasKey && lat != null && lng != null" ref="mapEl" class="absolute inset-0 w-full h-full" />
+    <div ref="mapEl" class="absolute inset-0 w-full h-full" />
     <div
-      v-else
-      class="absolute inset-0 flex items-center justify-center text-[12px] text-slate-400 dark:text-slate-500 px-3 text-center"
+      v-if="!hasKey || lat == null || lng == null"
+      class="absolute inset-0 flex items-center justify-center text-[12px] text-slate-400 dark:text-slate-500 px-3 text-center pointer-events-none"
     >
       위치 정보가 없습니다.
     </div>

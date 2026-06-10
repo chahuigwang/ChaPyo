@@ -33,12 +33,31 @@ services:
       timeout: 5s
       retries: 5
 
-  app:
+  app-blue:
     image: ${DOCKERHUB_USERNAME}/chapyo:latest
-    container_name: chapyo
+    container_name: chapyo-blue
     restart: unless-stopped
     ports:
       - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - ./application-prod.yml:/app/application-prod.yml
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  app-green:
+    image: ${DOCKERHUB_USERNAME}/chapyo:latest
+    container_name: chapyo-green
+    restart: unless-stopped
+    ports:
+      - "8081:8080"
     environment:
       SPRING_PROFILES_ACTIVE: prod
       MYSQL_DATABASE: ${MYSQL_DATABASE}

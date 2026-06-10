@@ -20,4 +20,5 @@ public interface TripService {
     void updateItem(Long planId, Long itemId, TripPlanItemUpdateRequest request, Long userId);
     void deleteItem(Long planId, Long itemId, Long userId);
     void updateItemOrders(Long planId, TripItemOrderRequest request, Long userId);
+    void removeMember(Long planId, Long targetUserId, Long requesterId);
 }

@@ -140,4 +140,15 @@ public class TripController {
         tripService.updateItemOrders(planId, request, userId);
         return ResponseEntity.ok(BaseResponse.success("일정 순서가 변경 성공"));
     }
+
+    @Operation(summary = "여행 멤버 내보내기/나가기")
+    @DeleteMapping("/{planId}/members/{targetUserId}")
+    public ResponseEntity<BaseResponse<Void>> removeMember(
+            @PathVariable Long planId,
+            @PathVariable Long targetUserId,
+            @AuthenticationPrincipal Long userId) {
+
+        tripService.removeMember(planId, targetUserId, userId);
+        return ResponseEntity.ok(BaseResponse.success("멤버 내보내기 성공"));
+    }
 }

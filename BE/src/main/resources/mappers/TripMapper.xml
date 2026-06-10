@@ -117,4 +117,9 @@
         SET item_order = #{order}
         WHERE item_id = #{itemId}
     </update>
+
+    <delete id="deleteMember">
+        DELETE FROM trip_plan_members
+        WHERE plan_id = #{planId} AND user_id = #{userId}
+    </delete>
 </mapper>

@@ -27,4 +27,5 @@ public interface TripMapper {
     void updateItem(TripPlanItem item);
     void deleteItem(Long itemId);
     void updateItemOrder(@Param("itemId") Long itemId, @Param("order") Integer order);
+    void deleteMember(@Param("planId") Long planId, @Param("userId") Long userId);
 }

@@ -208,4 +208,39 @@ public class TripServiceImpl implements TripService {
             tripMapper.updateItemOrder(itemOrder.getItemId(), itemOrder.getOrder());
         }
     }
+
+    @Transactional
+    public void removeMember(Long planId, Long targetUserId, Long requesterId) {
+        TripPlan plan = tripMapper.findPlanById(planId);
+        if (plan == null) {
+            throw new CustomException(TripErrorCode.TRIP_NOT_FOUND);
+        }
+
+        // 요청자가 멤버인지 확인
+        if (!tripMapper.existsMember(planId, requesterId)) {
+            throw new CustomException(TripErrorCode.FORBIDDEN);
+        }
+
+        // 생성자는 나가기 불가
+        if (tripMapper.isOwner(planId, targetUserId)) {
+            throw new CustomException(TripErrorCode.OWNER_CANNOT_LEAVE);
+        }
+
+        // 본인 스스로 나가는 경우
+        if (requesterId.equals(targetUserId)) {
+            tripMapper.deleteMember(planId, requesterId);
+            return;
+        }
+
+        // 생성자만 내보내기 가능
+        if (!tripMapper.isOwner(planId, requesterId)) {
+            throw new CustomException(TripErrorCode.FORBIDDEN);
+        }
+
+        if (!tripMapper.existsMember(planId, targetUserId)) {
+            throw new CustomException(TripErrorCode.USER_NOT_FOUND);
+        }
+
+        tripMapper.deleteMember(planId, targetUserId);
+    }
 }

@@ -95,7 +95,7 @@ const displayValue = computed(() => {
       ref="triggerRef"
       type="button"
       @click="toggle"
-      class="bg-transparent text-[14px] font-medium text-slate-700 dark:text-slate-200 outline-none cursor-pointer text-right hover:text-primary transition-colors"
+      class="bg-transparent text-[16px] font-semibold text-slate-800 dark:text-slate-100 outline-none cursor-pointer text-right hover:text-primary transition-colors"
     >
       {{ displayValue }}
     </button>

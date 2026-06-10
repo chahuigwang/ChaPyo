@@ -1,13 +1,31 @@
 <script setup>
 import { ref, computed } from 'vue'
-import { Car, Pencil } from 'lucide-vue-next'
+import { Car, Pencil, Navigation } from 'lucide-vue-next'
 import { useTripStore } from '@/stores/tripStore'
 
 const props = defineProps({
   item: { type: Object, required: true },
+  next: { type: Object, default: null },
   autoKm: { type: String, default: null },
   autoMins: { type: Number, default: null },
 })
+
+// 출발/도착 좌표가 모두 있으면 카카오맵 길찾기 가능
+const canRoute = computed(() => {
+  const a = props.item, b = props.next
+  return a?.lat != null && a?.lng != null && b?.lat != null && b?.lng != null
+})
+const directionsUrl = computed(() => {
+  if (!canRoute.value) return ''
+  const a = props.item, b = props.next
+  const from = `${encodeURIComponent(a.name || '출발')},${a.lat},${a.lng}`
+  const to = `${encodeURIComponent(b.name || '도착')},${b.lat},${b.lng}`
+  return `https://map.kakao.com/link/from/${from}/to/${to}`
+})
+function openDirections(e) {
+  e.stopPropagation()
+  if (directionsUrl.value) window.open(directionsUrl.value, '_blank', 'noopener,noreferrer')
+}
 
 const emit = defineEmits(['hover-transit', 'leave-transit'])
 
@@ -18,17 +36,15 @@ const draftCost = ref(0)
 const draftMins = ref('')
 const draftMethod = ref('')
 
-const displayMins = computed(() => {
-  if (props.item.transitAfter?.mins != null) return props.item.transitAfter.mins
-  return props.autoMins ?? '?'
-})
+// 사용자가 직접 편집해 입력한 소요 시간만 표시(자동 추정 분은 숨김)
+const userMins = computed(() => props.item.transitAfter?.mins ?? null)
 const displayKm = computed(() => props.autoKm ?? '?')
 const transitCost = computed(() => Number(props.item.transitAfter?.cost) || 0)
 const transitMethod = computed(() => props.item.transitAfter?.method || '')
 
 function startEdit() {
   draftCost.value = transitCost.value
-  draftMins.value = props.item.transitAfter?.mins ?? props.autoMins ?? ''
+  draftMins.value = props.item.transitAfter?.mins ?? ''
   draftMethod.value = transitMethod.value
   editing.value = true
 }
@@ -61,11 +77,20 @@ const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
       <div class="flex-1 min-w-0">
         <div class="text-[11px] font-medium text-slate-600 dark:text-slate-300">
           <span v-if="transitMethod" class="font-semibold text-slate-700 dark:text-slate-200 mr-1">{{ transitMethod }}</span>
-          {{ displayMins }}분 · {{ displayKm }}km
+          <template v-if="userMins != null">{{ userMins }}분 · </template>{{ displayKm }}km
         </div>
         <div v-if="transitCost > 0" class="text-[11px] text-primary font-semibold mt-0.5">{{ won(transitCost) }}</div>
         <div v-else class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">이동 비용 없음</div>
       </div>
+      <button
+        v-if="canRoute"
+        @click.stop="openDirections"
+        class="shrink-0 inline-flex items-center gap-1 px-2.5 h-7 rounded-lg text-[11px] font-semibold
+               text-primary bg-primary/10 hover:bg-primary hover:text-white transition-colors"
+        title="카카오맵에서 길찾기"
+      >
+        <Navigation :size="12" /> 길찾기
+      </button>
       <Pencil :size="12" class="text-slate-300 dark:text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
     </div>
 

@@ -190,6 +190,7 @@ const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
             <TransitItem
               v-else-if="idx < itemsOfSelectedDay.length - 1"
               :item="item"
+              :next="itemsOfSelectedDay[idx + 1]"
               :auto-km="transits[idx]?.km ?? null"
               :auto-mins="transits[idx]?.mins ?? null"
               @hover-transit="ui.setHoveredTransit(idx)"

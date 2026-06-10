@@ -69,7 +69,7 @@ const row =
 <template>
   <div class="flex-1 flex flex-col min-h-0 p-5 gap-5 overflow-y-auto">
     <header>
-      <h2 class="text-xl font-bold text-gray-900 dark:text-slate-100">내 프로필</h2>
+      <h2 class="text-xl font-bold text-gray-900 dark:text-slate-100">여행 인원</h2>
     </header>
 
     <!-- ── 내 정보 ───────────────────────────────────────── -->

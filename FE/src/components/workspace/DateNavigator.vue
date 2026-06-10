@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { storeToRefs } from 'pinia'
-import { ChevronLeft, ChevronRight, LayoutGrid, ChevronDown } from 'lucide-vue-next'
+import { ChevronLeft, ChevronRight, CalendarDays, ChevronDown } from 'lucide-vue-next'
 import { useTripStore } from '@/stores/tripStore'
 import { useUiStore } from '@/stores/uiStore'
 import { formatDayLabel } from '@/types/itinerary'
@@ -59,7 +59,7 @@ const currentLabel = computed(() => {
       :class="!isDaily ? 'text-primary ring-2 ring-primary/20' : 'text-slate-400 dark:text-slate-500'"
       title="전체 일정"
     >
-      <LayoutGrid :size="18" />
+      <CalendarDays :size="18" />
     </button>
 
     <!-- State A: Total view — label block -->
@@ -91,12 +91,12 @@ const currentLabel = computed(() => {
           ref="triggerRef"
           type="button"
           @click="toggleDropdown"
-          class="w-full bg-white dark:bg-slate-900 rounded-lg shadow-sm px-3 py-2 flex items-center justify-between gap-1 cursor-pointer transition-all hover:shadow-md"
+          class="w-full bg-primary/5 dark:bg-primary/10 rounded-lg shadow-sm px-3 py-2 flex items-center justify-between gap-1 cursor-pointer transition-all hover:shadow-md ring-2 ring-primary/40 hover:ring-primary/60"
         >
-          <span class="text-[12px] font-semibold text-slate-900 dark:text-slate-100 truncate">{{ currentLabel }}</span>
+          <span class="text-[13px] font-bold text-slate-900 dark:text-slate-100 truncate">{{ currentLabel }}</span>
           <ChevronDown
-            :size="11"
-            class="shrink-0 text-slate-400 transition-transform duration-200"
+            :size="13"
+            class="shrink-0 text-primary transition-transform duration-200"
             :class="dropdownOpen ? 'rotate-180' : ''"
           />
         </button>

@@ -165,7 +165,7 @@ async function confirmDeleteTrip() {
           @click="startTitleEdit"
           title="클릭해서 이름 수정"
         >
-          <span class="text-xl font-bold text-slate-900 dark:text-slate-100 leading-tight truncate flex-1">
+          <span class="text-lg font-bold text-slate-900 dark:text-slate-100 leading-tight truncate flex-1">
             {{ title || '여행 제목 없음' }}
           </span>
           <Pencil :size="18" class="shrink-0 text-primary" />
@@ -175,7 +175,7 @@ async function confirmDeleteTrip() {
             v-model="titleDraft"
             @keydown="onTitleKeydown"
             autofocus
-            class="flex-1 min-w-0 text-xl font-bold text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800
+            class="flex-1 min-w-0 text-lg font-bold text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800
                    rounded-xl px-3.5 py-2 border-2 border-primary outline-none leading-tight"
           />
           <button @click="saveTitle" class="w-11 shrink-0 rounded-xl bg-primary text-white flex items-center justify-center hover:bg-primary/90">
@@ -186,14 +186,9 @@ async function confirmDeleteTrip() {
     </div>
 
     <!-- 1. 출발 -->
-    <div class="mx-5 mb-3 flex items-center justify-between rounded-lg px-3 py-2.5
+    <div class="mx-5 mb-3 flex items-center justify-between rounded-lg px-4 py-3
                 bg-sky-50 dark:bg-sky-900/15 transition-colors">
-      <div class="flex items-center gap-2">
-        <span class="text-[11px] font-bold uppercase tracking-widest text-sky-500 dark:text-sky-400">FROM</span>
-        <span class="text-[13px] font-semibold text-slate-900 dark:text-slate-100">
-          {{ startDate || '날짜 선택' }}
-        </span>
-      </div>
+      <span class="text-[15px] font-bold uppercase tracking-widest text-sky-500 dark:text-sky-400">FROM</span>
       <CustomCalendar :model-value="startDate" @update:model-value="onStartChange" />
     </div>
 
@@ -250,14 +245,9 @@ async function confirmDeleteTrip() {
     </div>
 
     <!-- 3. 도착 -->
-    <div class="mx-5 mb-5 flex items-center justify-between rounded-lg px-3 py-2.5
+    <div class="mx-5 mb-5 flex items-center justify-between rounded-lg px-4 py-3
                 bg-violet-50 dark:bg-violet-900/15 transition-colors">
-      <div class="flex items-center gap-2">
-        <span class="text-[11px] font-bold uppercase tracking-widest text-violet-500 dark:text-violet-400">TO</span>
-        <span class="text-[13px] font-semibold text-slate-900 dark:text-slate-100">
-          {{ endDate || '날짜 선택' }}
-        </span>
-      </div>
+      <span class="text-[15px] font-bold uppercase tracking-widest text-violet-500 dark:text-violet-400">TO</span>
       <CustomCalendar :model-value="endDate" :min-date="startDate" @update:model-value="onEndChange" />
     </div>
 

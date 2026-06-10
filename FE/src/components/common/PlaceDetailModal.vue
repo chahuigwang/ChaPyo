@@ -164,9 +164,11 @@ watch(() => props.item, async (item) => {
             </div>
           </div>
 
-          <!-- Right: map -->
-          <div class="sm:w-[45%] h-64 sm:h-auto sm:min-h-[340px] shrink-0">
-            <PlaceMiniMap :lat="data.lat ?? null" :lng="data.lng ?? null" :name="data.name" />
+          <!-- Right: map (패딩으로 정보 영역과 구분) -->
+          <div class="sm:w-[45%] shrink-0 p-3 sm:pl-1.5">
+            <div class="h-64 sm:h-full sm:min-h-[316px] rounded-xl overflow-hidden ring-1 ring-slate-200/70 dark:ring-slate-700/60">
+              <PlaceMiniMap :lat="data.lat ?? null" :lng="data.lng ?? null" :name="data.name" />
+            </div>
           </div>
         </div>
       </div>

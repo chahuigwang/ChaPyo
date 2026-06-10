@@ -171,7 +171,7 @@ function onDistrictOutside(e) {
             v-model="keyword"
             type="text"
             placeholder="키워드 (예: 한옥마을)"
-            class="w-full h-9 pl-8 pr-3 text-[12px] rounded-md bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-primary/30"
+            class="w-full h-9 pl-8 pr-3 text-[13px] rounded-md bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-primary/30"
           />
         </div>
         <button
@@ -203,15 +203,15 @@ function onDistrictOutside(e) {
             ref="provinceTriggerRef"
             type="button"
             @click="provinceOpen = !provinceOpen"
-            class="w-full h-8 px-2.5 text-[11px] rounded-md bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-1 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            class="w-full h-9 px-2.5 text-[13px] rounded-md bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-1 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           >
             <span class="truncate">{{ selectedProvinceLabel }}</span>
             <ChevronDown :size="10" class="shrink-0 text-slate-400 transition-transform duration-200" :class="provinceOpen ? 'rotate-180' : ''" />
           </button>
           <Transition enter-active-class="transition-all duration-200 ease-out" enter-from-class="opacity-0 scale-95 -translate-y-1" enter-to-class="opacity-100 scale-100 translate-y-0" leave-active-class="transition-all duration-150 ease-in" leave-from-class="opacity-100 scale-100 translate-y-0" leave-to-class="opacity-0 scale-95 -translate-y-1">
             <div v-if="provinceOpen" ref="provinceRef" class="absolute left-0 top-full mt-1 z-50 w-48 max-h-52 overflow-y-auto bg-white dark:bg-slate-900 rounded-lg shadow-xl py-1">
-              <button type="button" @click="selectProvince('')" class="w-full text-left px-3 py-1.5 text-[11px] transition-colors" :class="!provinceId ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'">시/도 전체</button>
-              <button v-for="p in PROVINCES" :key="p.id" type="button" @click="selectProvince(p.id)" class="w-full text-left px-3 py-1.5 text-[11px] transition-colors" :class="provinceId === p.id ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'">{{ p.label }}</button>
+              <button type="button" @click="selectProvince('')" class="w-full text-left px-3 py-1.5 text-[13px] transition-colors" :class="!provinceId ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'">시/도 전체</button>
+              <button v-for="p in PROVINCES" :key="p.id" type="button" @click="selectProvince(p.id)" class="w-full text-left px-3 py-1.5 text-[13px] transition-colors" :class="provinceId === p.id ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'">{{ p.label }}</button>
             </div>
           </Transition>
         </div>
@@ -222,7 +222,7 @@ function onDistrictOutside(e) {
             ref="districtTriggerRef"
             type="button"
             @click="provinceId && (districtOpen = !districtOpen)"
-            class="w-full h-8 px-2.5 text-[11px] rounded-md bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-1 transition-colors"
+            class="w-full h-9 px-2.5 text-[13px] rounded-md bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-1 transition-colors"
             :class="provinceId ? 'text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer' : 'text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-50'"
           >
             <span class="truncate">{{ selectedDistrictLabel }}</span>
@@ -230,8 +230,8 @@ function onDistrictOutside(e) {
           </button>
           <Transition enter-active-class="transition-all duration-200 ease-out" enter-from-class="opacity-0 scale-95 -translate-y-1" enter-to-class="opacity-100 scale-100 translate-y-0" leave-active-class="transition-all duration-150 ease-in" leave-from-class="opacity-100 scale-100 translate-y-0" leave-to-class="opacity-0 scale-95 -translate-y-1">
             <div v-if="districtOpen" ref="districtRef" class="absolute left-0 top-full mt-1 z-50 w-48 max-h-52 overflow-y-auto bg-white dark:bg-slate-900 rounded-lg shadow-xl py-1">
-              <button type="button" @click="selectDistrict('')" class="w-full text-left px-3 py-1.5 text-[11px] transition-colors" :class="!districtId ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'">구/군 전체</button>
-              <button v-for="d in districts" :key="d.id" type="button" @click="selectDistrict(d.id)" class="w-full text-left px-3 py-1.5 text-[11px] transition-colors" :class="districtId === d.id ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'">{{ d.label }}</button>
+              <button type="button" @click="selectDistrict('')" class="w-full text-left px-3 py-1.5 text-[13px] transition-colors" :class="!districtId ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'">구/군 전체</button>
+              <button v-for="d in districts" :key="d.id" type="button" @click="selectDistrict(d.id)" class="w-full text-left px-3 py-1.5 text-[13px] transition-colors" :class="districtId === d.id ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'">{{ d.label }}</button>
             </div>
           </Transition>
         </div>
@@ -242,7 +242,7 @@ function onDistrictOutside(e) {
           ref="categoryTriggerRef"
           type="button"
           @click="categoryOpen = !categoryOpen"
-          class="w-full h-8 px-3 text-[11px] rounded-md bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-1 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          class="w-full h-9 px-3 text-[13px] rounded-md bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-1 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
         >
           <span class="truncate">{{ selectedTypeLabel }}</span>
           <ChevronDown :size="11" class="shrink-0 text-slate-400 transition-transform duration-200" :class="categoryOpen ? 'rotate-180' : ''" />
@@ -264,17 +264,24 @@ function onDistrictOutside(e) {
             <button
               type="button"
               @click="selectType('')"
-              class="w-full text-left px-3 py-1.5 text-[11px] transition-colors"
+              class="w-full text-left px-3 py-1.5 text-[13px] transition-colors"
               :class="!typeId ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'"
             >카테고리 전체</button>
             <template v-for="group in PLACE_TYPE_GROUPS" :key="group.id">
-              <div class="px-3 pt-2 pb-0.5 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">{{ group.label }}</div>
+              <button
+                type="button"
+                @click="selectType(group.id)"
+                class="w-full text-left px-3 pt-2 pb-0.5 text-[13px] font-bold tracking-wider transition-colors"
+                :class="typeId === group.id
+                  ? 'text-primary'
+                  : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'"
+              >{{ group.label }} <span class="font-normal text-[13px] opacity-70">전체</span></button>
               <button
                 v-for="t in group.children"
                 :key="t.id"
                 type="button"
                 @click="selectType(t.id)"
-                class="w-full text-left px-3 py-1.5 text-[11px] transition-colors pl-5"
+                class="w-full text-left px-3 py-1.5 text-[13px] transition-colors pl-5"
                 :class="typeId === t.id ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'"
               >{{ t.label }}</button>
             </template>

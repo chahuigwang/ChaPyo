@@ -34,6 +34,7 @@ public class TripServiceImpl implements TripService {
         LocalDate today = LocalDate.now();
 
         TripPlan plan = TripPlan.builder()
+                .ownerId(userId)
                 .title("새 여행")
                 .startDate(today)
                 .endDate(today.plusDays(2))
@@ -47,6 +48,7 @@ public class TripServiceImpl implements TripService {
                 .title(plan.getTitle())
                 .startDate(plan.getStartDate())
                 .endDate(plan.getEndDate())
+                .isOwner(true)
                 .build();
     }
 
@@ -58,6 +60,7 @@ public class TripServiceImpl implements TripService {
                         .title(plan.getTitle())
                         .startDate(plan.getStartDate())
                         .endDate(plan.getEndDate())
+                        .isOwner(plan.getOwnerId().equals(userId))
                         .build())
                 .toList();
     }
@@ -124,6 +127,7 @@ public class TripServiceImpl implements TripService {
                 .title(plan.getTitle())
                 .startDate(plan.getStartDate())
                 .endDate(plan.getEndDate())
+                .isOwner(plan.getOwnerId().equals(userId))
                 .members(members)
                 .items(items)
                 .build();
@@ -149,10 +153,9 @@ public class TripServiceImpl implements TripService {
     @Override
     @Transactional
     public void deletePlan(Long planId, Long userId) {
-        if (!tripMapper.existsMember(planId, userId)) {
+        if (!tripMapper.isOwner(planId, userId)) {  // existsMember → isOwner
             throw new CustomException(TripErrorCode.FORBIDDEN);
         }
-
         tripMapper.deletePlan(planId);
     }
 

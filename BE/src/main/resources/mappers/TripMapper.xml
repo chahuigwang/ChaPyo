@@ -6,8 +6,8 @@
 <mapper namespace="com.chapyo.trip.mapper.TripMapper">
 
     <insert id="insertPlan" useGeneratedKeys="true" keyProperty="planId">
-        INSERT INTO trip_plans (title, start_date, end_date)
-        VALUES (#{title}, #{startDate}, #{endDate})
+        INSERT INTO trip_plans (owner_id, title, start_date, end_date)
+        VALUES (#{ownerId}, #{title}, #{startDate}, #{endDate})
     </insert>
 
     <insert id="insertMember">
@@ -16,7 +16,7 @@
     </insert>
 
     <select id="findPlansByUserId" resultType="TripPlan">
-        SELECT tp.plan_id, tp.title, tp.start_date, tp.end_date
+        SELECT tp.plan_id, tp.owner_id, tp.title, tp.start_date, tp.end_date
         FROM trip_plans tp
                  JOIN trip_plan_members tpm ON tp.plan_id = tpm.plan_id
         WHERE tpm.user_id = #{userId}
@@ -41,7 +41,7 @@
     </insert>
 
     <select id="findPlanById" resultType="TripPlan">
-        SELECT plan_id, title, start_date, end_date
+        SELECT plan_id, owner_id, title, start_date, end_date
         FROM trip_plans
         WHERE plan_id = #{planId}
     </select>

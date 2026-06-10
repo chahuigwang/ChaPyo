@@ -21,4 +21,7 @@ public class TripPlanResponse {
 
     @Schema(description = "종료일", example = "2026-06-10")
     private LocalDate endDate;
+
+    @Schema(description = "내가 만든 계획 여부")
+    private boolean isOwner;
 }

@@ -17,6 +17,7 @@ export class TripPlan {
     ownerId = null,
     collaboratorIds = [],
     members = [],
+    isOwner = false,
     version = 0,
     updatedAt,
     lastSyncTime = null,
@@ -30,6 +31,7 @@ export class TripPlan {
     this.ownerId = ownerId
     this.collaboratorIds = [...collaboratorIds]
     this.members = [...members] // [{ userId, nickname }] — 서버 상세 조회로 채워짐
+    this.isOwner = !!isOwner // 내가 만든 계획인지 (삭제 권한)
     this.version = Number(version) || 0
     this.updatedAt = updatedAt ?? Date.now()
     this.lastSyncTime = lastSyncTime
@@ -65,6 +67,7 @@ export class TripPlan {
       ownerId: this.ownerId,
       collaboratorIds: [...this.collaboratorIds],
       members: [...this.members],
+      isOwner: this.isOwner,
       version: this.version,
       updatedAt: this.updatedAt,
       lastSyncTime: this.lastSyncTime,

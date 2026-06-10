@@ -106,27 +106,27 @@ onBeforeUnmount(() => {
             class="px-1.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wide
                    bg-slate-200/80 text-slate-600 dark:bg-slate-700/70 dark:text-slate-300"
           >종료</span>
-          <span
-            v-else-if="isOngoing"
-            class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wide
-                   bg-[#00B7EB]/15 text-[#0891b2] dark:text-[#67e8f9]"
-          >
-            <span class="relative flex h-1.5 w-1.5">
-              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00B7EB] opacity-75"></span>
-              <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#00B7EB]"></span>
+          <template v-else-if="isOngoing">
+            <span
+              class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wide
+                     bg-[#00B7EB]/15 text-[#0891b2] dark:text-[#67e8f9]"
+            >
+              <span class="relative flex h-1.5 w-1.5">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00B7EB] opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#00B7EB]"></span>
+              </span>
+              LIVE
             </span>
-            LIVE
-          </span>
+            <span class="px-2 py-0.5 rounded-full text-[11px] font-bold tracking-wide bg-[#00B7EB] text-white shrink-0">
+              Day {{ currentDay }}
+            </span>
+          </template>
           <span
             v-else
             class="px-1.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wide
                    bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
           >D-{{ daysUntilStart }}</span>
         </div>
-        <p
-          v-if="isOngoing"
-          class="mt-1 text-[11px] font-medium text-[#0891b2] dark:text-[#67e8f9]"
-        >오늘은 Day {{ currentDay }}</p>
         <h3 class="mt-2 text-lg font-semibold text-gray-900 dark:text-slate-100 truncate leading-snug">
           {{ trip.title }}
         </h3>
@@ -144,17 +144,17 @@ onBeforeUnmount(() => {
 
       <!-- Stub: right ~33% — Trash top-right, vertical stacked summaries -->
       <section class="col-span-4 p-5 pl-6 flex flex-col gap-4 relative">
-        <div class="absolute top-3 right-3" @click.stop>
+        <div v-if="trip.isOwner" class="absolute top-3 right-3" @click.stop>
           <button
             title="삭제"
-            class="flex items-center gap-1 rounded-md transition-all duration-200"
+            class="flex items-center gap-1 rounded-lg transition-all duration-200"
             :class="confirming
-              ? 'px-2 py-1 bg-red-500 text-white hover:bg-red-600'
-              : 'p-1.5 opacity-0 group-hover:opacity-100 text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'"
+              ? 'px-3 py-2 bg-red-500 text-white hover:bg-red-600 shadow-md'
+              : 'p-2.5 opacity-0 group-hover:opacity-100 text-red-500 bg-red-50 dark:bg-red-900/25 hover:bg-red-100 dark:hover:bg-red-900/40 shadow-sm'"
             @click="confirming ? onConfirmDelete() : onTrashClick()"
           >
-            <Trash2 :size="13" class="shrink-0" />
-            <span v-if="confirming" class="text-[11px] font-medium whitespace-nowrap">삭제</span>
+            <Trash2 :size="17" class="shrink-0" />
+            <span v-if="confirming" class="text-[12px] font-semibold whitespace-nowrap">삭제</span>
           </button>
         </div>
         <div class="flex flex-col mt-6">

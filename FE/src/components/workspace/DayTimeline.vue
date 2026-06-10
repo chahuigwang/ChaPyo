@@ -114,6 +114,9 @@ function onItemSave(item, patch) {
   trip.updateItem(item.id, patch)
   collab.pushHistory({ type: 'edit', itemName: item.name, byName: collab.me.name })
 }
+function onDetailSave(patch) {
+  if (detail.value) trip.updateItem(detail.value.id, patch)
+}
 function onDocClick() { if (pendingDelete.value) pendingDelete.value = null }
 watch(pendingDelete, (id) => {
   if (id) document.addEventListener('click', onDocClick)
@@ -205,7 +208,13 @@ const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
       </div>
     </CardContent>
 
-    <!-- 상세보기 모달 (검색과 동일한 리치 모달 + 메모) -->
-    <PlaceDetailModal :item="detail" :show-add="false" @close="detail = null" />
+    <!-- 상세보기 모달 (검색과 동일한 리치 모달 + 메모/비용 편집) -->
+    <PlaceDetailModal
+      :item="detail"
+      :show-add="false"
+      :editable="true"
+      @close="detail = null"
+      @save="onDetailSave"
+    />
   </Card>
 </template>

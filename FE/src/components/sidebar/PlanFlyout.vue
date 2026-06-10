@@ -297,8 +297,8 @@ async function confirmDeleteTrip() {
       </div>
     </div>
 
-    <!-- 6. 여행 삭제 -->
-    <div class="px-5 pb-6 mt-auto">
+    <!-- 6. 여행 삭제 (소유자만) -->
+    <div v-if="currentTrip?.isOwner" class="px-5 pb-6 mt-auto">
       <button
         v-if="!deletePending"
         @click="deletePending = true"

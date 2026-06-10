@@ -12,14 +12,22 @@ export const tripService = {
   async list() {
     const { data } = await http.get(ENDPOINTS.trips.list)
     const items = data?.data ?? []
-    return items.map((raw) => TripPlan.fromJSON({ ...raw, id: String(raw.planId ?? raw.id) }))
+    return items.map((raw) => TripPlan.fromJSON({
+      ...raw,
+      id: String(raw.planId ?? raw.id),
+      isOwner: raw.owner ?? raw.isOwner ?? false,
+    }))
   },
 
   // POST /api/v1/trips → 새 여행 계획 생성 (서버가 기본 제목/날짜 부여)
   async create() {
     const { data } = await http.post(ENDPOINTS.trips.create, {})
     const raw = data?.data ?? data
-    return TripPlan.fromJSON({ ...raw, id: String(raw.planId ?? raw.id) })
+    return TripPlan.fromJSON({
+      ...raw,
+      id: String(raw.planId ?? raw.id),
+      isOwner: raw.owner ?? raw.isOwner ?? true,
+    })
   },
 
   // GET /api/v1/trips/{planId} → 멤버 + 일정 포함 상세. raw 객체를 그대로 반환(매핑은 store에서).

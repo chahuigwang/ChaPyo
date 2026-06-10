@@ -27,7 +27,7 @@ const dateWithWeekday = computed(() => {
     <div class="flex items-center gap-3 min-w-0">
       <span
         v-if="date"
-        class="px-2.5 py-1 rounded-lg text-[13px] font-bold border whitespace-nowrap shrink-0"
+        class="px-2.5 py-2.5 rounded-lg text-[13px] font-bold border whitespace-nowrap shrink-0"
         :style="{ backgroundColor: dayColor.bg, borderColor: dayColor.pin, color: dayColor.fg }"
       >{{ dayBadge }}</span>
       <div class="flex-1 min-w-0">

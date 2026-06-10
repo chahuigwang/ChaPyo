@@ -62,7 +62,7 @@ const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
 </script>
 
 <template>
-  <div class="w-full px-4 py-1 flex flex-col">
+  <div class="w-full py-1 flex flex-col">
     <!-- Transit display block -->
     <div
       v-if="!editing"

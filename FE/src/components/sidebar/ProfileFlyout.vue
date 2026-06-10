@@ -32,15 +32,24 @@ watch(logoutPending, (v) => {
 function initialOf(name) { return (name || '?').trim().charAt(0) }
 
 // ── Members (서버 상세 조회 결과) ─────────────────────────────
-const MEMBER_COLORS = ['#F59E0B', '#10B981', '#A855F7', '#EF4444', '#3B82F6', '#EC4899']
+const MEMBER_COLORS = ['#10B981', '#A855F7', '#EF4444', '#3B82F6', '#EC4899', '#14B8A6']
 function isMe(m) { return m.nickname === user.value?.nickname }
+// 방장: 내가 방장이면 나, 아니면 첫 멤버(생성자) 추정
+const ownerName = computed(() => {
+  if (trip.currentTrip?.isOwner) return user.value?.nickname ?? null
+  return members.value?.[0]?.nickname ?? null
+})
 const memberList = computed(() =>
-  (members.value ?? []).map((m, i) => ({
-    id: m.userId ?? m.nickname,
-    name: m.nickname,
-    me: isMe(m),
-    color: isMe(m) ? '#00B7EB' : MEMBER_COLORS[i % MEMBER_COLORS.length],
-  })),
+  (members.value ?? []).map((m, i) => {
+    const owner = ownerName.value != null && m.nickname === ownerName.value
+    return {
+      id: m.userId ?? m.nickname,
+      name: m.nickname,
+      me: isMe(m),
+      owner,
+      color: owner ? '#D97706' : isMe(m) ? '#00B7EB' : MEMBER_COLORS[i % MEMBER_COLORS.length],
+    }
+  }),
 )
 
 // ── Inline invite ────────────────────────────────────────────
@@ -125,9 +134,11 @@ const row =
           v-for="m in memberList"
           :key="m.id"
           class="flex items-center gap-2 px-3 py-2.5 rounded-xl transition-colors"
-          :class="m.me
-            ? 'bg-primary/10 ring-1 ring-primary/40'
-            : 'bg-slate-50 dark:bg-slate-800/60'"
+          :class="m.owner
+            ? 'bg-amber-50 dark:bg-amber-900/15 ring-1 ring-amber-300/70 dark:ring-amber-500/30'
+            : m.me
+              ? 'bg-primary/10 ring-1 ring-primary/40'
+              : 'bg-slate-50 dark:bg-slate-800/60'"
         >
           <div
             class="h-8 w-8 rounded-full flex items-center justify-center text-[12px] font-semibold text-white shrink-0"
@@ -135,9 +146,10 @@ const row =
           >{{ initialOf(m.name) }}</div>
           <div class="min-w-0">
             <div class="text-[12px] font-semibold truncate"
-                 :class="m.me ? 'text-primary' : 'text-slate-900 dark:text-slate-100'">
+                 :class="m.owner ? 'text-amber-700 dark:text-amber-400' : m.me ? 'text-primary' : 'text-slate-900 dark:text-slate-100'">
               {{ m.name }}
             </div>
+            <div v-if="m.owner" class="text-[11px] font-bold text-amber-600 dark:text-amber-400 leading-none mt-0.5">방장</div>
           </div>
         </div>
         <p v-if="!memberList.length" class="col-span-2 text-[11px] text-slate-400 dark:text-slate-500 py-1.5 px-1">

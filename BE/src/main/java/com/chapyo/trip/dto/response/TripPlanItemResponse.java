@@ -25,6 +25,9 @@ public class TripPlanItemResponse {
     @Schema(description = "장소명", example = "경복궁")
     private String title;
 
+    @Schema(description = "주소", example = "서울특별시 종로구 사직로 161")
+    private String addr1;
+
     @Schema(description = "방문 날짜", example = "2026-06-08")
     private LocalDate visitDate;
 

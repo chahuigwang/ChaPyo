@@ -54,7 +54,7 @@
     </select>
 
     <select id="findItemsByPlanId" resultType="TripPlanItemResponse">
-        SELECT tpi.item_id, tpi.place_id, p.title, tpi.visit_date,
+        SELECT tpi.item_id, tpi.place_id, p.title, p.addr1, tpi.visit_date,
                tpi.item_order, tpi.visit_time, tpi.cost, tpi.memo,
                tpi.user_id, u.nickname,
                p.latitude, p.longitude,

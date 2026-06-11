@@ -54,10 +54,11 @@ const currentLabel = computed(() => {
     <!-- Total view icon bento block -->
     <button
       @click="goTotal"
-      class="bg-white dark:bg-slate-900 rounded-lg shadow-sm p-2.5 flex items-center justify-center
-             transition-all hover:shadow-md shrink-0"
+      class="bg-white dark:bg-slate-900 rounded-lg shadow-sm p-2.5 flex items-center justify-center shrink-0
+             cursor-pointer transition-all duration-200
+             hover:-translate-y-0.5 hover:shadow-md hover:text-primary hover:ring-2 hover:ring-primary/30 hover:bg-primary/5"
       :class="!isDaily ? 'text-primary ring-2 ring-primary/20' : 'text-slate-400 dark:text-slate-500'"
-      title="전체 일정"
+      title="전체 일정 보기"
     >
       <CalendarDays :size="18" />
     </button>

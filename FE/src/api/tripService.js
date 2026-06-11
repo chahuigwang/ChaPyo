@@ -46,9 +46,9 @@ export const tripService = {
     await http.delete(ENDPOINTS.trips.remove(planId))
   },
 
-  // PATCH /api/v1/trips/{planId}/items/{itemId} → 일정 수정 (날짜/시간/비용/메모)
+  // PUT /api/v1/trips/{planId}/items/{itemId} → 일정 수정 (날짜/시간/비용/메모)
   async updateItem(planId, itemId, { visitDate, visitTime, cost, memo } = {}) {
-    await http.patch(ENDPOINTS.trips.item(planId, itemId), {
+    await http.put(ENDPOINTS.trips.item(planId, itemId), {
       visitDate: visitDate || null,
       visitTime: visitTime || null,
       cost: cost ?? null,

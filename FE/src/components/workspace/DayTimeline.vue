@@ -98,6 +98,15 @@ function onSlotDragOver(e, i) {
   dropIndex.value = i
   dropActive.value = true
 }
+// 카드 전체를 드롭 타겟으로 — 커서가 카드 상단 절반이면 앞에, 하단이면 뒤에 삽입
+function onCardDragOver(e, idx) {
+  if (!dragPayload()) return
+  e.preventDefault()
+  e.dataTransfer.dropEffect = dragPayload()?.source === 'timeline' ? 'move' : 'copy'
+  const rect = e.currentTarget.getBoundingClientRect()
+  dropIndex.value = (e.clientY - rect.top) < rect.height / 2 ? idx : idx + 1
+  dropActive.value = true
+}
 function onCardDragStart(e, item, idx) {
   storage.setDragging({ source: 'timeline', item, fromDate: selectedDate.value, fromIdx: idx })
   try { e.dataTransfer.setData('text/plain', item.id); e.dataTransfer.effectAllowed = 'move' } catch {}
@@ -175,6 +184,7 @@ const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
             @mouseleave="ui.clearHoveredItem(item.id)"
             @dragstart="onCardDragStart($event, item, idx)"
             @dragend="onCardDragEnd"
+            @dragover="onCardDragOver($event, idx)"
             @save="onItemSave(item, $event)"
             @request-delete="requestDelete(item)"
             @confirm-delete="confirmDelete(item)"

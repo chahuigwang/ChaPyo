@@ -50,6 +50,13 @@ function onDayDrop(e, iso) {
   storage.clearDragging()
 }
 
+// 전체 일정 뷰에서 아이템을 다른 Day로 드래그
+function onTotalItemDragStart(e, item, iso, idx) {
+  storage.setDragging({ source: 'timeline', item, fromDate: iso, fromIdx: idx })
+  try { e.dataTransfer.setData('text/plain', item.id); e.dataTransfer.effectAllowed = 'move' } catch {}
+}
+function onTotalItemDragEnd() { storage.clearDragging() }
+
 const dailyMapRef = ref(null)
 const totalMapRef = ref(null)
 
@@ -221,7 +228,11 @@ function goDaily(iso) {
               <div
                 v-for="(item, idx) in day.items"
                 :key="item.id"
-                class="flex items-center gap-2.5 px-2.5 py-2 rounded-lg bg-slate-50 dark:bg-slate-800/60"
+                :draggable="true"
+                @dragstart="onTotalItemDragStart($event, item, day.iso, idx)"
+                @dragend="onTotalItemDragEnd"
+                class="flex items-center gap-2.5 px-2.5 py-2 rounded-lg bg-slate-50 dark:bg-slate-800/60
+                       cursor-grab active:cursor-grabbing hover:bg-slate-100 dark:hover:bg-slate-700/60 transition-colors"
               >
                 <span class="shrink-0 inline-flex items-center justify-center h-5 w-5 rounded-full bg-primary text-white text-[11px] font-bold">
                   {{ dayOffset[day.iso] + idx + 1 }}

@@ -34,9 +34,9 @@ watch(isAuthed, (v) => {
     </div>
 
     <RouterView v-else>
-      <template #default="{ Component }">
+      <template #default="{ Component, route }">
         <Transition name="page-fade" mode="out-in">
-          <component :is="Component" />
+          <component :is="Component" :key="route.path" />
         </Transition>
       </template>
     </RouterView>

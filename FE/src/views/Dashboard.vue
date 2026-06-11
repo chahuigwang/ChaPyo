@@ -4,7 +4,10 @@ import { useTripStore } from '@/stores/tripStore'
 import TripListPanel from '@/components/tripList/TripListPanel.vue'
 
 const trip = useTripStore()
-onMounted(() => trip.exitTrip())
+onMounted(() => {
+  trip.exitTrip()
+  trip.fetchTrips() // 리스트로 돌아올 때마다 최신 목록 재조회
+})
 </script>
 
 <template>

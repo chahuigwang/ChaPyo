@@ -21,6 +21,7 @@ const { currentTrip, days, selectedDate } = storeToRefs(trip)
 
 // ── Total-view day drop zones ────────────────────────────────
 const dropTargetDay = ref(null)
+const dropTargetIndex = ref(null) // 같은 날 내 삽입 위치
 
 function onDayDragOver(e, iso) {
   if (!storage.dragging) return
@@ -28,18 +29,33 @@ function onDayDragOver(e, iso) {
   e.dataTransfer.dropEffect = storage.dragging.source === 'timeline' ? 'move' : 'copy'
   dropTargetDay.value = iso
 }
+// 아이템 위로 드래그 — 상/하단 절반으로 삽입 위치 계산(같은 날 순서 변경용)
+function onTotalItemDragOver(e, iso, idx) {
+  if (!storage.dragging) return
+  e.preventDefault()
+  e.stopPropagation()
+  const rect = e.currentTarget.getBoundingClientRect()
+  dropTargetDay.value = iso
+  dropTargetIndex.value = (e.clientY - rect.top) < rect.height / 2 ? idx : idx + 1
+}
 function onDayDragLeave(e) {
   if (e.currentTarget.contains(e.relatedTarget)) return
   dropTargetDay.value = null
+  dropTargetIndex.value = null
 }
 function onDayDrop(e, iso) {
   e.preventDefault()
   const p = storage.dragging
+  const insertAt = dropTargetDay.value === iso ? dropTargetIndex.value : null
   dropTargetDay.value = null
+  dropTargetIndex.value = null
   if (!p?.item) { storage.clearDragging(); return }
 
-  if (p.source === 'timeline') {
-    // 다른 날짜의 기존 일정 → 이 날짜로 이동 (PATCH visitDate)
+  if (p.source === 'timeline' && p.fromDate === iso) {
+    // 같은 날 안에서 순서 변경
+    if (insertAt != null) trip.reorderInDate(iso, p.fromIdx, insertAt)
+  } else if (p.source === 'timeline') {
+    // 다른 날짜 → 이 날짜로 이동 (PUT visitDate)
     trip.moveItemToDate(p.fromDate, iso, p.item.id)
   } else {
     trip.addItemToDate(iso, p.item)
@@ -55,7 +71,7 @@ function onTotalItemDragStart(e, item, iso, idx) {
   storage.setDragging({ source: 'timeline', item, fromDate: iso, fromIdx: idx })
   try { e.dataTransfer.setData('text/plain', item.id); e.dataTransfer.effectAllowed = 'move' } catch {}
 }
-function onTotalItemDragEnd() { storage.clearDragging() }
+function onTotalItemDragEnd() { storage.clearDragging(); dropTargetDay.value = null; dropTargetIndex.value = null }
 
 const dailyMapRef = ref(null)
 const totalMapRef = ref(null)
@@ -231,8 +247,12 @@ function goDaily(iso) {
                 :draggable="true"
                 @dragstart="onTotalItemDragStart($event, item, day.iso, idx)"
                 @dragend="onTotalItemDragEnd"
-                class="flex items-center gap-2.5 px-2.5 py-2 rounded-lg bg-slate-50 dark:bg-slate-800/60
-                       cursor-grab active:cursor-grabbing hover:bg-slate-100 dark:hover:bg-slate-700/60 transition-colors"
+                @dragover="onTotalItemDragOver($event, day.iso, idx)"
+                class="flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-colors
+                       cursor-grab active:cursor-grabbing hover:bg-slate-100 dark:hover:bg-slate-700/60"
+                :class="dropTargetDay === day.iso && dropTargetIndex === idx
+                  ? 'bg-primary/10 ring-1 ring-primary/40'
+                  : 'bg-slate-50 dark:bg-slate-800/60'"
               >
                 <span class="shrink-0 inline-flex items-center justify-center h-5 w-5 rounded-full bg-primary text-white text-[11px] font-bold">
                   {{ dayOffset[day.iso] + idx + 1 }}

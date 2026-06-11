@@ -1,7 +1,11 @@
 import { defineStore } from 'pinia'
 import { TripPlan, TravelItem, enumerateDays } from '@/models'
 import { tripService } from '@/api/tripService'
+import { placeService } from '@/api/placeService'
 import { useToastStore } from '@/stores/toastStore'
+
+// placeId 별 상세(이미지/주소/좌표) 보강을 1회만 시도하기 위한 가드
+const _placeMetaFetched = new Set()
 
 function todayISO(offset = 0) {
   const d = new Date()
@@ -70,6 +74,7 @@ export const useTripStore = defineStore('trip', {
     selectedDate() { return this.currentTrip?.selectedDate ?? '' },
     days() {
       const t = this.currentTrip
+      // 여행 기간 내 날짜만 표시(기간 밖 아이템은 숨김)
       return t ? enumerateDays(t.startDate, t.endDate) : []
     },
     itemsOfSelectedDay() {
@@ -104,18 +109,21 @@ export const useTripStore = defineStore('trip', {
     // 서버 상세(raw) → TripPlan 매핑. itemsByDay는 placeCache로 보강.
     _planFromDetail(raw, prev = null) {
       const itemsByDay = {}
+      // 여행 기간 밖 아이템은 화면에 들이지 않음(서버 데이터는 유지)
+      const range = new Set(enumerateDays(String(raw.startDate), String(raw.endDate)))
       const items = [...(raw.items ?? [])].sort(
         (a, b) => (a.itemOrder ?? 0) - (b.itemOrder ?? 0),
       )
       for (const it of items) {
         const date = String(it.visitDate)
+        if (!range.has(date)) continue
         const enrich = this.placeCache[it.placeId] ?? {}
         // 서버가 내려주는 좌표 우선, 없으면 캐시 보강값
         const lat = it.latitude ?? enrich.lat ?? null
         const lng = it.longitude ?? enrich.lng ?? null
         if (lat != null && lng != null) this._cachePlace(it.placeId, { ...enrich, lat, lng })
         if (!itemsByDay[date]) itemsByDay[date] = []
-        itemsByDay[date].push(new TravelItem({
+        const built = new TravelItem({
           id: `srv_${it.itemId}`,
           serverId: it.itemId,
           placeId: it.placeId,
@@ -124,13 +132,15 @@ export const useTripStore = defineStore('trip', {
           time: normalizeTime(it.visitTime),
           cost: it.cost ?? 0,
           memo: it.memo ?? '',
-          address: enrich.address ?? '',
-          firstImage: enrich.firstImage ?? null,
+          address: it.addr1 ?? enrich.address ?? '',
+          firstImage: it.img ?? enrich.firstImage ?? null,
           lat,
           lng,
           nickname: it.nickname ?? '',
           addedByUserId: it.userId ?? null,
-        }))
+        })
+        itemsByDay[date].push(built)
+        this._hydratePlaceMeta(built) // 이미지/주소/좌표 보강(placeId별 1회)
       }
       return new TripPlan({
         id: String(raw.planId),
@@ -143,6 +153,25 @@ export const useTripStore = defineStore('trip', {
         selectedDate: prev?.selectedDate, // 보던 선택 날짜 유지
         updatedAt: Date.now(),
       })
+    },
+
+    // 일정 응답엔 이미지가 없어, placeId로 상세를 1회 받아 이미지/주소/좌표를 보강·캐시
+    _hydratePlaceMeta(item) {
+      const pid = item?.placeId
+      if (!pid || item.firstImage || _placeMetaFetched.has(pid)) return
+      _placeMetaFetched.add(pid)
+      placeService.detail(pid).then((d) => {
+        if (!d) { _placeMetaFetched.delete(pid); return }
+        const enrich = { ...this.placeCache[pid] }
+        if (d.firstImage1) enrich.firstImage = d.firstImage1
+        if (d.addr1) enrich.address = enrich.address || d.addr1
+        if (d.latitude != null) enrich.lat = enrich.lat ?? Number(d.latitude)
+        if (d.longitude != null) enrich.lng = enrich.lng ?? Number(d.longitude)
+        this.placeCache[pid] = enrich
+        // 현재 화면의 항목에도 즉시 반영
+        if (d.firstImage1 && !item.firstImage) item.firstImage = d.firstImage1
+        if (d.addr1 && !item.address) item.address = d.addr1
+      }).catch(() => { _placeMetaFetched.delete(pid) })
     },
 
     // GET /api/v1/trips/{id} → 멤버 + 일정을 서버에서 로드(진입/폴링 공용)
@@ -306,7 +335,7 @@ export const useTripStore = defineStore('trip', {
     addItemToDate(date, payload) {
       const trip = this.currentTrip
       if (!trip || !date) return null
-      if (!enumerateDays(trip.startDate, trip.endDate).includes(date)) return null
+      if (!this.days.includes(date)) return null
 
       const placeId = resolvePlaceId(payload)
       this._cachePlace(placeId, payload)
@@ -336,7 +365,7 @@ export const useTripStore = defineStore('trip', {
     moveItemToDate(fromDate, toDate, id, patch = {}) {
       const trip = this.currentTrip
       if (!trip || !fromDate || !toDate) return null
-      if (!enumerateDays(trip.startDate, trip.endDate).includes(toDate)) return null
+      if (!this.days.includes(toDate)) return null
       const fromList = trip.itemsByDay[fromDate]
       if (!fromList) return null
       const idx = fromList.findIndex((i) => i.id === id)
@@ -360,21 +389,25 @@ export const useTripStore = defineStore('trip', {
       }
       return moved
     },
-    // 낙관적 로컬 수정 후 PATCH /items/{itemId} (날짜/시간/비용/메모)
+    // 낙관적 로컬 수정 후 PUT /items/{itemId} (날짜/시간/비용/메모)
+    // 선택 날짜에 의존하지 않고 모든 날짜에서 항목을 찾아, 항목의 실제 날짜를 visitDate로 전송
     updateItem(id, patch) {
       const trip = this.currentTrip
       if (!trip) return
-      const date = trip.selectedDate
-      const list = trip.itemsByDay[date]
-      if (!list) return
-      const idx = list.findIndex((i) => i.id === id)
+      let foundDate = null
+      let list = null
+      let idx = -1
+      for (const [d, l] of Object.entries(trip.itemsByDay)) {
+        const i = l.findIndex((x) => x.id === id)
+        if (i >= 0) { foundDate = d; list = l; idx = i; break }
+      }
       if (idx < 0) return
       const merged = new TravelItem({ ...list[idx], ...patch })
       list[idx] = merged
       trip.touch()
       if (merged.serverId && isServerId(trip.id)) {
         tripService.updateItem(trip.id, merged.serverId, {
-          visitDate: date,
+          visitDate: foundDate,
           visitTime: merged.time,
           cost: merged.cost,
           memo: merged.memo,

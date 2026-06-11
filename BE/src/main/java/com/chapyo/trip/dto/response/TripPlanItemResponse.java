@@ -28,6 +28,9 @@ public class TripPlanItemResponse {
     @Schema(description = "주소", example = "서울특별시 종로구 사직로 161")
     private String addr1;
 
+    @Schema(description = "대표 이미지 URL", example = "http://img.jpg")
+    private String img;
+
     @Schema(description = "방문 날짜", example = "2026-06-08")
     private LocalDate visitDate;
 

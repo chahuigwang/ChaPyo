@@ -2,6 +2,7 @@ package com.chapyo.trip.mapper;
 
 import com.chapyo.trip.dto.response.MemberResponse;
 import com.chapyo.trip.dto.response.TripPlanItemResponse;
+import com.chapyo.trip.dto.response.TripPlanResponse;
 import com.chapyo.trip.entity.TripPlan;
 import com.chapyo.trip.entity.TripPlanItem;
 import java.time.LocalDate;
@@ -13,7 +14,7 @@ import org.apache.ibatis.annotations.Param;
 public interface TripMapper {
     void insertPlan(TripPlan tripPlan);
     void insertMember(@Param("planId") Long planId, @Param("userId") Long userId);
-    List<TripPlan> findPlansByUserId(@Param("userId") Long userId);
+    List<TripPlanResponse> findPlansByUserId(Long userId);
     boolean existsMember(@Param("planId") Long planId, @Param("userId") Long userId);
     int countItemsByDate(@Param("planId") Long planId, @Param("visitDate") LocalDate visitDate);
     void insertItem(TripPlanItem item);

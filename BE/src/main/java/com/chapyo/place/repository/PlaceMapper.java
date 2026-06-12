@@ -1,5 +1,6 @@
 package com.chapyo.place.repository;
 
+import com.chapyo.place.dto.PlaceEmbeddingData;
 import java.util.List;
 
 import org.apache.ibatis.annotations.Mapper;
@@ -19,4 +20,10 @@ public interface PlaceMapper {
 	void deleteLike(@Param("placeId") Long placeId, @Param("userId") Long userId);
 	List<PlaceResponse> findLikedPlaces(@Param("userId") Long userId, @Param("limitSize") int limitSize, @Param("offset") int offset);
 	long countLikes(Long placeId);
+	List<PlaceEmbeddingData> findAllByDistrictCode(
+			@Param("districtCode") int districtCode,
+			@Param("offset") int offset,
+			@Param("size") int size
+	);
+	List<PlaceResponse> selectByIds(@Param("placeIds") List<Long> placeIds, @Param("userId") Long userId);
 }

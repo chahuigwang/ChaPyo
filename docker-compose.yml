@@ -33,6 +33,15 @@ services:
       timeout: 5s
       retries: 5
 
+  chroma:
+    image: chromadb/chroma:latest
+    container_name: chapyo-chroma
+    restart: unless-stopped
+    expose:
+      - "8000"
+    volumes:
+      - chroma-data:/chroma/chroma
+
   app-blue:
     image: ${DOCKERHUB_USERNAME}/chapyo:latest
     container_name: chapyo-blue
@@ -51,6 +60,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      chroma:
+        condition: service_started
 
   app-green:
     image: ${DOCKERHUB_USERNAME}/chapyo:latest
@@ -70,7 +81,10 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      chroma:
+        condition: service_started
 
 volumes:
   mysql-data:
   redis-data:
+  chroma-data:

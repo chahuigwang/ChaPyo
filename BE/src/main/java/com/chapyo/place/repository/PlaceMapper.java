@@ -25,5 +25,5 @@ public interface PlaceMapper {
 			@Param("offset") int offset,
 			@Param("size") int size
 	);
-	long countByDistrictCode(@Param("districtCode") int districtCode);
+	List<PlaceResponse> selectByIds(@Param("placeIds") List<Long> placeIds, @Param("userId") Long userId);
 }

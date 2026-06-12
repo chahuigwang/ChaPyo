@@ -1,8 +1,12 @@
 package com.chapyo.place.controller;
 
 import com.chapyo.place.dto.request.LikedPlaceRequest;
+import com.chapyo.place.dto.request.PlaceAiRequest;
 import com.chapyo.place.dto.response.LikeResponse;
+import com.chapyo.place.dto.response.PlaceAiResponse;
 import com.chapyo.place.dto.response.PlaceDetailResponse;
+import com.chapyo.place.service.PlaceAiService;
+import jakarta.validation.Valid;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -10,6 +14,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -33,6 +38,7 @@ import lombok.RequiredArgsConstructor;
 public class PlaceController {
 	
 	private final PlaceService placeService;
+    private final PlaceAiService placeAiService;
 	
     @Operation(summary = "관광지 목록 조회", description = "검색어/시도/구군/대분류/소분류로 관광지 목록을 조회합니다.")
     @ApiResponses({
@@ -75,5 +81,15 @@ public class PlaceController {
 
         PageResponse<PlaceResponse> result = placeService.getLikedPlaces(request, userId);
         return ResponseEntity.ok(BaseResponse.success(result));
+    }
+
+    @Operation(summary = "AI 관광지 추천")
+    @PostMapping("/ai")
+    public ResponseEntity<BaseResponse<PlaceAiResponse>> recommend(
+            @AuthenticationPrincipal Long userId,
+            @Valid @RequestBody PlaceAiRequest request
+    ) {
+        PlaceAiResponse response = placeAiService.recommend(userId, request);
+        return ResponseEntity.ok(BaseResponse.success(response));
     }
 }

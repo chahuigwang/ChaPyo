@@ -117,10 +117,16 @@
 			OFFSET #{offset}
 	</select>
 
-	<select id="countByDistrictCode" resultType="long">
-		SELECT COUNT(*)
-		FROM places
-		WHERE district_code = #{districtCode}
-		  AND title IS NOT NULL AND title != ''
+	<select id="selectByIds" resultType="PlaceResponse">
+		SELECT p.place_id, p.title, p.addr1, p.first_image1,
+		p.category_code1, p.category_code2,
+		COUNT(pl.user_id) AS like_count,
+		EXISTS (SELECT 1 FROM place_likes
+		WHERE place_id = p.place_id AND user_id = #{userId}) AS liked
+		FROM places p
+		LEFT JOIN place_likes pl ON p.place_id = pl.place_id
+		WHERE p.place_id IN
+		<foreach collection="placeIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+		GROUP BY p.place_id
 	</select>
 </mapper>

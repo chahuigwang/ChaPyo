@@ -91,4 +91,31 @@ export const placeService = {
     const { data } = await http.get(ENDPOINTS.tourism.likes, { size })
     return data?.data?.content ?? []
   },
+
+  /**
+   * AI 관광지 추천. POST /api/v1/places/ai
+   * persona(자유 텍스트) + text(요청 문장)를 보내고, 추천 멘트와 관광지 0~5건을 받는다.
+   *
+   * @param {{ persona: string, text: string }} payload
+   * @returns {Promise<{ text: string, content: PlaceItem[] }>}
+   *   text     - AI 추천 멘트
+   *   content  - PlaceResponse 배열 (placeId, title, addr1, firstImage1, categoryCode1/2, likeCount, liked)
+   */
+  async recommendAi({ persona, text }) {
+    const { data } = await http.post(ENDPOINTS.tourism.ai, { persona, text })
+
+    // 응답 구조: { success, message, data: { text, content } }
+    if (!data?.success) {
+      return Promise.reject({
+        ok: false,
+        message: data?.message ?? 'AI 추천 요청에 실패했습니다.',
+        data: null,
+      })
+    }
+
+    return {
+      text: data.data?.text ?? '',
+      content: data.data?.content ?? [],
+    }
+  },
 }

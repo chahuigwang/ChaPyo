@@ -30,8 +30,6 @@ export const ENDPOINTS = {
     detail: (placeId) => `/api/v1/places/${placeId}`,
     like: (placeId) => `/api/v1/places/${placeId}/likes`,
     likes: '/api/v1/places/likes',
-  },
-  ai: {
-    recommend: '/ai/recommend',
+    ai: '/api/v1/places/ai',
   },
 }

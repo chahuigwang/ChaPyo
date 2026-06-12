@@ -7,6 +7,7 @@ const props = defineProps({
   message: { type: Object, required: true },
   emoji: { type: String, default: '🤖' },
 })
+const emit = defineEmits(['detail'])
 
 const isUser = computed(() => props.message.role === 'user')
 const isSystem = computed(() => props.message.role === 'system')
@@ -44,12 +45,13 @@ function onSuggestionDragEnd() { storage.clearDragging() }
         {{ message.content }}
       </div>
 
-      <div v-if="message.suggestions?.length" class="flex flex-col gap-2 w-full">
+      <div v-if="message.places?.length" class="flex flex-col gap-2 w-full">
         <DiscoverPlaceCard
-          v-for="(s, i) in message.suggestions"
-          :key="i"
+          v-for="(s, i) in message.places"
+          :key="s.placeId ?? i"
           :item="s"
           :draggable="true"
+          @detail="emit('detail', $event)"
           @dragstart="onSuggestionDragStart($event, s)"
           @dragend="onSuggestionDragEnd"
         />

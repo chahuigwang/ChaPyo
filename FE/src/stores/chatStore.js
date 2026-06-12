@@ -1,89 +1,84 @@
 import { defineStore } from 'pinia'
-import { PERSONAS, findPersona, buildCustomPersona } from '@/types/persona'
-import { buildRecommendation } from '@/types/recommendation'
+import { placeService } from '@/api/placeService'
+import { typeToCategory } from '@/stores/searchStore'
 
 let _seq = 0
 const nextId = () => `m_${Date.now()}_${++_seq}`
 
+const GREETING =
+  '여행 페르소나(예: "미식가", "INTJ 20대 남자")를 입력하고, 가고 싶은 분위기나 지역을 알려주세요. 맞춤 관광지를 추천해 드릴게요.'
+
+// BE PlaceResponse → 카드/상세/좋아요 공통 아이템 형태로 정규화.
+// (검색결과 results 와 동일 스키마: placeId 기반으로 좋아요/상세 조회가 동작)
+function toPlaceCard(p) {
+  return {
+    placeId: p.placeId,
+    id: String(p.placeId),
+    name: p.title,
+    address: p.addr1,
+    firstImage: p.firstImage1,
+    categoryCode1: p.categoryCode1,
+    categoryCode2: p.categoryCode2,
+    category: typeToCategory(p.categoryCode2 ?? p.categoryCode1),
+    likeCount: p.likeCount ?? 0,
+    liked: p.liked ?? false,
+  }
+}
+
 export const useChatStore = defineStore('chat', {
   state: () => ({
-    personas: PERSONAS.map((p) => ({ ...p })),
-    personaId: PERSONAS[0].id,
-    threads: Object.fromEntries(
-      PERSONAS.map((p) => [p.id, [{ id: nextId(), role: 'ai', content: p.greeting, ts: Date.now() }]])
-    ),
+    persona: '',
+    messages: [{ id: nextId(), role: 'ai', content: GREETING, ts: Date.now() }],
     isTyping: false,
   }),
-  getters: {
-    persona: (s) => findPersona(s.personas, s.personaId),
-    messages: (s) => s.threads[s.personaId] ?? [],
-  },
   actions: {
-    selectPersona(id) {
-      if (!this.personas.find((p) => p.id === id)) return
-      this.personaId = id
-    },
-    addPersona({ gender, ageGroup, mbti }) {
-      if (!gender || !ageGroup || !mbti) return null
-      const p = buildCustomPersona({ gender, ageGroup, mbti })
-      this.personas.push(p)
-      this.threads[p.id] = [{ id: nextId(), role: 'ai', content: p.greeting, ts: Date.now() }]
-      this.personaId = p.id
-      return p
-    },
-    updatePersona(id, { gender, ageGroup, mbti }) {
-      const p = this.personas.find((x) => x.id === id)
-      if (!p || p.builtIn) return
-      p.gender = gender
-      p.ageGroup = ageGroup
-      p.mbti = mbti
-      p.name = `${gender} · ${ageGroup} · ${mbti}`
-      p.tagline = `${gender}/${ageGroup}/${mbti} 맞춤 추천`
-    },
-    reorderPersonas(fromId, toId) {
-      if (fromId === toId) return
-      const from = this.personas.findIndex((p) => p.id === fromId)
-      const to = this.personas.findIndex((p) => p.id === toId)
-      if (from < 0 || to < 0) return
-      const [moved] = this.personas.splice(from, 1)
-      this.personas.splice(to, 0, moved)
-    },
-    deletePersona(id) {
-      const p = this.personas.find((x) => x.id === id)
-      if (!p || p.builtIn) return
-      this.personas = this.personas.filter((x) => x.id !== id)
-      delete this.threads[id]
-      if (this.personaId === id) this.personaId = this.personas[0]?.id
+    setPersona(text) {
+      this.persona = text ?? ''
     },
     async sendMessage(text) {
       const content = text?.trim()
-      if (!content) return
-      const list = this.threads[this.personaId]
-      list.push({ id: nextId(), role: 'user', content, ts: Date.now() })
+      if (!content || this.isTyping) return
+
+      const persona = this.persona.trim()
+      this.messages.push({ id: nextId(), role: 'user', content, ts: Date.now() })
+
+      // persona 미입력 시 안내만 하고 요청은 보내지 않는다.
+      if (!persona) {
+        this.messages.push({
+          id: nextId(),
+          role: 'system',
+          content: '먼저 상단에 페르소나를 입력해 주세요. (예: 미식가, INTJ 20대 남자)',
+          ts: Date.now(),
+        })
+        return
+      }
 
       this.isTyping = true
-      await new Promise((r) => setTimeout(r, 500))
-      const { reply, suggestions } = buildRecommendation(content, this.persona)
-      list.push({
-        id: nextId(),
-        role: 'ai',
-        content: reply,
-        ts: Date.now(),
-        suggestions,
-        addedIds: [],
-      })
-      this.isTyping = false
-    },
-    markSuggestionAdded(messageId, suggestionIndex) {
-      const list = this.threads[this.personaId]
-      const m = list.find((x) => x.id === messageId)
-      if (!m) return
-      if (!m.addedIds) m.addedIds = []
-      if (!m.addedIds.includes(suggestionIndex)) m.addedIds.push(suggestionIndex)
+      try {
+        const { text: reply, content: places } = await placeService.recommendAi({
+          persona,
+          text: content,
+        })
+        this.messages.push({
+          id: nextId(),
+          role: 'ai',
+          content: reply || '추천 결과를 가져왔어요.',
+          ts: Date.now(),
+          places: places.map(toPlaceCard),
+        })
+      } catch (err) {
+        this.messages.push({
+          id: nextId(),
+          role: 'system',
+          content: err?.message ?? 'AI 추천 요청에 실패했습니다. 잠시 후 다시 시도해 주세요.',
+          ts: Date.now(),
+        })
+      } finally {
+        this.isTyping = false
+      }
     },
     pushSystemNotice(content) {
-      const list = this.threads[this.personaId]
-      list.push({ id: nextId(), role: 'system', content, ts: Date.now() })
+      this.messages.push({ id: nextId(), role: 'system', content, ts: Date.now() })
     },
   },
 })

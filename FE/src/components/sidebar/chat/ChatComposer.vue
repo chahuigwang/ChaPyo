@@ -46,7 +46,7 @@ function onKeydown(e) {
       </button>
     </div>
     <p class="mt-2.5 text-[11px] text-slate-400 dark:text-slate-500">
-      AI 추천 카드를 클릭하면 일정에 추가됩니다.
+      추천 카드를 클릭하면 상세 정보를, ♥ 를 누르면 좋아요를 할 수 있어요.
     </p>
   </div>
 </template>

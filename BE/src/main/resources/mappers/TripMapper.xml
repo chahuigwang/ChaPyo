@@ -15,12 +15,17 @@
         VALUES (#{planId}, #{userId})
     </insert>
 
-    <select id="findPlansByUserId" resultType="TripPlan">
-        SELECT tp.plan_id, tp.owner_id, tp.title, tp.start_date, tp.end_date
+    <select id="findPlansByUserId" resultType="TripPlanResponse">
+        SELECT tp.plan_id, tp.owner_id, tp.title, tp.start_date, tp.end_date,
+               COUNT(tpi.item_id) AS item_count,
+               COALESCE(SUM(tpi.cost), 0) AS total_cost,
+               (tp.owner_id = #{userId}) AS is_owner
         FROM trip_plans tp
                  JOIN trip_plan_members tpm ON tp.plan_id = tpm.plan_id
+                 LEFT JOIN trip_plan_items tpi ON tp.plan_id = tpi.plan_id
         WHERE tpm.user_id = #{userId}
-        ORDER BY tp.created_at DESC
+        GROUP BY tp.plan_id, tp.owner_id, tp.title, tp.start_date, tp.end_date, tp.updated_at
+        ORDER BY tp.updated_at DESC
     </select>
 
     <select id="existsMember" resultType="boolean">

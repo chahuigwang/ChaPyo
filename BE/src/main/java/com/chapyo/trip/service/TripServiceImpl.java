@@ -54,15 +54,7 @@ public class TripServiceImpl implements TripService {
 
     @Override
     public List<TripPlanResponse> getPlans(Long userId) {
-        return tripMapper.findPlansByUserId(userId).stream()
-                .map(plan -> TripPlanResponse.builder()
-                        .planId(plan.getPlanId())
-                        .title(plan.getTitle())
-                        .startDate(plan.getStartDate())
-                        .endDate(plan.getEndDate())
-                        .isOwner(plan.getOwnerId().equals(userId))
-                        .build())
-                .toList();
+        return tripMapper.findPlansByUserId(userId);
     }
 
     @Override
@@ -209,6 +201,7 @@ public class TripServiceImpl implements TripService {
         }
     }
 
+    @Override
     @Transactional
     public void removeMember(Long planId, Long targetUserId, Long requesterId) {
         TripPlan plan = tripMapper.findPlanById(planId);

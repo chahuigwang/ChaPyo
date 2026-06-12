@@ -98,4 +98,29 @@
 		FROM place_likes
 		WHERE place_id = #{placeId}
 	</select>
+
+	<select id="findAllByDistrictCode" resultType="PlaceEmbeddingData">
+		SELECT
+			place_id,
+			title,
+			addr1,
+			area_code,
+			district_code,
+			category_code1,
+			category_code2,
+			overview
+		FROM places
+		WHERE district_code = #{districtCode}
+		  AND title IS NOT NULL AND title != ''
+		ORDER BY place_id
+		LIMIT #{size}
+			OFFSET #{offset}
+	</select>
+
+	<select id="countByDistrictCode" resultType="long">
+		SELECT COUNT(*)
+		FROM places
+		WHERE district_code = #{districtCode}
+		  AND title IS NOT NULL AND title != ''
+	</select>
 </mapper>

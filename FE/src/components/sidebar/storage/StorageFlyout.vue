@@ -5,11 +5,31 @@ import { useStorageStore } from '@/stores/storageStore'
 import { useTripStore } from '@/stores/tripStore'
 import { useChatStore } from '@/stores/chatStore'
 import DiscoverPlaceCard from '@/components/common/DiscoverPlaceCard.vue'
+import PlaceDetailModal from '@/components/common/PlaceDetailModal.vue'
 
 const storage = useStorageStore()
 const trip = useTripStore()
 const chat = useChatStore()
 const { items } = storeToRefs(storage)
+
+// 좋아요 카드 클릭 → 상세 모달
+const detailItem = ref(null)
+function onModalAdd(item) {
+  const date = trip.selectedDate ?? trip.days?.[0] ?? null
+  if (!date) return
+  trip.addItemToDate(date, {
+    placeId: item.placeId ?? item.sourceId ?? Number(item.id),
+    name: item.name,
+    category: item.category,
+    memo: item.memo || '',
+    address: item.address || '',
+    cost: item.cost ?? 0,
+    lat: item.lat,
+    lng: item.lng,
+    firstImage: item.firstImage,
+  })
+  detailItem.value = null
+}
 
 const dropActive = ref(false)
 const activeFilter = ref('all')
@@ -106,6 +126,7 @@ function onPanelDrop(e) {
         :key="item.id"
         :item="item"
         :draggable="true"
+        @detail="detailItem = $event"
         @dragstart="onDragStart($event, item)"
         @dragend="onDragEnd"
       />
@@ -117,5 +138,13 @@ function onPanelDrop(e) {
         {{ activeFilter === 'all' ? '좋아요 리스트가 비었습니다.' : '해당 카테고리에 아이템이 없습니다.' }}
       </div>
     </div>
+
+    <!-- 상세정보 모달 -->
+    <PlaceDetailModal
+      :item="detailItem"
+      :show-add="true"
+      @close="detailItem = null"
+      @add="onModalAdd"
+    />
   </div>
 </template>

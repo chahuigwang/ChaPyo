@@ -16,6 +16,8 @@ export const tripService = {
       ...raw,
       id: String(raw.planId ?? raw.id),
       isOwner: raw.owner ?? raw.isOwner ?? false,
+      itemCount: raw.itemCount ?? null,
+      totalCost: raw.totalCost ?? null,
     }))
   },
 

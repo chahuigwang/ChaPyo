@@ -16,15 +16,22 @@ const { status, daysUntilStart, currentDay } = useTripStatus(
 const isPast = computed(() => status.value === 'past')
 const isOngoing = computed(() => status.value === 'ongoing')
 
-const itemCount = computed(() =>
+// 상세를 로드한 경우엔 itemsByDay로 계산, 목록만 받은 경우엔 응답의 itemCount/totalCost 사용
+const loadedItemCount = computed(() =>
   Object.values(props.trip.itemsByDay).reduce((sum, list) => sum + list.length, 0),
 )
-const totalCost = computed(() =>
-  Object.values(props.trip.itemsByDay).reduce(
-    (sum, list) => sum + list.reduce((s, it) => s + (Number(it.cost) || 0), 0),
-    0,
-  ),
+const itemCount = computed(() =>
+  loadedItemCount.value > 0 ? loadedItemCount.value : (props.trip.itemCount ?? 0),
 )
+const totalCost = computed(() => {
+  if (loadedItemCount.value > 0) {
+    return Object.values(props.trip.itemsByDay).reduce(
+      (sum, list) => sum + list.reduce((s, it) => s + (Number(it.cost) || 0), 0),
+      0,
+    )
+  }
+  return props.trip.totalCost ?? 0
+})
 const dayCount = computed(() =>
   enumerateDays(props.trip.startDate, props.trip.endDate).length,
 )

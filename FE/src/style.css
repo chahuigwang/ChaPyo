@@ -16,6 +16,10 @@
  * Brand accent: #00B7EB  ← 한 줄만 바꾸면 전체 톤이 바뀌도록 객체지향적으로 분리
  * ============================================================ */
 :root {
+  /* 네이티브 폼 컨트롤(자동완성·셀렉트 팝업·스피너·캐럿·스크롤바)이 OS 다크가 아닌
+   * 앱 테마를 따르게 한다. 라이트가 기본, .dark 일 때만 dark. */
+  color-scheme: light;
+
   /* 5% — Accent (브랜드 포인트) */
   --brand-50:  #e6f8fd;
   --brand-100: #b3eaf8;
@@ -53,6 +57,7 @@
 
 /* Dark mode token overrides — html.dark 가 붙으면 위 토큰들이 자동으로 어두운 톤으로 전환 */
 .dark {
+  color-scheme: dark;
   --background: #020617;        /* slate-950 */
   --foreground: #f1f5f9;        /* slate-100 */
   --card: #0f172a;              /* slate-900 */
@@ -129,4 +134,64 @@ body {
   scrollbar-width: none;
   -ms-overflow-style: none;
   &::-webkit-scrollbar { display: none; }
+}
+
+/* ============================================================
+ * 네이티브 폼 컨트롤 다크 모드 대응
+ * 브라우저(OS) 다크 모드에서 앱이 라이트일 때 글자가 안 보이는 문제 보정
+ * ============================================================ */
+
+/* 입력 요소가 항상 앱 테마(컨테이너 배경/글자색)를 따르도록 명시 */
+input,
+textarea,
+select {
+  color-scheme: inherit;
+}
+
+/* 캐럿/선택 영역 색을 브랜드/테마에 고정 */
+input,
+textarea {
+  caret-color: var(--primary);
+}
+::selection {
+  background-color: color-mix(in srgb, var(--primary) 28%, transparent);
+}
+
+/* 크롬 자동완성: OS 다크에서 검정 배경+검정 글자(또는 노란 배경)로 깨지는 것 방지.
+ * 박스섀도로 배경을 입력 배경(muted)에 맞추고 글자색을 foreground 로 고정. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-text-fill-color: var(--foreground) !important;
+  caret-color: var(--foreground);
+  -webkit-box-shadow: 0 0 0 1000px var(--muted) inset !important;
+  box-shadow: 0 0 0 1000px var(--muted) inset !important;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+/* number 스피너가 저대비로 보이는 문제: 스피너 제거(앱은 별도 UI 없음) */
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+/* 비밀번호 reveal/clear 등 브라우저가 붙이는 아이콘이 테마를 따르게 */
+input::-ms-reveal,
+input::-ms-clear {
+  filter: none;
+}
+
+/* select 옵션 팝업(UA 렌더)이 앱 테마를 따르도록 — 라이트/다크 명시 */
+select,
+option {
+  color-scheme: inherit;
+  background-color: var(--card);
+  color: var(--card-foreground);
 }

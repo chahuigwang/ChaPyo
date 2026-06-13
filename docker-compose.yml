@@ -41,6 +41,11 @@ services:
       - "8000"
     volumes:
       - chroma-data:/chroma/chroma
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v2/version"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   app-blue:
     image: ${DOCKERHUB_USERNAME}/chapyo:latest
@@ -61,7 +66,7 @@ services:
       redis:
         condition: service_healthy
       chroma:
-        condition: service_started
+        condition: service_healthy
 
   app-green:
     image: ${DOCKERHUB_USERNAME}/chapyo:latest
@@ -82,7 +87,7 @@ services:
       redis:
         condition: service_healthy
       chroma:
-        condition: service_started
+        condition: service_healthy
 
 volumes:
   mysql-data:

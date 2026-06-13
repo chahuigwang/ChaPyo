@@ -17,6 +17,43 @@ spring:
       host:
       port:
 
+# Batch 설정
+  batch:
+    jdbc:
+      initialize-schema:
+    job:
+      enabled:
+
+# AI 설정
+  ai:
+    openai:
+      api-key:
+      base-url:
+      embedding:
+        options:
+          model:
+      chat:
+        options:
+          model:
+    vectorstore:
+      chroma:
+        host:
+        port:
+        collection-name:
+        initialize-schema:
+        tenant:
+        database:
+
+# Actuator 설정
+management:
+  endpoints:
+    web:
+      exposure:
+        include:
+  endpoint:
+    health:
+      show-details:
+
 # MyBatis 설정
 mybatis:
   mapper-locations: classpath:mappers/**/*.xml

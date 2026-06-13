@@ -41,12 +41,6 @@ services:
       - "8000"
     volumes:
       - chroma-data:/chroma/chroma
-    healthcheck:
-      test: ["CMD-SHELL", "python3 -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8000/api/v2/version\")'"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
 
   app-blue:
     image: ${DOCKERHUB_USERNAME}/chapyo:latest
@@ -67,7 +61,7 @@ services:
       redis:
         condition: service_healthy
       chroma:
-        condition: service_healthy
+        condition: service_started
 
   app-green:
     image: ${DOCKERHUB_USERNAME}/chapyo:latest
@@ -88,7 +82,7 @@ services:
       redis:
         condition: service_healthy
       chroma:
-        condition: service_healthy
+        condition: service_started
 
 volumes:
   mysql-data:

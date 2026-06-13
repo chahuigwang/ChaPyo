@@ -13,7 +13,11 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 @EnableAutoConfiguration(exclude = {
         org.springframework.ai.vectorstore.chroma.autoconfigure.ChromaVectorStoreAutoConfiguration.class,
         org.springframework.ai.model.openai.autoconfigure.OpenAiEmbeddingAutoConfiguration.class,
-        org.springframework.ai.model.openai.autoconfigure.OpenAiChatAutoConfiguration.class
+        org.springframework.ai.model.openai.autoconfigure.OpenAiChatAutoConfiguration.class,
+        org.springframework.ai.model.openai.autoconfigure.OpenAiAudioSpeechAutoConfiguration.class,
+        org.springframework.ai.model.openai.autoconfigure.OpenAiAudioTranscriptionAutoConfiguration.class,
+        org.springframework.ai.model.openai.autoconfigure.OpenAiImageAutoConfiguration.class,
+        org.springframework.ai.model.openai.autoconfigure.OpenAiModerationAutoConfiguration.class
 })
 class BeApplicationTests {
 

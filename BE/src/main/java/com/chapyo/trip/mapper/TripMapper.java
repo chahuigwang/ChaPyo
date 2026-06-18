@@ -16,7 +16,8 @@ public interface TripMapper {
     void insertMember(@Param("planId") Long planId, @Param("userId") Long userId);
     List<TripPlanResponse> findPlansByUserId(Long userId);
     boolean existsMember(@Param("planId") Long planId, @Param("userId") Long userId);
-    int countItemsByDate(@Param("planId") Long planId, @Param("visitDate") LocalDate visitDate);
+    int countItemsByDayNumber(@Param("planId") Long planId, @Param("dayNumber") Integer dayNumber);
+    void deleteItemsExceedingDays(@Param("planId") Long planId, @Param("totalDays") int totalDays);
     void insertItem(TripPlanItem item);
     TripPlan findPlanById(Long planId);
     List<MemberResponse> findMembersByPlanId(Long planId);

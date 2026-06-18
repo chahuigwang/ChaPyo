@@ -15,9 +15,9 @@ public class TripPlanItemRequest {
     @NotNull
     private Long placeId;
 
-    @Schema(description = "방문 날짜", example = "2026-06-08")
+    @Schema(description = "방문 일차", example = "1")
     @NotNull
-    private LocalDate visitDate;
+    private Integer dayNumber;
 
     @Schema(description = "방문 시간", example = "10:00")
     private LocalTime visitTime;

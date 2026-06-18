@@ -11,9 +11,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class TripPlanItemUpdateRequest {
 
-    @Schema(description = "방문 날짜", example = "2026-06-08")
-    @NotNull(message = "방문 날짜를 입력해주세요.")
-    private LocalDate visitDate;
+    @Schema(description = "방문 일차", example = "1")
+    @NotNull(message = "방문 일차를 입력해주세요.")
+    private Integer dayNumber;
 
     @Schema(description = "방문 시간", example = "10:00")
     private LocalTime visitTime;

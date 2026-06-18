@@ -34,15 +34,15 @@
         WHERE plan_id = #{planId} AND user_id = #{userId}
     </select>
 
-    <select id="countItemsByDate" resultType="int">
+    <select id="countItemsByDayNumber" resultType="int">
         SELECT COUNT(*)
         FROM trip_plan_items
-        WHERE plan_id = #{planId} AND visit_date = #{visitDate}
+        WHERE plan_id = #{planId} AND day_number = #{dayNumber}
     </select>
 
     <insert id="insertItem" useGeneratedKeys="true" keyProperty="itemId">
-        INSERT INTO trip_plan_items (plan_id, place_id, user_id, visit_date, item_order, visit_time, cost, memo)
-        VALUES (#{planId}, #{placeId}, #{userId}, #{visitDate}, #{itemOrder}, #{visitTime}, #{cost}, #{memo})
+        INSERT INTO trip_plan_items (plan_id, place_id, user_id, day_number, item_order, visit_time, cost, memo)
+        VALUES (#{planId}, #{placeId}, #{userId}, #{dayNumber}, #{itemOrder}, #{visitTime}, #{cost}, #{memo})
     </insert>
 
     <select id="findPlanById" resultType="TripPlan">
@@ -59,7 +59,7 @@
     </select>
 
     <select id="findItemsByPlanId" resultType="TripPlanItemResponse">
-        SELECT tpi.item_id, tpi.place_id, p.title, p.addr1, p.first_image1 AS img, tpi.visit_date,
+        SELECT tpi.item_id, tpi.place_id, p.title, p.addr1, p.first_image1 AS img, tpi.day_number,
                tpi.item_order, tpi.visit_time, tpi.cost, tpi.memo,
                tpi.user_id, u.nickname,
                p.latitude, p.longitude,
@@ -71,7 +71,7 @@
                  JOIN places p ON tpi.place_id = p.place_id
                  JOIN users u ON tpi.user_id = u.user_id
         WHERE tpi.plan_id = #{planId}
-        ORDER BY tpi.visit_date, tpi.item_order
+        ORDER BY tpi.day_number, tpi.item_order
     </select>
 
     <update id="updatePlan">
@@ -96,14 +96,14 @@
     </select>
 
     <select id="findItemById" resultType="TripPlanItem">
-        SELECT item_id, plan_id, place_id, user_id, visit_date, item_order, visit_time, cost, memo
+        SELECT item_id, plan_id, place_id, user_id, day_number, item_order, visit_time, cost, memo
         FROM trip_plan_items
         WHERE item_id = #{itemId}
     </select>
 
     <update id="updateItem">
         UPDATE trip_plan_items
-        SET visit_date = #{visitDate},
+        SET day_number = #{dayNumber},
             visit_time = #{visitTime},
             cost = #{cost},
             memo = #{memo}
@@ -125,4 +125,10 @@
         DELETE FROM trip_plan_members
         WHERE plan_id = #{planId} AND user_id = #{userId}
     </delete>
+
+    <delete id="deleteItemsExceedingDays">
+        DELETE FROM trip_plan_items
+        WHERE plan_id = #{planId} AND day_number > #{totalDays}
+    </delete>
+
 </mapper>

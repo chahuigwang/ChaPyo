@@ -16,6 +16,7 @@ import com.chapyo.trip.mapper.TripMapper;
 import com.chapyo.user.entity.User;
 import com.chapyo.user.repository.UserMapper;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -84,13 +85,13 @@ public class TripServiceImpl implements TripService {
             throw new CustomException(TripErrorCode.FORBIDDEN);
         }
 
-        int order = tripMapper.countItemsByDate(planId, request.getVisitDate()) + 1;
+        int order = tripMapper.countItemsByDayNumber(planId, request.getDayNumber()) + 1;
 
         TripPlanItem item = TripPlanItem.builder()
                 .planId(planId)
                 .placeId(request.getPlaceId())
                 .userId(userId)
-                .visitDate(request.getVisitDate())
+                .dayNumber(request.getDayNumber())
                 .itemOrder(order)
                 .visitTime(request.getVisitTime())
                 .cost(request.getCost())
@@ -132,6 +133,17 @@ public class TripServiceImpl implements TripService {
             throw new CustomException(TripErrorCode.FORBIDDEN);
         }
 
+        // 날짜 줄어들면 범위 벗어난 아이템 삭제
+        if (request.getStartDate() != null || request.getEndDate() != null) {
+            TripPlan current = tripMapper.findPlanById(planId);
+            LocalDate startDate = request.getStartDate() != null ? request.getStartDate() : current.getStartDate();
+            LocalDate endDate = request.getEndDate() != null ? request.getEndDate() : current.getEndDate();
+            if (startDate != null && endDate != null) {
+                int totalDays = (int) ChronoUnit.DAYS.between(startDate, endDate) + 1;
+                tripMapper.deleteItemsExceedingDays(planId, totalDays);
+            }
+        }
+
         TripPlan plan = TripPlan.builder()
                 .planId(planId)
                 .title(request.getTitle())
@@ -165,7 +177,7 @@ public class TripServiceImpl implements TripService {
 
         TripPlanItem updated = TripPlanItem.builder()
                 .itemId(itemId)
-                .visitDate(request.getVisitDate())
+                .dayNumber(request.getDayNumber())
                 .visitTime(request.getVisitTime())
                 .cost(request.getCost())
                 .memo(request.getMemo())

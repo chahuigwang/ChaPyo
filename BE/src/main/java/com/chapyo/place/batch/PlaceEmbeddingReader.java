@@ -11,7 +11,6 @@ import java.util.List;
 @Component
 public class PlaceEmbeddingReader implements ItemReader<PlaceEmbeddingData> {
 
-    private static final int DISTRICT_CODE = 680;
     private static final int PAGE_SIZE = 50;
 
     private final PlaceMapper placeMapper;
@@ -26,7 +25,7 @@ public class PlaceEmbeddingReader implements ItemReader<PlaceEmbeddingData> {
     @Override
     public PlaceEmbeddingData read() {
         if (buffer.isEmpty() && !done) {
-            List<PlaceEmbeddingData> page = placeMapper.findAllByDistrictCode(DISTRICT_CODE, offset, PAGE_SIZE);
+            List<PlaceEmbeddingData> page = placeMapper.findAll(offset, PAGE_SIZE);
             if (page.isEmpty()) {
                 done = true;
                 return null;

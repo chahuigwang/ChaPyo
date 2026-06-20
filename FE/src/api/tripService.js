@@ -48,10 +48,10 @@ export const tripService = {
     await http.delete(ENDPOINTS.trips.remove(planId))
   },
 
-  // PUT /api/v1/trips/{planId}/items/{itemId} → 일정 수정 (날짜/시간/비용/메모)
-  async updateItem(planId, itemId, { visitDate, visitTime, cost, memo } = {}) {
+  // PUT /api/v1/trips/{planId}/items/{itemId} → 일정 수정 (일차/시간/비용/메모)
+  async updateItem(planId, itemId, { dayNumber, visitTime, cost, memo } = {}) {
     await http.put(ENDPOINTS.trips.item(planId, itemId), {
-      visitDate: visitDate || null,
+      dayNumber: dayNumber ?? null,
       visitTime: visitTime || null,
       cost: cost ?? null,
       memo: memo || null,
@@ -70,10 +70,10 @@ export const tripService = {
   },
 
   // POST /api/v1/trips/{planId}/items → 일정 추가 (응답 본문 없음, itemOrder는 서버가 부여)
-  async addItem(planId, { placeId, visitDate, visitTime, cost, memo } = {}) {
+  async addItem(planId, { placeId, dayNumber, visitTime, cost, memo } = {}) {
     await http.post(ENDPOINTS.trips.items(planId), {
       placeId,
-      visitDate,
+      dayNumber,
       visitTime: visitTime || null,
       cost: cost ?? null,
       memo: memo || null,

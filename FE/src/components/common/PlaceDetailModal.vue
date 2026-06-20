@@ -1,10 +1,11 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { X, MapPin, Phone, Heart, CalendarPlus, Loader2, Clock, UserRound, Check } from 'lucide-vue-next'
 import { findCategory } from '@/types/itinerary'
 import { useStorageStore } from '@/stores/storageStore'
 import { placeService } from '@/api/placeService'
 import PlaceMiniMap from '@/components/common/PlaceMiniMap.vue'
+import PlaceReviews from '@/components/common/PlaceReviews.vue'
 import knightImg from '@/assets/knight.png'
 
 // item 이 null 이면 닫힘. 검색결과/타임라인 아이템 모두 받을 수 있다.
@@ -36,6 +37,8 @@ function placeIdOf(item) {
   const n = Number(raw)
   return Number.isInteger(n) && n > 0 ? n : null
 }
+
+const reviewPlaceId = computed(() => placeIdOf(props.item))
 
 // 열릴 때 기본 정보 즉시 표시 후 GET /places/{placeId} 로 개요/전화/좌표 보강
 watch(() => props.item, async (item) => {
@@ -205,6 +208,11 @@ watch(() => props.item, async (item) => {
                 >
                   <CalendarPlus :size="15" /> 일정에 추가
                 </button>
+              </div>
+
+              <!-- 리뷰 -->
+              <div v-if="reviewPlaceId" class="pt-2 border-t border-slate-100 dark:border-slate-800">
+                <PlaceReviews :place-id="reviewPlaceId" />
               </div>
             </div>
           </div>

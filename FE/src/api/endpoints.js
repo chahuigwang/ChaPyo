@@ -32,4 +32,10 @@ export const ENDPOINTS = {
     likes: '/api/v1/places/likes',
     ai: '/api/v1/places/ai',
   },
+  reviews: {
+    list: (placeId) => `/api/v1/places/${placeId}/reviews`,
+    create: (placeId) => `/api/v1/places/${placeId}/reviews`,
+    update: (placeId, reviewId) => `/api/v1/places/${placeId}/reviews/${reviewId}`,
+    remove: (placeId, reviewId) => `/api/v1/places/${placeId}/reviews/${reviewId}`,
+  },
 }

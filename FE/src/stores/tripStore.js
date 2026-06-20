@@ -31,6 +31,17 @@ function normalizeTime(t) {
   return String(t).slice(0, 5)
 }
 
+// 서버는 날짜가 아닌 "일차(dayNumber)"로 일정을 관리한다. (1=첫째 날, 2=둘째 날 …)
+// 내부 itemsByDay는 ISO 날짜 키를 쓰므로 API 경계에서 양방향 변환한다.
+function dayNumberToDate(startDate, endDate, dayNumber) {
+  const days = enumerateDays(startDate, endDate)
+  return days[(Number(dayNumber) || 1) - 1] ?? null
+}
+function dateToDayNumber(startDate, endDate, date) {
+  const idx = enumerateDays(startDate, endDate).indexOf(String(date))
+  return idx >= 0 ? idx + 1 : null
+}
+
 function seedTrips() {
   const DAY = 86_400_000
   const now = Date.now()
@@ -109,14 +120,15 @@ export const useTripStore = defineStore('trip', {
     // 서버 상세(raw) → TripPlan 매핑. itemsByDay는 placeCache로 보강.
     _planFromDetail(raw, prev = null) {
       const itemsByDay = {}
-      // 여행 기간 밖 아이템은 화면에 들이지 않음(서버 데이터는 유지)
-      const range = new Set(enumerateDays(String(raw.startDate), String(raw.endDate)))
+      // 서버는 dayNumber(일차)로 내려준다 → 시작일 기준 ISO 날짜로 변환. 기간 밖(변환 불가)은 숨김.
+      const start = String(raw.startDate)
+      const end = String(raw.endDate)
       const items = [...(raw.items ?? [])].sort(
         (a, b) => (a.itemOrder ?? 0) - (b.itemOrder ?? 0),
       )
       for (const it of items) {
-        const date = String(it.visitDate)
-        if (!range.has(date)) continue
+        const date = dayNumberToDate(start, end, it.dayNumber)
+        if (!date) continue
         const enrich = this.placeCache[it.placeId] ?? {}
         // 서버가 내려주는 좌표 우선, 없으면 캐시 보강값
         const lat = it.latitude ?? enrich.lat ?? null
@@ -303,11 +315,27 @@ export const useTripStore = defineStore('trip', {
       trip.touch()
       this._persistPlan()
     },
+    // 새 기간으로 줄였을 때 범위를 벗어나 삭제될 일정 개수 (확인 알림용)
+    itemsOutsideRange(start, end) {
+      const trip = this.currentTrip
+      if (!trip) return 0
+      const keep = new Set(enumerateDays(start, end))
+      let count = 0
+      for (const [date, list] of Object.entries(trip.itemsByDay)) {
+        if (!keep.has(date)) count += (list?.length ?? 0)
+      }
+      return count
+    },
     setRange(start, end) {
       const trip = this.currentTrip
       if (!trip) return
       trip.startDate = start
       trip.endDate = end
+      // 기간이 줄면 범위를 벗어난 일정은 서버에서 자동 삭제되므로 로컬에서도 즉시 제거
+      const keep = new Set(enumerateDays(start, end))
+      for (const date of Object.keys(trip.itemsByDay)) {
+        if (!keep.has(date)) delete trip.itemsByDay[date]
+      }
       if (!this.days.includes(trip.selectedDate)) trip.selectedDate = this.days[0] ?? ''
       trip.touch()
       this._persistPlan()
@@ -348,7 +376,7 @@ export const useTripStore = defineStore('trip', {
       if (placeId && isServerId(trip.id)) {
         tripService.addItem(trip.id, {
           placeId,
-          visitDate: date,
+          dayNumber: dateToDayNumber(trip.startDate, trip.endDate, date),
           visitTime: item.time,
           cost: item.cost,
           memo: item.memo,
@@ -361,7 +389,7 @@ export const useTripStore = defineStore('trip', {
       }
       return item
     },
-    // 기존 서버 일정을 다른 날짜로 이동: 추가+삭제 대신 PATCH(visitDate)로 단일 처리
+    // 기존 서버 일정을 다른 날짜로 이동: 추가+삭제 대신 PUT(dayNumber)로 단일 처리
     moveItemToDate(fromDate, toDate, id, patch = {}) {
       const trip = this.currentTrip
       if (!trip || !fromDate || !toDate) return null
@@ -378,7 +406,7 @@ export const useTripStore = defineStore('trip', {
       trip.touch()
       if (moved.serverId && isServerId(trip.id)) {
         tripService.updateItem(trip.id, moved.serverId, {
-          visitDate: toDate,
+          dayNumber: dateToDayNumber(trip.startDate, trip.endDate, toDate),
           visitTime: moved.time,
           cost: moved.cost,
           memo: moved.memo,
@@ -390,7 +418,7 @@ export const useTripStore = defineStore('trip', {
       return moved
     },
     // 낙관적 로컬 수정 후 PUT /items/{itemId} (날짜/시간/비용/메모)
-    // 선택 날짜에 의존하지 않고 모든 날짜에서 항목을 찾아, 항목의 실제 날짜를 visitDate로 전송
+    // 선택 날짜에 의존하지 않고 모든 날짜에서 항목을 찾아, 항목의 실제 날짜를 dayNumber로 변환해 전송
     updateItem(id, patch) {
       const trip = this.currentTrip
       if (!trip) return
@@ -407,7 +435,7 @@ export const useTripStore = defineStore('trip', {
       trip.touch()
       if (merged.serverId && isServerId(trip.id)) {
         tripService.updateItem(trip.id, merged.serverId, {
-          visitDate: foundDate,
+          dayNumber: dateToDayNumber(trip.startDate, trip.endDate, foundDate),
           visitTime: merged.time,
           cost: merged.cost,
           memo: merged.memo,

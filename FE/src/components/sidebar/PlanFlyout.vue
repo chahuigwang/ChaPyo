@@ -21,14 +21,22 @@ function saveTitle() { trip.setTitle(titleDraft.value); titleEditing.value = fal
 function onTitleKeydown(e) { if (e.key === 'Enter') saveTitle(); else if (e.key === 'Escape') titleEditing.value = false }
 
 // ── Date inputs ──────────────────────────────────────────────
+// 기간을 줄여 범위를 벗어나는 일정이 있으면 삭제 경고 후 진행
+function applyRange(start, end) {
+  const removed = trip.itemsOutsideRange(start, end)
+  if (removed > 0 && !window.confirm(
+    `여행 기간을 줄이면 범위를 벗어나는 일정 ${removed}개가 삭제됩니다.\n계속하시겠습니까?`,
+  )) return
+  trip.setRange(start, end)
+}
 function onStartChange(v) {
   if (!v) return
   const end = v > endDate.value ? v : endDate.value
-  trip.setRange(v, end)
+  applyRange(v, end)
 }
 function onEndChange(v) {
   if (!v || v < startDate.value) return
-  trip.setRange(startDate.value, v)
+  applyRange(startDate.value, v)
 }
 
 // ── Calendar ─────────────────────────────────────────────────

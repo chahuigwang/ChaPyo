@@ -129,4 +129,21 @@
 		<foreach collection="placeIds" item="id" open="(" separator="," close=")">#{id}</foreach>
 		GROUP BY p.place_id
 	</select>
+
+	<select id="findAll" resultType="PlaceEmbeddingData">
+		SELECT
+			place_id,
+			title,
+			addr1,
+			area_code,
+			district_code,
+			category_code1,
+			category_code2,
+			overview
+		FROM places
+		WHERE title IS NOT NULL AND title != ''
+		ORDER BY place_id
+		LIMIT #{size}
+			OFFSET #{offset}
+	</select>
 </mapper>

@@ -26,4 +26,5 @@ public interface PlaceMapper {
 			@Param("size") int size
 	);
 	List<PlaceResponse> selectByIds(@Param("placeIds") List<Long> placeIds, @Param("userId") Long userId);
+	List<PlaceEmbeddingData> findAll(@Param("offset") int offset, @Param("size") int size);
 }

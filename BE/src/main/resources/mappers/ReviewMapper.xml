@@ -3,7 +3,7 @@
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.chapyo.place.mapper.ReviewMapper">
+<mapper namespace="com.chapyo.place.repository.ReviewMapper">
 
     <insert id="insertReview" useGeneratedKeys="true" keyProperty="reviewId">
         INSERT INTO reviews (place_id, user_id, content, rating)

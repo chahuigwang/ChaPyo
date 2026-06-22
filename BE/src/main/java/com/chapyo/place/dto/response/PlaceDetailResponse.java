@@ -63,4 +63,7 @@ public class PlaceDetailResponse {
 
     @Schema(description = "좋아요 여부", example = "true")
     private boolean liked;
+
+    @Schema(description = "평균 평점", example = "4.5")
+    private Double avgRating;
 }

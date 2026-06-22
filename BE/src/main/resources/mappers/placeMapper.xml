@@ -13,13 +13,15 @@
 		p.first_image1,
 		p.category_code1,
 		p.category_code2,
-		COUNT(pl.user_id) AS like_count,
+		COUNT(DISTINCT pl.user_id) AS like_count,
 		EXISTS (
 		SELECT 1 FROM place_likes
 		WHERE place_id = p.place_id AND user_id = #{userId}
-		) AS liked
+		) AS liked,
+		AVG(r.rating) AS avg_rating
 		FROM places p
 		LEFT JOIN place_likes pl ON p.place_id = pl.place_id
+		LEFT JOIN reviews r ON p.place_id = r.place_id
 		<where>
 			<if test="req.areaCode != null and req.areaCode != ''">
 				AND p.area_code = #{req.areaCode}
@@ -45,16 +47,19 @@
 	</select>
 
 	<select id="findById" resultType="PlaceDetailResponse">
-		SELECT place_id, content_id, title, addr1, addr2,
-		       latitude, longitude, first_image1, first_image2,
-		       area_code, district_code, category_code1, category_code2,
-		       zipcode, tel, overview,
+		SELECT p.place_id, p.content_id, p.title, p.addr1, p.addr2,
+		       p.latitude, p.longitude, p.first_image1, p.first_image2,
+		       p.area_code, p.district_code, p.category_code1, p.category_code2,
+		       p.zipcode, p.tel, p.overview,
 		       EXISTS (
 				   SELECT 1 FROM place_likes
-			       WHERE place_id = #{placeId} AND user_id = #{userId}
-			   ) AS liked
-		FROM places
-		WHERE place_id = #{placeId}
+			       WHERE place_id = p.place_id AND user_id = #{userId}
+			   ) AS liked,
+		       AVG(r.rating) AS avg_rating
+		FROM places p
+				 LEFT JOIN reviews r ON p.place_id = r.place_id
+		WHERE p.place_id = #{placeId}
+		GROUP BY p.place_id
 	</select>
 
 	<select id="existsLike" resultType="boolean">
@@ -81,11 +86,13 @@
 			p.first_image1,
 			p.category_code1,
 			p.category_code2,
-			COUNT(pl2.user_id) AS like_count,
-			true AS liked
+			COUNT(DISTINCT pl2.user_id) AS like_count,
+			true AS liked,
+			AVG(r.rating) AS avg_rating
 		FROM places p
 				 JOIN place_likes pl ON p.place_id = pl.place_id AND pl.user_id = #{userId}
 			     LEFT JOIN place_likes pl2 ON p.place_id = pl2.place_id
+			     LEFT JOIN reviews r ON p.place_id = r.place_id
 		WHERE p.addr1 IS NOT NULL AND p.addr1 != ''
 		GROUP BY p.place_id
 		ORDER BY MIN(pl.created_at) DESC

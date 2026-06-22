@@ -141,7 +141,6 @@ async function confirmDelete() {
       <!-- Header -->
       <div class="flex items-start justify-between mb-10 gap-6">
         <div>
-          <p class="text-[13px] text-slate-500 dark:text-slate-400">안녕하세요 👋</p>
           <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100 tracking-tight mt-2">나의 여행 계획</h1>
         </div>
 

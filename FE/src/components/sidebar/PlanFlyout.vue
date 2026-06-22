@@ -160,11 +160,11 @@ async function confirmDeleteTrip() {
 <template>
   <div class="flex-1 flex flex-col min-h-0 overflow-y-auto">
     <div class="px-5 pt-5 pb-3">
-      <h2 class="text-[15px] font-bold text-slate-800 dark:text-slate-100 mb-3">여행 설정</h2>
+      <h2 class="text-xl font-bold text-slate-800 dark:text-slate-100 mb-3">여행 설정</h2>
 
       <!-- Trip Title Edit -->
       <div class="mb-4">
-        <p class="text-[11px] font-medium text-slate-400 mb-1.5">여행 이름</p>
+        <p class="text-sm font-medium text-slate-400 mb-1.5">여행 이름</p>
         <div
           v-if="!titleEditing"
           class="group flex items-center justify-between gap-2 cursor-pointer rounded-xl
@@ -254,8 +254,8 @@ async function confirmDeleteTrip() {
 
     <!-- 3. 도착 -->
     <div class="mx-5 mb-5 flex items-center justify-between rounded-lg px-4 py-3
-                bg-violet-50 dark:bg-violet-900/15 transition-colors">
-      <span class="text-[15px] font-bold uppercase tracking-widest text-violet-500 dark:text-violet-400">TO</span>
+                bg-sky-50 dark:bg-sky-900/15 transition-colors">
+      <span class="text-[15px] font-bold uppercase tracking-widest text-sky-500 dark:text-sky-400">TO</span>
       <CustomCalendar :model-value="endDate" :min-date="startDate" @update:model-value="onEndChange" />
     </div>
 

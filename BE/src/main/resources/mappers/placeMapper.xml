@@ -18,7 +18,8 @@
 		SELECT 1 FROM place_likes
 		WHERE place_id = p.place_id AND user_id = #{userId}
 		) AS liked,
-		AVG(r.rating) AS avg_rating
+		AVG(r.rating) AS avg_rating,
+		COUNT(DISTINCT r.review_id) AS review_count
 		FROM places p
 		LEFT JOIN place_likes pl ON p.place_id = pl.place_id
 		LEFT JOIN reviews r ON p.place_id = r.place_id
@@ -56,7 +57,8 @@
 			       WHERE place_id = p.place_id AND user_id = #{userId}
 			   ) AS liked,
 		       COUNT(DISTINCT pl.user_id) AS like_count,
-		       AVG(r.rating) AS avg_rating
+		       AVG(r.rating) AS avg_rating,
+		       COUNT(DISTINCT r.review_id) AS review_count
 		FROM places p
 				 LEFT JOIN place_likes pl ON p.place_id = pl.place_id
 			     LEFT JOIN reviews r ON p.place_id = r.place_id
@@ -90,7 +92,8 @@
 			p.category_code2,
 			COUNT(DISTINCT pl2.user_id) AS like_count,
 			true AS liked,
-			AVG(r.rating) AS avg_rating
+			AVG(r.rating) AS avg_rating,
+			COUNT(DISTINCT r.review_id) AS review_count
 		FROM places p
 				 JOIN place_likes pl ON p.place_id = pl.place_id AND pl.user_id = #{userId}
 			     LEFT JOIN place_likes pl2 ON p.place_id = pl2.place_id
@@ -132,7 +135,8 @@
 		COUNT(DISTINCT pl.user_id) AS like_count,
 		EXISTS (SELECT 1 FROM place_likes
 		WHERE place_id = p.place_id AND user_id = #{userId}) AS liked,
-		AVG(r.rating) AS avg_rating
+		AVG(r.rating) AS avg_rating,
+		COUNT(DISTINCT r.review_id) AS review_count
 		FROM places p
 		LEFT JOIN place_likes pl ON p.place_id = pl.place_id
 		LEFT JOIN reviews r ON p.place_id = r.place_id

@@ -37,4 +37,7 @@ public class PlaceResponse {
 
     @Schema(description = "평균 평점", example = "4.5")
     private Double avgRating;
+
+    @Schema(description = "리뷰 수", example = "10")
+    private Long reviewCount;
 }

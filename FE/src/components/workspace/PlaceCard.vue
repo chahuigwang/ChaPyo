@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue'
-import { Clock, Trash2, MapPin, Heart } from 'lucide-vue-next'
+import { Trash2, MapPin, Heart } from 'lucide-vue-next'
 import { findCategory } from '@/types/itinerary'
 import { useStorageStore } from '@/stores/storageStore'
 
@@ -9,6 +9,8 @@ const props = defineProps({
   index: { type: Number, required: true },
   // 지도와 동일한 전역 연속 번호. 미지정 시 index 기반.
   number: { type: Number, default: null },
+  // 지도 핀과 동일한 Day 색상. 미지정 시 기본 primary.
+  color: { type: String, default: null },
   hovered: { type: Boolean, default: false },
   pendingDelete: { type: String, default: null },
 })
@@ -52,7 +54,8 @@ const PLACEHOLDER = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg
           v-if="item.firstImage || item.thumbnail || item.firstimage"
           :src="item.firstImage || item.thumbnail || item.firstimage"
           :alt="item.name"
-          class="w-full h-full object-cover"
+          class="w-full h-full object-cover pointer-events-none select-none"
+          draggable="false"
           loading="lazy"
           @error="$event.target.src = PLACEHOLDER"
         />
@@ -60,11 +63,12 @@ const PLACEHOLDER = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg
           {{ findCategory(item.category).emoji }}
         </div>
 
-        <!-- Sequence badge -->
+        <!-- Sequence badge (지도 핀과 동일한 Day 색상) -->
         <span
           class="absolute top-1.5 left-1.5 z-10 inline-flex items-center justify-center h-5 w-5
-                 rounded-full bg-[#00B7EB] text-white text-[11px] font-bold shadow
+                 rounded-full text-white text-[11px] font-bold shadow
                  ring-2 ring-white dark:ring-slate-900"
+          :style="{ backgroundColor: color || '#00B7EB' }"
         >{{ seqNumber }}</span>
       </div>
 
@@ -103,12 +107,8 @@ const PLACEHOLDER = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg
           </div>
         </div>
 
-        <div v-if="item.time || item.addr || item.address" class="mt-1.5 flex items-center gap-2 min-w-0">
-          <span v-if="item.time" class="shrink-0 inline-flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
-            <Clock :size="10" /> {{ item.time }}
-          </span>
-          <span v-if="item.addr || item.address"
-                class="min-w-0 flex-1 inline-flex items-center gap-1 text-[11px] text-slate-400 dark:text-slate-500">
+        <div v-if="item.addr || item.address" class="mt-1.5 flex items-center gap-2 min-w-0">
+          <span class="min-w-0 flex-1 inline-flex items-center gap-1 text-[11px] text-slate-400 dark:text-slate-500">
             <MapPin :size="10" class="shrink-0" />
             <span class="truncate">{{ item.addr || item.address }}</span>
           </span>

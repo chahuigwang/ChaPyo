@@ -21,6 +21,8 @@ const { currentTrip, days, selectedDate } = storeToRefs(trip)
 const dropTargetDay = ref(null)
 
 function onDayDragOver(e, iso) {
+  // 펼쳐진 날짜는 내부 타임라인이 드래그(순서변경/추가/이동)를 전담 → 바깥 핸들러는 개입하지 않음
+  if (expanded.value.has(iso)) return
   if (!storage.dragging) return
   e.preventDefault()
   e.dataTransfer.dropEffect = storage.dragging.source === 'timeline' ? 'move' : 'copy'
@@ -31,10 +33,11 @@ function onDayDragLeave(e) {
   dropTargetDay.value = null
 }
 function onDayDrop(e, iso) {
+  // 펼쳐진 날짜는 내부 타임라인이 드롭을 전담
+  if (expanded.value.has(iso)) return
   e.preventDefault()
   const p = storage.dragging
   dropTargetDay.value = null
-  // 펼쳐진 날짜의 내부 타임라인이 이미 처리(stopPropagation)한 경우 dragging 은 비어 있다 → 무시
   if (!p?.item) { storage.clearDragging(); return }
 
   if (p.source === 'timeline' && p.fromDate === iso) {

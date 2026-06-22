@@ -8,6 +8,7 @@ import { useStorageStore } from '@/stores/storageStore'
 import { useCollabStore } from '@/stores/collabStore'
 import { useUiStore } from '@/stores/uiStore'
 import { useTimelineLogic, snapTimeFor } from '@/composables/useTimelineLogic'
+import { dayColorFor } from '@/composables/useDayColor'
 import PlaceDetailModal from '@/components/common/PlaceDetailModal.vue'
 
 // 전체 일정 아코디언 안에서 특정 날짜의 상세 타임라인을 인라인으로 렌더한다.
@@ -23,6 +24,9 @@ const { hoveredItemId } = storeToRefs(ui)
 
 // 이 타임라인이 대상으로 하는 날짜의 아이템 목록
 const dayItems = computed(() => trip.currentTrip?.itemsByDay?.[props.date] ?? [])
+
+// 지도 핀과 동일한 Day 색상(예: Day2 = 초록) — 리스트 번호 배지에 사용
+const dayColor = computed(() => dayColorFor((trip.days || []).indexOf(props.date)))
 
 // 지도와 동일하게 번호를 날짜별로 1부터 새로 시작하지 않고 전역 연속으로 매긴다.
 // (이전 날짜들의 아이템 수 합 = 이 날짜의 시작 오프셋)
@@ -71,7 +75,6 @@ function onTimelineDragLeave(e) {
 }
 function onTimelineDrop(e) {
   e.preventDefault()
-  e.stopPropagation()
   const p = dragPayload()
   dropActive.value = false
   const insertAt = dropIndex.value
@@ -156,14 +159,16 @@ function confirmDelete(item) {
     @dragleave="onTimelineDragLeave"
     @drop="onTimelineDrop"
   >
+    <!-- 드래그 중에도 레이아웃 높이가 변하지 않도록 TransitItem을 항상 표시하고,
+         삽입 위치는 높이 변화 없는 오버레이 선으로만 표시한다.
+         (여러 날이 한 스크롤에 쌓인 상태에서 dragstart 시 전체가 수축하며
+          커서 아래 카드가 바뀌어 드래그가 깨지던 문제 해결) -->
     <div v-if="dayItems.length" class="flex flex-col pb-1">
-      <!-- 맨 앞 드롭 영역 -->
+      <!-- 맨 앞 드롭 영역 (높이 고정) -->
       <div
         @dragover="onSlotDragOver($event, 0)"
-        class="rounded-lg transition-all"
-        :class="isDragging
-          ? (dropIndex === 0 ? 'h-9 bg-primary/15 ring-2 ring-dashed ring-primary/50 mb-1' : 'h-6')
-          : 'h-1'"
+        class="h-2 rounded transition-colors"
+        :class="isDragging && dropIndex === 0 ? 'bg-primary/30' : ''"
       />
       <template v-for="(item, idx) in dayItems" :key="item.id">
         <PlaceCard
@@ -171,6 +176,7 @@ function confirmDelete(item) {
           :item="item"
           :index="idx"
           :number="startNumber + idx + 1"
+          :color="dayColor.pin"
           :hovered="hoveredItemId === item.id"
           :pending-delete="pendingDelete"
           @click="detail = item"
@@ -184,18 +190,18 @@ function confirmDelete(item) {
           @confirm-delete="confirmDelete(item)"
         />
 
+        <!-- 카드 사이/뒤 드롭 영역 (TransitItem 항상 유지 → 레이아웃 고정) -->
         <div
           @dragover="onSlotDragOver($event, idx + 1)"
-          class="relative flex flex-col items-center transition-all"
+          class="relative"
         >
-          <!-- 드래그 중: 이동거리 숨기고 잡기 쉬운 드롭 영역 표시 (맨 뒤 영역 포함) -->
+          <!-- 삽입 위치 표시선 (오버레이 — 레이아웃에 영향 없음) -->
           <div
-            v-if="isDragging"
-            class="w-full rounded-lg transition-all"
-            :class="dropIndex === idx + 1 ? 'h-9 bg-primary/15 ring-2 ring-dashed ring-primary/50' : 'h-6'"
+            v-show="isDragging && dropIndex === idx + 1"
+            class="absolute left-2 right-2 top-1 h-1 rounded-full bg-primary z-10 pointer-events-none"
           />
           <TransitItem
-            v-else-if="idx < dayItems.length - 1"
+            v-if="idx < dayItems.length - 1"
             :item="item"
             :next="dayItems[idx + 1]"
             :auto-km="transits[idx]?.km ?? null"
@@ -203,6 +209,8 @@ function confirmDelete(item) {
             @hover-transit="ui.setHoveredTransit(idx)"
             @leave-transit="ui.clearHoveredTransit()"
           />
+          <!-- 마지막 카드 뒤 드롭 여백 (고정 높이) -->
+          <div v-else class="h-3" />
         </div>
       </template>
     </div>

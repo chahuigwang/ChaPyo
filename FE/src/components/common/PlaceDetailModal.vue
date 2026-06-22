@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { X, MapPin, Phone, Heart, CalendarPlus, Loader2, Clock, UserRound, Check, Star } from 'lucide-vue-next'
+import { X, MapPin, Phone, Heart, CalendarPlus, Loader2, UserRound, Check, Star } from 'lucide-vue-next'
 import { findCategory } from '@/types/itinerary'
 import { useStorageStore } from '@/stores/storageStore'
 import { placeService } from '@/api/placeService'
@@ -49,6 +49,18 @@ const reviewCount = computed(() => {
   const v = Number(data.value?.reviewCount)
   return Number.isFinite(v) ? v : null
 })
+
+// 리뷰 작성/수정/삭제 시 모달 헤더와 원본 아이템(검색/좋아요/AI 카드)에 즉시 반영
+function onReviewsChanged({ avgRating: avg, reviewCount: cnt }) {
+  if (data.value) {
+    data.value.avgRating = avg
+    data.value.reviewCount = cnt
+  }
+  if (props.item && typeof props.item === 'object') {
+    props.item.avgRating = avg
+    props.item.reviewCount = cnt
+  }
+}
 
 // 열릴 때 기본 정보 즉시 표시 후 GET /places/{placeId} 로 개요/전화/좌표 보강
 watch(() => props.item, async (item) => {
@@ -146,11 +158,8 @@ watch(() => props.item, async (item) => {
               </div>
 
               <!-- 일정 정보(읽기 전용) -->
-              <div v-if="!editable && (data.time || data.cost)" class="flex items-center gap-3 text-[12px] text-slate-500 dark:text-slate-400">
-                <span v-if="data.time" class="inline-flex items-center gap-1">
-                  <Clock :size="13" class="text-slate-400" /> {{ data.time }}
-                </span>
-                <span v-if="data.cost" class="font-semibold text-primary">{{ won(data.cost) }}</span>
+              <div v-if="!editable && data.cost" class="flex items-center gap-3 text-[12px] text-slate-500 dark:text-slate-400">
+                <span class="font-semibold text-primary">{{ won(data.cost) }}</span>
               </div>
 
               <div
@@ -176,9 +185,6 @@ watch(() => props.item, async (item) => {
 
               <!-- 비용/메모 편집 (타임라인 아이템) -->
               <div v-if="editable" class="space-y-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 p-3">
-                <div v-if="data.time" class="flex items-center gap-1.5 text-[12px] text-slate-500 dark:text-slate-400">
-                  <Clock :size="13" class="text-slate-400" /> {{ data.time }}
-                </div>
                 <label class="block">
                   <span class="text-[11px] font-medium text-slate-400 dark:text-slate-500">비용 (원)</span>
                   <input
@@ -231,7 +237,7 @@ watch(() => props.item, async (item) => {
 
               <!-- 리뷰 -->
               <div v-if="reviewPlaceId" class="pt-2 border-t border-slate-100 dark:border-slate-800">
-                <PlaceReviews :place-id="reviewPlaceId" />
+                <PlaceReviews :place-id="reviewPlaceId" @changed="onReviewsChanged" />
               </div>
             </div>
           </div>

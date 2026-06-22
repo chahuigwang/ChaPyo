@@ -8,6 +8,8 @@ import { useToastStore } from '@/stores/toastStore'
 const props = defineProps({
   placeId: { type: [Number, String], default: null },
 })
+// 리뷰 목록이 바뀔 때마다 평균 평점/개수를 상위(상세 모달 → 카드)로 전파해 실시간 반영
+const emit = defineEmits(['changed'])
 
 const auth = useAuthStore()
 const toast = useToastStore()
@@ -37,6 +39,11 @@ const avgRating = computed(() => {
   if (!reviews.value.length) return 0
   const sum = reviews.value.reduce((s, r) => s + (Number(r.rating) || 0), 0)
   return Math.round((sum / reviews.value.length) * 10) / 10
+})
+
+// 리뷰가 로드/작성/수정/삭제될 때마다 최신 평점·개수를 상위로 전달
+watch(reviews, () => {
+  emit('changed', { avgRating: avgRating.value, reviewCount: reviews.value.length })
 })
 
 function formatDate(iso) {

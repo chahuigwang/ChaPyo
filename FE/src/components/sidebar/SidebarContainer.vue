@@ -9,6 +9,7 @@ import {
   Sun,
   Moon,
   Heart,
+  Star,
   BotMessageSquare,
   Search,
   MapPin,
@@ -22,6 +23,7 @@ import ProfileFlyout from '@/components/sidebar/ProfileFlyout.vue'
 import StorageFlyout from '@/components/sidebar/storage/StorageFlyout.vue'
 import SearchFlyout from '@/components/sidebar/search/SearchFlyout.vue'
 import PlanFlyout from '@/components/sidebar/PlanFlyout.vue'
+import MyReviewsFlyout from '@/components/sidebar/reviews/MyReviewsFlyout.vue'
 
 const router = useRouter()
 const ui = useUiStore()
@@ -50,6 +52,7 @@ const PANEL_MAP = {
   plan: markRaw(PlanFlyout),
   profile: markRaw(ProfileFlyout),
   storage: markRaw(StorageFlyout),
+  reviews: markRaw(MyReviewsFlyout),
 }
 const currentPanel = computed(() => PANEL_MAP[activePanel.value] ?? null)
 </script>
@@ -106,6 +109,13 @@ const currentPanel = computed(() => PANEL_MAP[activePanel.value] ?? null)
           title="좋아요 리스트"
         >
           <Heart :size="18" />
+        </button>
+        <button
+          @click="ui.togglePanel('reviews')"
+          :class="isActive('reviews') ? railBtnActive : railBtn"
+          title="내 리뷰"
+        >
+          <Star :size="18" />
         </button>
         <button
           @click="ui.togglePanel('profile')"

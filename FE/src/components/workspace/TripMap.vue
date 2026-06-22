@@ -108,12 +108,34 @@ async function initMap() {
       center: new kakao.maps.LatLng(37.5665, 126.9780),
       level: 6,
     })
+    restrictToKorea(kakao)
     await resolveCoords(props.showAll ? allDayItems.value : sortedItems.value)
     renderRoute()
   } catch (err) {
     console.error('[TripMap] Kakao SDK failed to load', err)
     sdkError.value = true
   }
+}
+
+// 지도를 대한민국 범위로 제한: 너무 멀리 축소하지 못하게 하고(최대 레벨),
+// 중심이 한반도 경계 밖으로 나가면 다시 안쪽으로 끌어당긴다.
+const KOREA = { minLat: 33.0, maxLat: 38.9, minLng: 124.5, maxLng: 132.0 }
+function restrictToKorea(kakao) {
+  if (!mapInstance) return
+  mapInstance.setMaxLevel(12) // 전국이 한 화면에 들어오는 수준까지만 축소 허용
+  const clampCenter = () => {
+    const c = mapInstance.getCenter()
+    const lat = c.getLat()
+    const lng = c.getLng()
+    const nLat = Math.min(KOREA.maxLat, Math.max(KOREA.minLat, lat))
+    const nLng = Math.min(KOREA.maxLng, Math.max(KOREA.minLng, lng))
+    if (nLat !== lat || nLng !== lng) {
+      mapInstance.setCenter(new kakao.maps.LatLng(nLat, nLng))
+    }
+  }
+  kakao.maps.event.addListener(mapInstance, 'drag', clampCenter)
+  kakao.maps.event.addListener(mapInstance, 'dragend', clampCenter)
+  kakao.maps.event.addListener(mapInstance, 'zoom_changed', clampCenter)
 }
 
 function clearOverlays() {
@@ -140,6 +162,9 @@ function buildPinEl(num, name, itemId, color) {
 
 // 현재 좌표 구성의 지문. 동일하면 다시 그리지 않아 폴링 시 지도 깜빡임/점프를 막는다.
 let lastSig = ''
+// 마지막으로 화면을 맞춘(setBounds) 좌표 지문. 좌표가 바뀐 경우에만 다시 맞춘다.
+// (경로 표시/숨김 토글은 좌표가 그대로이므로 화면이 움직이지 않는다)
+let lastFitSig = ''
 function routeSignature(items) {
   return items.map((i) => `${i.id}:${i.lat}:${i.lng}`).join('|')
 }
@@ -203,13 +228,17 @@ function renderRoute() {
       polylines.push({ pl, color: pinColor, segIdx: i })
     }
   }
-  if (pts.length === 1) {
-    mapInstance.setCenter(pts[0])
-    if (mapInstance.getLevel() > 5) mapInstance.setLevel(5)
-  } else {
-    const bounds = new kakao.maps.LatLngBounds()
-    pts.forEach((p) => bounds.extend(p))
-    mapInstance.setBounds(bounds)
+  // 좌표 구성이 바뀐 경우에만 화면을 다시 맞춘다. 단순 경로 토글 시에는 시점 고정.
+  if (sig !== lastFitSig) {
+    lastFitSig = sig
+    if (pts.length === 1) {
+      mapInstance.setCenter(pts[0])
+      if (mapInstance.getLevel() > 5) mapInstance.setLevel(5)
+    } else {
+      const bounds = new kakao.maps.LatLngBounds()
+      pts.forEach((p) => bounds.extend(p))
+      mapInstance.setBounds(bounds)
+    }
   }
   applyHoverHighlight(hoveredItemId.value)
 }

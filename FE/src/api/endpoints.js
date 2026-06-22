@@ -37,5 +37,6 @@ export const ENDPOINTS = {
     create: (placeId) => `/api/v1/places/${placeId}/reviews`,
     update: (placeId, reviewId) => `/api/v1/places/${placeId}/reviews/${reviewId}`,
     remove: (placeId, reviewId) => `/api/v1/places/${placeId}/reviews/${reviewId}`,
+    mine: '/api/v1/reviews/me',
   },
 }

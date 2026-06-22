@@ -47,4 +47,17 @@ export const reviewService = {
   async remove(placeId, reviewId) {
     await http.delete(ENDPOINTS.reviews.remove(placeId, reviewId))
   },
+
+  /**
+   * 내가 쓴 리뷰 목록. GET /api/v1/reviews/me?page&size
+   * @returns {Promise<{ content: Array, hasNext: boolean }>}
+   *   content: { reviewId, placeId, placeTitle, placeImage, content, rating, createdAt }
+   */
+  async mine({ page = 0, size = 50 } = {}) {
+    const { data } = await http.get(ENDPOINTS.reviews.mine, { page, size })
+    return {
+      content: data?.data?.content ?? [],
+      hasNext: data?.data?.hasNext ?? false,
+    }
+  },
 }

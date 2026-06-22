@@ -1,15 +1,25 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { Star, Loader2, MessageSquare } from 'lucide-vue-next'
+import { Star, Loader2, MessageSquare, Pencil, Trash2, Check, X } from 'lucide-vue-next'
 import { reviewService } from '@/api/reviewService'
 import { useAuthStore } from '@/stores/authStore'
-import PlaceDetailModal from '@/components/common/PlaceDetailModal.vue'
+import { useToastStore } from '@/stores/toastStore'
 
 const auth = useAuthStore()
+const toast = useToastStore()
 
 const reviews = ref([])
 const loading = ref(false)
-const detailItem = ref(null)
+const submitting = ref(false)
+
+// 수정 상태
+const editingId = ref(null)
+const editRating = ref(0)
+const editHover = ref(0)
+const editContent = ref('')
+
+// 삭제 확인 상태 (한 번 더 클릭 시 삭제)
+const pendingDeleteId = ref(null)
 
 function formatDate(iso) {
   if (!iso) return ''
@@ -31,14 +41,48 @@ async function load() {
   }
 }
 
-// 리뷰 클릭 → 해당 장소 상세 모달(거기서 리뷰 수정/삭제 가능)
-function openPlace(r) {
-  detailItem.value = {
-    placeId: r.placeId,
-    id: String(r.placeId),
-    name: r.placeTitle,
-    firstImage: r.placeImage,
-    category: 'place',
+function startEdit(r) {
+  pendingDeleteId.value = null
+  editingId.value = r.reviewId
+  editRating.value = r.rating
+  editHover.value = 0
+  editContent.value = r.content
+}
+function cancelEdit() { editingId.value = null }
+
+async function saveEdit(r) {
+  if (submitting.value) return
+  if (!editRating.value || !editContent.value.trim()) { toast.error('별점과 내용을 입력해주세요.'); return }
+  submitting.value = true
+  try {
+    await reviewService.update(r.placeId, r.reviewId, {
+      content: editContent.value.trim(),
+      rating: editRating.value,
+    })
+    // 서버 재조회 없이 목록에 즉시 반영
+    r.content = editContent.value.trim()
+    r.rating = editRating.value
+    editingId.value = null
+    toast.success?.('리뷰를 수정했습니다.')
+  } catch (err) {
+    toast.error(err?.message ?? '리뷰 수정에 실패했습니다.')
+  } finally {
+    submitting.value = false
+  }
+}
+
+function requestDelete(r) { pendingDeleteId.value = r.reviewId }
+function cancelDelete() { pendingDeleteId.value = null }
+
+async function remove(r) {
+  if (pendingDeleteId.value !== r.reviewId) { requestDelete(r); return }
+  try {
+    await reviewService.remove(r.placeId, r.reviewId)
+    reviews.value = reviews.value.filter((x) => x.reviewId !== r.reviewId)
+    pendingDeleteId.value = null
+    toast.success?.('리뷰를 삭제했습니다.')
+  } catch (err) {
+    toast.error(err?.message ?? '리뷰 삭제에 실패했습니다.')
   }
 }
 
@@ -55,7 +99,7 @@ onMounted(load)
         </span>
       </div>
       <p class="mt-2 text-[11px] text-slate-400 dark:text-slate-500 leading-relaxed">
-        내가 작성한 리뷰입니다. 항목을 누르면 장소 상세에서 수정/삭제할 수 있어요.
+        내가 작성한 리뷰입니다. 항목에서 바로 수정/삭제할 수 있어요.
       </p>
     </header>
 
@@ -65,12 +109,10 @@ onMounted(load)
       </div>
 
       <template v-else>
-        <button
+        <div
           v-for="r in reviews"
           :key="r.reviewId"
-          @click="openPlace(r)"
-          class="w-full text-left rounded-xl bg-white dark:bg-slate-800 shadow-sm overflow-hidden
-                 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex gap-0"
+          class="w-full rounded-xl bg-white dark:bg-slate-800 shadow-sm overflow-hidden flex gap-0"
         >
           <!-- 장소 이미지 -->
           <div class="shrink-0 w-20 self-stretch min-h-20 bg-slate-100 dark:bg-slate-700 overflow-hidden">
@@ -93,17 +135,71 @@ onMounted(load)
               <h3 class="text-[13px] font-bold text-slate-900 dark:text-slate-100 truncate">{{ r.placeTitle }}</h3>
               <span class="shrink-0 text-[11px] text-slate-400">{{ formatDate(r.createdAt) }}</span>
             </div>
-            <div class="mt-1 flex items-center">
-              <Star
-                v-for="n in 5" :key="n" :size="12"
-                :class="n <= r.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-200 dark:text-slate-600'"
+
+            <!-- 수정 모드 -->
+            <template v-if="editingId === r.reviewId">
+              <div class="mt-1.5 flex items-center gap-0.5">
+                <button
+                  v-for="n in 5" :key="n" type="button"
+                  @click="editRating = n"
+                  @mouseenter="editHover = n" @mouseleave="editHover = 0"
+                  class="p-0.5"
+                >
+                  <Star :size="16" :class="n <= (editHover || editRating) ? 'fill-amber-400 text-amber-400' : 'text-slate-300 dark:text-slate-600'" />
+                </button>
+              </div>
+              <textarea
+                v-model="editContent" rows="2"
+                class="mt-1 w-full rounded-lg bg-slate-50 dark:bg-slate-900 px-2.5 py-1.5 text-[12px] text-slate-900 dark:text-slate-100 resize-none outline-none focus:ring-2 focus:ring-primary/30"
               />
-            </div>
-            <p class="mt-1 text-[12px] text-slate-600 dark:text-slate-300 line-clamp-2 leading-relaxed whitespace-pre-wrap">
-              {{ r.content }}
-            </p>
+              <div class="flex gap-1.5 mt-1.5">
+                <button @click="saveEdit(r)" :disabled="submitting" class="flex-1 h-7 rounded-lg bg-primary text-white text-[12px] font-semibold flex items-center justify-center gap-1 disabled:opacity-50">
+                  <Check :size="12" /> 저장
+                </button>
+                <button @click="cancelEdit" class="flex-1 h-7 rounded-lg bg-slate-100 dark:bg-slate-700 text-[12px] text-slate-600 dark:text-slate-300 flex items-center justify-center gap-1">
+                  <X :size="12" /> 취소
+                </button>
+              </div>
+            </template>
+
+            <!-- 읽기 모드 -->
+            <template v-else>
+              <div class="mt-1 flex items-center justify-between gap-2">
+                <div class="flex items-center">
+                  <Star
+                    v-for="n in 5" :key="n" :size="12"
+                    :class="n <= r.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-200 dark:text-slate-600'"
+                  />
+                </div>
+                <div class="flex items-center gap-1 shrink-0">
+                  <button @click="startEdit(r)" class="p-1 rounded text-slate-400 hover:text-primary transition-colors" title="수정">
+                    <Pencil :size="13" />
+                  </button>
+                  <button
+                    v-if="pendingDeleteId === r.reviewId"
+                    @click="remove(r)"
+                    @mouseleave="cancelDelete"
+                    class="px-2 h-6 rounded bg-red-500 text-white text-[11px] font-semibold hover:bg-red-600 transition-colors"
+                    title="한 번 더 클릭하면 삭제됩니다"
+                  >
+                    삭제
+                  </button>
+                  <button
+                    v-else
+                    @click="remove(r)"
+                    class="p-1 rounded text-slate-400 hover:text-red-500 transition-colors"
+                    title="삭제"
+                  >
+                    <Trash2 :size="13" />
+                  </button>
+                </div>
+              </div>
+              <p class="mt-1 text-[12px] text-slate-600 dark:text-slate-300 line-clamp-2 leading-relaxed whitespace-pre-wrap">
+                {{ r.content }}
+              </p>
+            </template>
           </div>
-        </button>
+        </div>
 
         <div
           v-if="!reviews.length"
@@ -114,12 +210,5 @@ onMounted(load)
         </div>
       </template>
     </div>
-
-    <!-- 장소 상세 모달 (리뷰 수정/삭제) -->
-    <PlaceDetailModal
-      :item="detailItem"
-      :show-add="false"
-      @close="detailItem = null"
-    />
   </div>
 </template>

@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { X, MapPin, Phone, Heart, CalendarPlus, Loader2, UserRound, Check, Star } from 'lucide-vue-next'
+import { X, MapPin, Phone, Heart, Loader2, UserRound, Check, Star } from 'lucide-vue-next'
 import { findCategory } from '@/types/itinerary'
 import { useStorageStore } from '@/stores/storageStore'
 import { placeService } from '@/api/placeService'
@@ -224,15 +224,6 @@ watch(() => props.item, async (item) => {
               <div v-if="storage.likeCountOf(data) > 0" class="flex items-center gap-1 text-[12px] text-slate-400">
                 <Heart :size="12" class="fill-red-400 text-red-400" />
                 {{ storage.likeCountOf(data).toLocaleString() }}
-              </div>
-
-              <div v-if="showAdd" class="pt-1">
-                <button
-                  @click="emit('add', item)"
-                  class="w-full h-10 rounded-xl bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-brand-600 transition-colors flex items-center justify-center gap-2"
-                >
-                  <CalendarPlus :size="15" /> 일정에 추가
-                </button>
               </div>
 
               <!-- 리뷰 -->

@@ -570,6 +570,9 @@ export const useTripStore = defineStore('trip', {
       if (!list) return
       // 자리 표시용으로 삽입된 raw 제거
       if (index >= 0 && index < list.length) list.splice(index, 1)
+      const at = Math.max(0, Math.min(index, list.length))
+      // 삽입 위치 기준 기존 항목들의 serverId 순서 스냅샷(재정렬 복원용)
+      const prevServerIds = list.map((it) => it.serverId).filter((v) => v != null)
       const placeId = resolvePlaceId(rawPayload)
       this._cachePlace(placeId, rawPayload)
       const item = new TravelItem({
@@ -580,7 +583,6 @@ export const useTripStore = defineStore('trip', {
         address: rawPayload.address ?? rawPayload.addr1 ?? '',
         firstImage: rawPayload.firstImage ?? rawPayload.firstImage1 ?? null,
       })
-      const at = Math.max(0, Math.min(index, list.length))
       list.splice(at, 0, item)
       trip.touch()
       if (placeId && isServerId(trip.id)) {
@@ -593,12 +595,42 @@ export const useTripStore = defineStore('trip', {
           memo: item.memo,
         })
           .then(() => this.fetchDetail(trip.id))
+          // fetchDetail 은 서버 itemOrder 로 재정렬한다. 서버가 추가 항목을 맨 뒤에
+          // 부여하면 드롭 위치가 무시되므로, 드롭한 위치(at)로 다시 맞춰 영속화한다.
+          .then(() => this._reorderAfterInsert(trip.id, date, prevServerIds, placeId, at))
           .catch((err) => {
             this.lastError = err?.message ?? 'addItem failed'
             useToastStore().error('일정 추가에 실패했습니다.')
           })
       }
       return item
+    },
+    // 드롭으로 추가된 항목을 서버 재조회 후에도 드롭한 위치(at)에 유지한다.
+    _reorderAfterInsert(planId, date, prevServerIds, placeId, at) {
+      const trip = this.currentTrip
+      if (!trip || trip.id !== String(planId)) return
+      const list = trip.itemsByDay[date]
+      if (!list?.length) return
+      const prevSet = new Set(prevServerIds)
+      // 새로 생성된 항목 = 이전에 없던 serverId (placeId 우선 매칭)
+      const newItem =
+        list.find((it) => it.placeId === placeId && !prevSet.has(it.serverId)) ??
+        list.find((it) => !prevSet.has(it.serverId))
+      if (!newItem) return
+      // 기존 항목을 원래 순서대로 복원하고, 새 항목을 at 위치에 끼워 넣는다.
+      const existing = prevServerIds
+        .map((sid) => list.find((it) => it.serverId === sid))
+        .filter(Boolean)
+      const ordered = [...existing]
+      ordered.splice(Math.max(0, Math.min(at, ordered.length)), 0, newItem)
+      // 누락된 항목(혹시 모를)을 뒤에 보존
+      for (const it of list) if (!ordered.includes(it)) ordered.push(it)
+      const same = ordered.length === list.length && ordered.every((it, i) => it === list[i])
+      trip.itemsByDay[date] = ordered
+      if (!same) {
+        trip.touch()
+        this._persistItemOrders(planId, ordered)
+      }
     },
   },
 })

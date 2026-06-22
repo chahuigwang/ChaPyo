@@ -458,11 +458,15 @@ onBeforeUnmount(() => {
 watch(itemsMissingCoords, async (items) => {
   if (!items.length || !window.kakao?.maps?.services) return
   await resolveCoords(items)
-  renderRoute()
+  // 둘러보기 중에는 좌표/메타 보강으로 인한 재렌더를 막아 트레일 성장 애니메이션이
+  // 같은 구간을 반복해서 다시 그리지 않도록 한다(둘러보기 렌더는 tourActiveId 만 구동).
+  if (!ui.tourMode) renderRoute()
 }, { deep: true })
-watch(positionedItems, renderRoute, { deep: true })
-watch(selectedDate, renderRoute)
-watch(allDayItems, () => { if (props.showAll) renderRoute() }, { deep: true })
+// 둘러보기 중에는 deep 워치(좌표/메타 변동)로 renderTour 가 재호출되어 같은 선이
+// 여러 번 그어지는 현상이 발생 → tourMode 일 때는 건너뛴다.
+watch(positionedItems, () => { if (!ui.tourMode) renderRoute() }, { deep: true })
+watch(selectedDate, () => { if (!ui.tourMode) renderRoute() })
+watch(allDayItems, () => { if (props.showAll && !ui.tourMode) renderRoute() }, { deep: true })
 watch(hoveredItemId, (id) => applyHoverHighlight(id))
 watch(hoveredTransitId, (id) => applyTransitHighlight(id))
 // 드래그 시작/종료 시 라이브 연출(색/디밍/오버레이) 갱신 — 좌표 동일해도 강제 재렌더

@@ -47,6 +47,14 @@ public class SwaggerConfig {
 	}
 
 	@Bean
+	GroupedOpenApi reviewOpenApi() {
+		return GroupedOpenApi.builder()
+				.group("Review 관련 API")
+				.pathsToMatch("/api/v1/reviews/**", "/api/v1/places/{placeId}/reviews/**")
+				.build();
+	}
+
+	@Bean
 	GroupedOpenApi authOpenApi() {
 		return GroupedOpenApi.builder()
 				.group("Auth 관련 API")

@@ -53,4 +53,17 @@
         WHERE review_id = #{reviewId}
     </delete>
 
+    <select id="findReviewsByUserId" resultType="MyReviewResponse">
+        SELECT r.review_id, r.place_id,
+               p.title AS place_title,
+               p.first_image1 AS place_image,
+               r.content, r.rating, r.created_at
+        FROM reviews r
+                 JOIN places p ON r.place_id = p.place_id
+        WHERE r.user_id = #{userId}
+        ORDER BY r.created_at DESC
+        LIMIT #{limitSize}
+            OFFSET #{offset}
+    </select>
+
 </mapper>

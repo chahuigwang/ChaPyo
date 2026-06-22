@@ -1,5 +1,6 @@
 package com.chapyo.place.repository;
 
+import com.chapyo.place.dto.response.MyReviewResponse;
 import com.chapyo.place.dto.response.ReviewResponse;
 import com.chapyo.place.entity.Review;
 import java.util.List;
@@ -15,4 +16,5 @@ public interface ReviewMapper {
     boolean existsReviewByPlaceId(@Param("reviewId") Long reviewId, @Param("placeId") Long placeId);
     void updateReview(Review review);
     void deleteReview(Long reviewId);
+    List<MyReviewResponse> findReviewsByUserId(@Param("userId") Long userId, @Param("limitSize") int limitSize, @Param("offset") int offset);
 }

@@ -2,6 +2,7 @@ package com.chapyo.place.service;
 
 import com.chapyo.common.exception.CustomException;
 import com.chapyo.place.dto.request.ReviewRequest;
+import com.chapyo.place.dto.response.MyReviewResponse;
 import com.chapyo.place.dto.response.PageResponse;
 import com.chapyo.place.dto.response.ReviewResponse;
 import com.chapyo.place.entity.Review;
@@ -77,5 +78,13 @@ public class ReviewServiceImpl implements ReviewService {
         }
 
         reviewMapper.deleteReview(reviewId);
+    }
+
+    @Override
+    public PageResponse<MyReviewResponse> getMyReviews(Long userId, int page, int size) {
+        int limitSize = size + 1;
+        int offset = page * size;
+        List<MyReviewResponse> reviews = reviewMapper.findReviewsByUserId(userId, limitSize, offset);
+        return new PageResponse<>(reviews, size);
     }
 }

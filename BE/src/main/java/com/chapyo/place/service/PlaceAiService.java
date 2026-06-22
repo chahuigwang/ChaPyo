@@ -5,8 +5,12 @@ import com.chapyo.place.dto.QueryAnalysis;
 import com.chapyo.place.dto.request.PlaceAiRequest;
 import com.chapyo.place.dto.response.PlaceAiResponse;
 import com.chapyo.place.dto.response.PlaceResponse;
+import com.chapyo.place.repository.AreaMapper;
+import com.chapyo.place.repository.DistrictMapper;
 import com.chapyo.place.repository.PlaceMapper;
+import jakarta.annotation.PostConstruct;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -27,54 +31,28 @@ public class PlaceAiService {
     private final ChatClient chatClient;
     private final VectorStore vectorStore;
     private final PlaceMapper placeMapper;
+    private final AreaMapper areaMapper;
+    private final DistrictMapper districtMapper;
 
-    private static final Map<String, Integer> AREA_CODE_MAP = Map.ofEntries(
-        Map.entry("서울", 11),
-        Map.entry("부산", 26),
-        Map.entry("대구", 27),
-        Map.entry("인천", 28),
-        Map.entry("광주", 29),
-        Map.entry("대전", 30),
-        Map.entry("울산", 31),
-        Map.entry("경기", 41),
-        Map.entry("충북", 43),
-        Map.entry("충남", 44),
-        Map.entry("전남", 46),
-        Map.entry("경북", 47),
-        Map.entry("경남", 48),
-        Map.entry("제주", 50),
-        Map.entry("강원", 51),
-        Map.entry("전북", 52),
-        Map.entry("세종", 36110)
-    );
+    private Map<String, Integer> AREA_CODE_MAP;
+    private Map<String, Integer> DISTRICT_CODE_MAP;
 
-    private static final Map<String, Integer> DISTRICT_CODE_MAP = Map.ofEntries(
-        Map.entry("종로구", 110),
-        Map.entry("중구", 140),
-        Map.entry("용산구", 170),
-        Map.entry("성동구", 200),
-        Map.entry("광진구", 215),
-        Map.entry("동대문구", 230),
-        Map.entry("중랑구", 260),
-        Map.entry("성북구", 290),
-        Map.entry("강북구", 305),
-        Map.entry("도봉구", 320),
-        Map.entry("노원구", 350),
-        Map.entry("은평구", 380),
-        Map.entry("서대문구", 410),
-        Map.entry("마포구", 440),
-        Map.entry("양천구", 470),
-        Map.entry("강서구", 500),
-        Map.entry("구로구", 530),
-        Map.entry("금천구", 545),
-        Map.entry("영등포구", 560),
-        Map.entry("동작구", 590),
-        Map.entry("관악구", 620),
-        Map.entry("서초구", 650),
-        Map.entry("강남구", 680),
-        Map.entry("송파구", 710),
-        Map.entry("강동구", 740)
-    );
+    @PostConstruct
+    public void init() {
+        AREA_CODE_MAP = areaMapper.findAll().stream()
+                .collect(Collectors.toMap(
+                        m -> (String) m.get("name"),
+                        m -> ((Number) m.get("area_code")).intValue()
+                ));
+        DISTRICT_CODE_MAP = districtMapper.findAll().stream()
+                .collect(Collectors.toMap(
+                        m -> (String) m.get("name"),
+                        m -> ((Number) m.get("district_code")).intValue(),
+                        (a, b) -> a  // 동명 시군구 충돌 시 첫 번째 값 사용
+                ));
+        log.debug("지역 코드 맵 초기화 완료: 광역시도 {}개, 시군구 {}개",
+                AREA_CODE_MAP.size(), DISTRICT_CODE_MAP.size());
+    }
 
     public PlaceAiResponse recommend(Long userId, PlaceAiRequest request) {
         // 1. HyDE + 지역 추출
@@ -82,7 +60,7 @@ public class PlaceAiService {
             .system("""
                 다음 세 가지를 JSON으로만 반환하세요. JSON 외 다른 텍스트는 절대 포함하지 마세요.
                 1. hypotheticalDoc: 사용자가 좋아할 만한 장소 소개글 2~3문장 (장소명 지어내지 말 것)
-                2. areaName: 요청에서 광역시도 추출 (서울, 부산 등. 없으면 null)
+                2. areaName: 요청에서 광역시도 정식 명칭 추출 (서울특별시, 부산광역시, 제주특별자치도 등. 없으면 null)
                 3. districtName: 요청에서 시군구 추출 (강남구, 해운대구 등. 없으면 null)
                 """)
             .user("페르소나: %s\n요청: %s".formatted(request.getPersona(), request.getText()))

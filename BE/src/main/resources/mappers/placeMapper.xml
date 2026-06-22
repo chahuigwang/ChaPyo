@@ -55,9 +55,11 @@
 				   SELECT 1 FROM place_likes
 			       WHERE place_id = p.place_id AND user_id = #{userId}
 			   ) AS liked,
+		       COUNT(DISTINCT pl.user_id) AS like_count,
 		       AVG(r.rating) AS avg_rating
 		FROM places p
-				 LEFT JOIN reviews r ON p.place_id = r.place_id
+				 LEFT JOIN place_likes pl ON p.place_id = pl.place_id
+			     LEFT JOIN reviews r ON p.place_id = r.place_id
 		WHERE p.place_id = #{placeId}
 		GROUP BY p.place_id
 	</select>
@@ -78,22 +80,26 @@
 		WHERE place_id = #{placeId} AND user_id = #{userId}
 	</delete>
 
-	<select id="findById" resultType="PlaceDetailResponse">
-		SELECT p.place_id, p.content_id, p.title, p.addr1, p.addr2,
-		       p.latitude, p.longitude, p.first_image1, p.first_image2,
-		       p.area_code, p.district_code, p.category_code1, p.category_code2,
-		       p.zipcode, p.tel, p.overview,
-		       EXISTS (
-				   SELECT 1 FROM place_likes
-			       WHERE place_id = p.place_id AND user_id = #{userId}
-			   ) AS liked,
-		       COUNT(DISTINCT pl.user_id) AS like_count,
-		       AVG(r.rating) AS avg_rating
+	<select id="findLikedPlaces" resultType="PlaceResponse">
+		SELECT
+			p.place_id,
+			p.title,
+			p.addr1,
+			p.first_image1,
+			p.category_code1,
+			p.category_code2,
+			COUNT(DISTINCT pl2.user_id) AS like_count,
+			true AS liked,
+			AVG(r.rating) AS avg_rating
 		FROM places p
-				 LEFT JOIN place_likes pl ON p.place_id = pl.place_id
+				 JOIN place_likes pl ON p.place_id = pl.place_id AND pl.user_id = #{userId}
+			     LEFT JOIN place_likes pl2 ON p.place_id = pl2.place_id
 			     LEFT JOIN reviews r ON p.place_id = r.place_id
-		WHERE p.place_id = #{placeId}
+		WHERE p.addr1 IS NOT NULL AND p.addr1 != ''
 		GROUP BY p.place_id
+		ORDER BY MIN(pl.created_at) DESC
+		LIMIT #{limitSize}
+			OFFSET #{offset}
 	</select>
 
 	<select id="countLikes" resultType="long">
@@ -123,11 +129,13 @@
 	<select id="selectByIds" resultType="PlaceResponse">
 		SELECT p.place_id, p.title, p.addr1, p.first_image1,
 		p.category_code1, p.category_code2,
-		COUNT(pl.user_id) AS like_count,
+		COUNT(DISTINCT pl.user_id) AS like_count,
 		EXISTS (SELECT 1 FROM place_likes
-		WHERE place_id = p.place_id AND user_id = #{userId}) AS liked
+		WHERE place_id = p.place_id AND user_id = #{userId}) AS liked,
+		AVG(r.rating) AS avg_rating
 		FROM places p
 		LEFT JOIN place_likes pl ON p.place_id = pl.place_id
+		LEFT JOIN reviews r ON p.place_id = r.place_id
 		WHERE p.place_id IN
 		<foreach collection="placeIds" item="id" open="(" separator="," close=")">#{id}</foreach>
 		GROUP BY p.place_id

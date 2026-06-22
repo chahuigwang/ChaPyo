@@ -42,13 +42,13 @@ public class PlaceAiService {
         AREA_CODE_MAP = areaMapper.findAll().stream()
                 .collect(Collectors.toMap(
                         m -> (String) m.get("name"),
-                        m -> ((Number) m.get("area_code")).intValue()
+                        m -> Integer.parseInt(m.get("area_code").toString())
                 ));
         DISTRICT_CODE_MAP = districtMapper.findAll().stream()
                 .collect(Collectors.toMap(
                         m -> (String) m.get("name"),
-                        m -> ((Number) m.get("district_code")).intValue(),
-                        (a, b) -> a  // 동명 시군구 충돌 시 첫 번째 값 사용
+                        m -> Integer.parseInt(m.get("district_code").toString()),
+                        (a, b) -> a
                 ));
         log.debug("지역 코드 맵 초기화 완료: 광역시도 {}개, 시군구 {}개",
                 AREA_CODE_MAP.size(), DISTRICT_CODE_MAP.size());

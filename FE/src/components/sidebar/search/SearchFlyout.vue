@@ -3,22 +3,16 @@ import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { storeToRefs } from 'pinia'
 import { Search, X, Loader2, RotateCcw, ChevronDown } from 'lucide-vue-next'
 import { useSearchStore, PROVINCES, PLACE_TYPE_GROUPS } from '@/stores/searchStore'
-import { useStorageStore } from '@/stores/storageStore'
-import { useChatStore } from '@/stores/chatStore'
 import { useTripStore } from '@/stores/tripStore'
+import draggable from 'vuedraggable'
 import DiscoverPlaceCard from '@/components/common/DiscoverPlaceCard.vue'
 import PlaceDetailModal from '@/components/common/PlaceDetailModal.vue'
 
 const search = useSearchStore()
-const storage = useStorageStore()
-const chat = useChatStore()
 const trip = useTripStore()
 
-function onSearchDragStart(e, item) {
-  storage.setDragging({ source: 'search', item })
-  try { e.dataTransfer.effectAllowed = 'copy'; e.dataTransfer.setData('text/plain', item.id) } catch {}
-}
-function onSearchDragEnd() { storage.clearDragging() }
+// 플라이아웃 → 타임라인 clone 시 원본 참조 공유 방지 (얕은 복사본을 일정으로 삽입)
+function cloneCard(item) { return { ...item } }
 const { keyword, provinceId, districtId, typeId, results, hasNext, loading, searched, searchError, districts } = storeToRefs(search)
 
 const currentPage = ref(0)
@@ -304,15 +298,22 @@ function onDistrictOutside(e) {
 
       <template v-else>
 
-        <DiscoverPlaceCard
-          v-for="item in results"
-          :key="item.id"
-          :item="item"
-          :draggable="true"
-          @detail="detailItem = $event"
-          @dragstart="onSearchDragStart($event, item)"
-          @dragend="onSearchDragEnd"
-        />
+        <draggable
+          :list="results"
+          item-key="id"
+          :group="{ name: 'itinerary', pull: 'clone', put: false }"
+          :sort="false"
+          :clone="cloneCard"
+          class="flex flex-col gap-3"
+        >
+          <template #item="{ element: item }">
+            <DiscoverPlaceCard
+              :item="item"
+              :draggable="true"
+              @detail="detailItem = $event"
+            />
+          </template>
+        </draggable>
 
         <div ref="observerTarget" class="h-4 w-full" />
 

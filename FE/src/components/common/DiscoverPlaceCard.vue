@@ -8,7 +8,7 @@ const props = defineProps({
   item: { type: Object, required: true },
   draggable: { type: Boolean, default: false },
 })
-const emit = defineEmits(['detail', 'dragstart', 'dragend'])
+const emit = defineEmits(['detail'])
 
 const storage = useStorageStore()
 
@@ -30,19 +30,14 @@ function toggleLike(e) {
   e.stopPropagation()
   storage.toggleLike(props.item)
 }
-
-function onDragStart(e) { emit('dragstart', e) }
-function onDragEnd(e) { emit('dragend', e) }
 </script>
 
 <template>
   <div
     class="group flex flex-col w-full rounded-xl bg-white dark:bg-slate-800 shadow-sm overflow-hidden
            hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer"
-    :draggable="draggable"
+    :class="draggable ? 'cursor-grab active:cursor-grabbing' : ''"
     @click="emit('detail', item)"
-    @dragstart="onDragStart"
-    @dragend="onDragEnd"
   >
     <!-- Image -->
     <div class="relative w-full h-32 shrink-0 bg-slate-100 dark:bg-slate-700">

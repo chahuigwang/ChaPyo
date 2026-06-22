@@ -4,8 +4,12 @@ import { storeToRefs } from 'pinia'
 import { useStorageStore } from '@/stores/storageStore'
 import { useTripStore } from '@/stores/tripStore'
 import { useChatStore } from '@/stores/chatStore'
+import draggable from 'vuedraggable'
 import DiscoverPlaceCard from '@/components/common/DiscoverPlaceCard.vue'
 import PlaceDetailModal from '@/components/common/PlaceDetailModal.vue'
+
+// 플라이아웃 → 타임라인 clone 시 원본 참조 공유 방지
+function cloneCard(item) { return { ...item } }
 
 const storage = useStorageStore()
 const trip = useTripStore()
@@ -121,15 +125,22 @@ function onPanelDrop(e) {
     </header>
 
     <div class="flex-1 overflow-y-auto px-4 pb-4 space-y-3">
-      <DiscoverPlaceCard
-        v-for="item in filteredItems"
-        :key="item.id"
-        :item="item"
-        :draggable="true"
-        @detail="detailItem = $event"
-        @dragstart="onDragStart($event, item)"
-        @dragend="onDragEnd"
-      />
+      <draggable
+        :list="filteredItems"
+        item-key="id"
+        :group="{ name: 'itinerary', pull: 'clone', put: false }"
+        :sort="false"
+        :clone="cloneCard"
+        class="flex flex-col gap-3"
+      >
+        <template #item="{ element: item }">
+          <DiscoverPlaceCard
+            :item="item"
+            :draggable="true"
+            @detail="detailItem = $event"
+          />
+        </template>
+      </draggable>
 
       <div
         v-if="!filteredItems.length"

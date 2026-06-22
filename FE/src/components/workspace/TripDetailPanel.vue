@@ -1,63 +1,26 @@
 <script setup>
-import { computed, ref, watch, nextTick } from 'vue'
+import { computed, ref, watch, nextTick, onBeforeUnmount } from 'vue'
 import { storeToRefs } from 'pinia'
-import { ChevronDown, Eye, EyeOff } from 'lucide-vue-next'
+import { ChevronDown, Eye, EyeOff, Play, Square, MapPin } from 'lucide-vue-next'
 import TripMap from './TripMap.vue'
 import DayTimeline from './DayTimeline.vue'
 import { useTripStore } from '@/stores/tripStore'
 import { useUiStore } from '@/stores/uiStore'
-import { useStorageStore } from '@/stores/storageStore'
-import { useCollabStore } from '@/stores/collabStore'
 import { dayColorFor } from '@/composables/useDayColor'
+import { findCategory } from '@/types/itinerary'
+
+// 둘러보기 자동 재생 간격(ms). 이 숫자만 바꾸면 즉시 반영됩니다.
+const TOUR_INTERVAL_MS = 2000
 
 const trip = useTripStore()
 const ui = useUiStore()
-const storage = useStorageStore()
-const collab = useCollabStore()
-const { sidebarOpen } = storeToRefs(ui)
+const { sidebarOpen, tourMode } = storeToRefs(ui)
 const { currentTrip, days, selectedDate } = storeToRefs(trip)
 
-// ── Day-level drop zone (collapsed/expanded 날짜 카드에 보관함/다른 날 아이템 드롭) ──
-const dropTargetDay = ref(null)
+const listScroll = ref(null)
 
-function onDayDragOver(e, iso) {
-  // 펼쳐진 날짜는 내부 타임라인이 드래그(순서변경/추가/이동)를 전담 → 바깥 핸들러는 개입하지 않음
-  if (expanded.value.has(iso)) return
-  if (!storage.dragging) return
-  e.preventDefault()
-  e.dataTransfer.dropEffect = storage.dragging.source === 'timeline' ? 'move' : 'copy'
-  dropTargetDay.value = iso
-}
-function onDayDragLeave(e) {
-  if (e.currentTarget.contains(e.relatedTarget)) return
-  dropTargetDay.value = null
-}
-function onDayDrop(e, iso) {
-  // 펼쳐진 날짜는 내부 타임라인이 드롭을 전담
-  if (expanded.value.has(iso)) return
-  e.preventDefault()
-  const p = storage.dragging
-  dropTargetDay.value = null
-  if (!p?.item) { storage.clearDragging(); return }
-
-  if (p.source === 'timeline' && p.fromDate === iso) {
-    // 같은 날 내 순서 변경은 내부 타임라인이 담당 — 여기선 무시
-  } else if (p.source === 'timeline') {
-    trip.moveItemToDate(p.fromDate, iso, p.item.id)
-    collab.pushHistory({ type: 'add', itemName: p.item.name, byName: collab.me.name })
-  } else {
-    trip.addItemToDate(iso, p.item)
-    collab.pushHistory({ type: 'add', itemName: p.item.name, byName: collab.me.name })
-  }
-  storage.clearDragging()
-}
-
-// 드래그가 끝나면(드롭 완료/취소) 외부 날짜 카드의 "여기에 추가" 하이라이트를 항상 해제.
-// (펼쳐진 날짜의 내부 타임라인이 stopPropagation으로 처리한 경우 외부 drop/dragleave가
-//  호출되지 않아 dropTargetDay 가 남는 버그 방지)
-watch(() => storage.dragging, (v) => {
-  if (!v) dropTargetDay.value = null
-})
+// 드래그(순서변경/다른 날 이동/플라이아웃 추가)는 DayTimeline 의 vuedraggable 공유 그룹이 전담.
+// (펼쳐진 날짜에 드롭 가능 — 기본적으로 모든 날이 펼쳐져 있음)
 
 const mapRef = ref(null)
 
@@ -126,13 +89,65 @@ watch(selectedDate, (iso) => {
 function toggleRoute(iso) {
   ui.toggleRouteDay(iso)
 }
+
+// ── 둘러보기(자동 재생) 모드 ──────────────────────────────
+// 여정 순서(Day 순 → 그 날 순서)로 평탄화한 아이템 목록(+Day 정보)
+const tourItems = computed(() => {
+  const t = currentTrip.value
+  if (!t) return []
+  const out = []
+  ;(days.value || []).forEach((iso, idx) => {
+    for (const it of (t.itemsByDay?.[iso] ?? [])) {
+      out.push({ item: it, dayNum: idx + 1, color: dayColorFor(idx) })
+    }
+  })
+  return out
+})
+const tourEnabled = computed(() => tourItems.value.length >= 2)
+// 현재 active 아이템(오른쪽 정보 패널용)
+const activeEntry = computed(() => tourItems.value.find((e) => e.item.id === ui.tourActiveId) ?? null)
+
+let tourTimer = null
+function stopTourTimer() { if (tourTimer) { clearInterval(tourTimer); tourTimer = null } }
+function advanceTour() {
+  const list = tourItems.value
+  const idx = list.findIndex((e) => e.item.id === ui.tourActiveId)
+  const next = idx + 1
+  if (next >= list.length) {
+    // 끝까지 도착 → 자동 종료
+    exitTour()
+    return
+  }
+  ui.setTourActive(list[next].item.id)
+}
+function enterTour() {
+  if (!tourEnabled.value) return
+  expanded.value = new Set((allDays.value || []).map((d) => d.iso))
+  ui.setTourActive(tourItems.value[0].item.id)
+  ui.setTourMode(true)
+  nextTick(() => {
+    listScroll.value?.scrollTo({ top: 0, behavior: 'auto' })
+    mapRef.value?.onRelayout()
+  })
+  stopTourTimer()
+  tourTimer = setInterval(advanceTour, TOUR_INTERVAL_MS)
+}
+function exitTour() {
+  stopTourTimer()
+  ui.setTourMode(false)
+  nextTick(() => mapRef.value?.onRelayout())
+}
+function toggleTour() {
+  tourMode.value ? exitTour() : enterTour()
+}
+onBeforeUnmount(stopTourTimer)
 </script>
 
 <template>
   <div class="flex-1 h-full flex flex-col min-h-0 relative">
     <div class="flex-1 flex min-h-0 overflow-hidden">
       <!-- Left: scrollable accordion itinerary (각 날짜 = 상세 타임라인) -->
-      <div class="w-96 shrink-0 h-full overflow-y-auto bg-slate-50 dark:bg-slate-950 px-4 py-4 transition-colors">
+      <div ref="listScroll" class="w-96 shrink-0 h-full overflow-y-auto bg-slate-50 dark:bg-slate-950 px-4 py-4 transition-colors">
         <div class="flex flex-col gap-3">
 
           <!-- Per-day accordion cards -->
@@ -141,12 +156,7 @@ function toggleRoute(iso) {
             :key="day.iso"
             :ref="el => { if (el) dayRefs[day.iso] = el }"
             class="shrink-0 rounded-xl bg-white dark:bg-slate-900 shadow-sm overflow-hidden transition-all duration-150"
-            :class="dropTargetDay === day.iso
-              ? 'ring-2 ring-primary ring-dashed bg-primary/5 dark:bg-primary/10'
-              : ''"
-            @dragover="onDayDragOver($event, day.iso)"
-            @dragleave="onDayDragLeave"
-            @drop="onDayDrop($event, day.iso)"
+            :class="ui.draggingDayIso === day.iso ? 'ring-2 ring-primary/40' : ''"
           >
             <!-- Day header -->
             <div
@@ -166,16 +176,11 @@ function toggleRoute(iso) {
                 <span class="text-[15px] font-bold text-slate-900 dark:text-slate-100 truncate">{{ day.dateLabel }}</span>
               </div>
               <div class="flex items-center gap-2 shrink-0">
-                <span
-                  v-if="dropTargetDay === day.iso"
-                  class="text-[11px] font-semibold text-primary animate-pulse"
-                >여기에 추가</span>
-                <template v-else>
-                  <span class="text-[12px] font-semibold text-slate-600 dark:text-slate-300">{{ day.count }}건</span>
-                  <span v-if="day.cost" class="text-[12px] font-semibold text-primary">{{ won(day.cost) }}</span>
-                </template>
-                <!-- 경로/핀 표시·숨김 토글 (눈 모양) -->
+                <span class="text-[12px] font-semibold text-slate-600 dark:text-slate-300">{{ day.count }}건</span>
+                <span v-if="day.cost" class="text-[12px] font-semibold text-primary">{{ won(day.cost) }}</span>
+                <!-- 경로/핀 표시·숨김 토글 (눈 모양) — 둘러보기 중엔 숨김 -->
                 <button
+                  v-if="!tourMode"
                   @click.stop="toggleRoute(day.iso)"
                   class="rounded-xl p-2.5 transition-all hover:-translate-y-0.5 hover:shadow-md"
                   :class="ui.isRouteHidden(day.iso)
@@ -205,7 +210,58 @@ function toggleRoute(iso) {
 
       <!-- Right: map showing ALL trip pins (fluid) -->
       <div class="flex-1 h-full overflow-hidden bg-slate-50 dark:bg-slate-950 p-4 transition-colors">
-        <TripMap ref="mapRef" class="h-full w-full rounded-2xl shadow-sm overflow-hidden" :show-all="true" />
+        <div class="relative h-full w-full">
+          <TripMap ref="mapRef" class="h-full w-full rounded-2xl shadow-sm overflow-hidden" :show-all="true" />
+          <!-- 둘러보기 모드 토글 (지도 우상단) -->
+          <button
+            @click="toggleTour"
+            :disabled="!tourMode && !tourEnabled"
+            class="absolute top-3 right-3 z-10 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl text-[12px] font-semibold shadow-md backdrop-blur-md transition-all hover:-translate-y-0.5 disabled:opacity-40 disabled:cursor-not-allowed"
+            :class="tourMode
+              ? 'bg-red-500 text-white hover:bg-red-600'
+              : 'bg-white/90 dark:bg-slate-900/90 text-primary hover:bg-white'"
+            :title="tourMode ? '둘러보기 종료' : '일정 둘러보기'"
+          >
+            <component :is="tourMode ? Square : Play" :size="14" :class="tourMode ? 'fill-white' : 'fill-primary'" />
+            {{ tourMode ? '둘러보기 종료' : '둘러보기' }}
+          </button>
+
+          <!-- 둘러보기 현재 장소 정보 패널 (지도 우하단) -->
+          <Transition name="tour-info">
+            <div
+              v-if="tourMode && activeEntry"
+              :key="activeEntry.item.id"
+              class="absolute bottom-4 right-4 z-10 w-72 max-w-[80%] rounded-2xl bg-white/95 dark:bg-slate-900/95 shadow-xl backdrop-blur-md overflow-hidden"
+            >
+              <div class="h-28 w-full bg-slate-100 dark:bg-slate-800">
+                <img
+                  v-if="activeEntry.item.firstImage"
+                  :src="activeEntry.item.firstImage"
+                  :alt="activeEntry.item.name"
+                  class="w-full h-full object-cover"
+                  draggable="false"
+                />
+                <div v-else class="w-full h-full flex items-center justify-center text-[12px] text-slate-400">이미지 없음</div>
+              </div>
+              <div class="p-3.5">
+                <div class="flex items-center gap-1.5 mb-1">
+                  <span
+                    class="px-2 py-0.5 rounded-md text-[11px] font-bold border"
+                    :style="{ backgroundColor: activeEntry.color.bg, borderColor: activeEntry.color.pin, color: activeEntry.color.fg }"
+                  >Day {{ activeEntry.dayNum }}</span>
+                  <span class="text-[12px] text-slate-400">{{ findCategory(activeEntry.item.category).emoji }} {{ findCategory(activeEntry.item.category).label }}</span>
+                </div>
+                <h3 class="text-[15px] font-bold text-slate-900 dark:text-slate-100 truncate">{{ activeEntry.item.name }}</h3>
+                <div v-if="activeEntry.item.address" class="mt-1 flex items-center gap-1 text-[11px] text-slate-400">
+                  <MapPin :size="11" class="shrink-0" />
+                  <span class="truncate">{{ activeEntry.item.address }}</span>
+                </div>
+                <p v-if="activeEntry.item.memo" class="mt-1.5 text-[12px] text-slate-600 dark:text-slate-300 line-clamp-2 leading-relaxed">{{ activeEntry.item.memo }}</p>
+                <div v-if="activeEntry.item.cost" class="mt-1.5 text-[12px] font-semibold text-primary">{{ won(activeEntry.item.cost) }}</div>
+              </div>
+            </div>
+          </Transition>
+        </div>
       </div>
     </div>
   </div>
@@ -223,4 +279,10 @@ function toggleRoute(iso) {
   max-height: 4000px;
   opacity: 1;
 }
+
+/* 둘러보기 정보 패널 전환 (장소 바뀔 때) */
+.tour-info-enter-active { transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.22,1,0.36,1); }
+.tour-info-leave-active { transition: opacity 0.2s ease, transform 0.2s ease; position: absolute; }
+.tour-info-enter-from { opacity: 0; transform: translateY(12px) scale(0.97); }
+.tour-info-leave-to { opacity: 0; transform: translateY(-8px) scale(0.98); }
 </style>

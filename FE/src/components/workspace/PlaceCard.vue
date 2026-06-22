@@ -19,7 +19,7 @@ const seqNumber = computed(() => props.number ?? props.index + 1)
 
 const emit = defineEmits([
   'save', 'request-delete', 'confirm-delete',
-  'click', 'mouseenter', 'mouseleave', 'dragstart', 'dragend',
+  'click', 'mouseenter', 'mouseleave',
 ])
 
 const rootEl = ref(null)
@@ -36,13 +36,10 @@ const PLACEHOLDER = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg
 <template>
   <div
     ref="rootEl"
-    :draggable="true"
-    @dragstart="emit('dragstart', $event)"
-    @dragend="emit('dragend')"
     @mouseenter="emit('mouseenter')"
     @mouseleave="emit('mouseleave')"
     class="place-card group relative rounded-xl bg-white dark:bg-slate-900 shadow-sm
-           hover:shadow-md transition-all duration-200 overflow-hidden"
+           hover:shadow-md transition-all duration-200 overflow-hidden cursor-grab active:cursor-grabbing"
     :class="hovered ? 'place-card--hovered' : ''"
   >
     <!-- ── Main row ─────────────────────────────────────────── -->

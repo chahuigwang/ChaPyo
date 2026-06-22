@@ -3,6 +3,7 @@ import { TripPlan, TravelItem, enumerateDays } from '@/models'
 import { tripService } from '@/api/tripService'
 import { placeService } from '@/api/placeService'
 import { useToastStore } from '@/stores/toastStore'
+import { useUiStore } from '@/stores/uiStore'
 
 // placeId 별 상세(이미지/주소/좌표) 보강을 1회만 시도하기 위한 가드
 const _placeMetaFetched = new Set()
@@ -154,6 +155,10 @@ export const useTripStore = defineStore('trip', {
         itemsByDay[date].push(built)
         this._hydratePlaceMeta(built) // 이미지/주소/좌표 보강(placeId별 1회)
       }
+      // 모든 날짜에 빈 배열 보장 (드래그 라이브 바인딩 :list 가 항상 동일 참조를 갖도록)
+      for (const d of enumerateDays(start, end)) {
+        if (!itemsByDay[d]) itemsByDay[d] = []
+      }
       return new TripPlan({
         id: String(raw.planId),
         title: raw.title,
@@ -205,10 +210,12 @@ export const useTripStore = defineStore('trip', {
       }
     },
 
-    // 현재 여행을 서버 상태로 재동기화 (15초 폴링)
+    // 현재 여행을 서버 상태로 재동기화 (폴링)
     async syncCurrent() {
       if (!this.currentTripId || this.syncing) return
       if (!isServerId(this.currentTripId)) return
+      // 드래그 중에는 폴링이 로컬 순서를 덮어쓰지 않도록 건너뛴다
+      if (useUiStore().draggingDayIso) return
       this.syncing = true
       try {
         await this.fetchDetail(this.currentTripId)
@@ -519,6 +526,79 @@ export const useTripStore = defineStore('trip', {
       list.splice(toIdx > fromIdx ? toIdx - 1 : toIdx, 0, moved)
       trip.touch()
       this._persistItemOrders(trip.id, list)
+    },
+
+    // ── 드래그(vuedraggable) 영속화: 배열은 :list 가 이미 이동/정렬했으므로 서버 반영만 ──
+    // 같은 날 순서변경 후 1회 저장
+    persistDayOrder(date) {
+      const trip = this.currentTrip
+      if (!trip || !date) return
+      const list = trip.itemsByDay[date]
+      if (!list) return
+      trip.touch()
+      this._persistItemOrders(trip.id, list)
+    },
+    // 다른 날로 이동(배열은 이미 옮겨짐): 이동 항목의 visitDate(dayNumber) 서버 갱신 + 양쪽 순서 저장
+    commitItemMoved(id, fromDate, toDate) {
+      const trip = this.currentTrip
+      if (!trip) return
+      const list = trip.itemsByDay[toDate]
+      const moved = list?.find((i) => i.id === id)
+      trip.touch()
+      if (moved?.serverId && isServerId(trip.id)) {
+        tripService.updateItem(trip.id, moved.serverId, {
+          dayNumber: dateToDayNumber(trip.startDate, trip.endDate, toDate),
+          visitTime: moved.time,
+          cost: moved.cost,
+          memo: moved.memo,
+        }).catch((err) => {
+          this.lastError = err?.message ?? 'moveItem failed'
+          useToastStore().error('일정 이동에 실패했습니다.')
+        })
+      }
+      this._persistItemOrders(trip.id, trip.itemsByDay[toDate] ?? [])
+      if (fromDate && fromDate !== toDate) {
+        this._persistItemOrders(trip.id, trip.itemsByDay[fromDate] ?? [])
+      }
+    },
+    // 플라이아웃(검색/좋아요/AI)에서 clone 으로 삽입된 raw 카드를 정식 일정으로 교체
+    // vuedraggable 이 toDate 배열의 index 위치에 raw 객체를 넣은 뒤 호출된다.
+    replaceDroppedRaw(date, index, rawPayload) {
+      const trip = this.currentTrip
+      if (!trip || !date) return
+      const list = trip.itemsByDay[date]
+      if (!list) return
+      // 자리 표시용으로 삽입된 raw 제거
+      if (index >= 0 && index < list.length) list.splice(index, 1)
+      const placeId = resolvePlaceId(rawPayload)
+      this._cachePlace(placeId, rawPayload)
+      const item = new TravelItem({
+        ...rawPayload,
+        placeId,
+        // raw 카드 필드 정규화
+        name: rawPayload.name ?? rawPayload.title ?? '',
+        address: rawPayload.address ?? rawPayload.addr1 ?? '',
+        firstImage: rawPayload.firstImage ?? rawPayload.firstImage1 ?? null,
+      })
+      const at = Math.max(0, Math.min(index, list.length))
+      list.splice(at, 0, item)
+      trip.touch()
+      if (placeId && isServerId(trip.id)) {
+        tripService.addItem(trip.id, {
+          placeId,
+          dayNumber: dateToDayNumber(trip.startDate, trip.endDate, date),
+          visitTime: item.time,
+          itemOrder: at + 1, // 드롭한 위치(1-based)에 삽입
+          cost: item.cost,
+          memo: item.memo,
+        })
+          .then(() => this.fetchDetail(trip.id))
+          .catch((err) => {
+            this.lastError = err?.message ?? 'addItem failed'
+            useToastStore().error('일정 추가에 실패했습니다.')
+          })
+      }
+      return item
     },
   },
 })

@@ -7,10 +7,13 @@ export const useUiStore = defineStore('ui', {
   state: () => ({
     activePanel: 'plan',
     hoveredItemId: null,
-    hoveredTransitIndex: null,
+    hoveredTransitId: null, // hover 중인 이동거리 구간의 출발(from) 장소 id
     viewMode: 'split',
     currentView: 'total',
     routeHiddenDays: {}, // iso → true 이면 해당 날짜의 지도 경로(폴리라인) 숨김
+    draggingDayIso: null, // 일정 카드 드래그 중인 날짜 ISO (지도 라이브 연출 대상)
+    tourMode: false, // 둘러보기(스크롤 매직) 모드
+    tourActiveId: null, // 둘러보기에서 현재 화면 중앙에 걸린 장소 id
   }),
   getters: {
     sidebarOpen: (s) => s.activePanel !== null,
@@ -23,6 +26,13 @@ export const useUiStore = defineStore('ui', {
     setCurrentView(view) {
       if (['total', 'daily'].includes(view)) this.currentView = view
     },
+    setDraggingDay(iso) { this.draggingDayIso = iso ?? null },
+    clearDraggingDay() { this.draggingDayIso = null },
+    setTourMode(on) {
+      this.tourMode = !!on
+      if (!on) this.tourActiveId = null
+    },
+    setTourActive(id) { this.tourActiveId = id ?? null },
     toggleRouteDay(iso) {
       if (this.routeHiddenDays[iso]) delete this.routeHiddenDays[iso]
       else this.routeHiddenDays[iso] = true
@@ -31,8 +41,8 @@ export const useUiStore = defineStore('ui', {
     clearHoveredItem(id) {
       if (id == null || this.hoveredItemId === id) this.hoveredItemId = null
     },
-    setHoveredTransit(idx) { this.hoveredTransitIndex = idx },
-    clearHoveredTransit() { this.hoveredTransitIndex = null },
+    setHoveredTransit(id) { this.hoveredTransitId = id ?? null },
+    clearHoveredTransit() { this.hoveredTransitId = null },
     openPanel(name) { this.activePanel = name },
     closePanel() { this.activePanel = null },
     togglePanel(name) {

@@ -69,12 +69,13 @@ export const tripService = {
     await http.patch(ENDPOINTS.trips.itemOrders(planId), { itemOrders })
   },
 
-  // POST /api/v1/trips/{planId}/items → 일정 추가 (응답 본문 없음, itemOrder는 서버가 부여)
-  async addItem(planId, { placeId, dayNumber, visitTime, cost, memo } = {}) {
+  // POST /api/v1/trips/{planId}/items → 일정 추가 (itemOrder null이면 서버가 마지막에 부여)
+  async addItem(planId, { placeId, dayNumber, visitTime, itemOrder, cost, memo } = {}) {
     await http.post(ENDPOINTS.trips.items(planId), {
       placeId,
       dayNumber,
       visitTime: visitTime || null,
+      itemOrder: itemOrder ?? null,
       cost: cost ?? null,
       memo: memo || null,
     })

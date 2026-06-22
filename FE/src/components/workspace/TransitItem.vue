@@ -91,7 +91,7 @@ const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
       >
         <Navigation :size="12" /> 길찾기
       </button>
-      <Pencil :size="12" class="text-slate-300 dark:text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+      <Pencil :size="12" class="text-slate-400 dark:text-slate-500 shrink-0" />
     </div>
 
     <!-- Inline edit -->

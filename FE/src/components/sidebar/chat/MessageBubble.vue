@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue'
-import { useStorageStore } from '@/stores/storageStore'
+import draggable from 'vuedraggable'
 import DiscoverPlaceCard from '@/components/common/DiscoverPlaceCard.vue'
 
 const props = defineProps({
@@ -12,13 +12,8 @@ const emit = defineEmits(['detail'])
 const isUser = computed(() => props.message.role === 'user')
 const isSystem = computed(() => props.message.role === 'system')
 
-const storage = useStorageStore()
-
-function onSuggestionDragStart(e, item) {
-  storage.setDragging({ source: 'chat', item })
-  try { e.dataTransfer.effectAllowed = 'copy'; e.dataTransfer.setData('text/plain', item.name) } catch {}
-}
-function onSuggestionDragEnd() { storage.clearDragging() }
+// 플라이아웃 → 타임라인 clone 시 원본 참조 공유 방지
+function cloneCard(item) { return { ...item } }
 </script>
 
 <template>
@@ -45,17 +40,23 @@ function onSuggestionDragEnd() { storage.clearDragging() }
         {{ message.content }}
       </div>
 
-      <div v-if="message.places?.length" class="flex flex-col gap-2 w-full">
-        <DiscoverPlaceCard
-          v-for="(s, i) in message.places"
-          :key="s.placeId ?? i"
-          :item="s"
-          :draggable="true"
-          @detail="emit('detail', $event)"
-          @dragstart="onSuggestionDragStart($event, s)"
-          @dragend="onSuggestionDragEnd"
-        />
-      </div>
+      <draggable
+        v-if="message.places?.length"
+        :list="message.places"
+        item-key="placeId"
+        :group="{ name: 'itinerary', pull: 'clone', put: false }"
+        :sort="false"
+        :clone="cloneCard"
+        class="flex flex-col gap-2 w-full"
+      >
+        <template #item="{ element: s }">
+          <DiscoverPlaceCard
+            :item="s"
+            :draggable="true"
+            @detail="emit('detail', $event)"
+          />
+        </template>
+      </draggable>
     </div>
   </div>
 </template>

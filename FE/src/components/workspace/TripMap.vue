@@ -5,13 +5,17 @@ import { useTripStore } from '@/stores/tripStore'
 import { useUiStore } from '@/stores/uiStore'
 import { dayColorFor } from '@/composables/useDayColor'
 import { geocodeAddress } from '@/composables/useGeocoder'
+import { routeQuality, worstLegMidpoint } from '@/composables/useRouteQuality'
+
+// 드래그 중 품질 색상
+const QUALITY_COLOR = { good: '#22c55e', bad: '#ef4444', neutral: null }
 
 const props = defineProps({ showAll: { type: Boolean, default: false } })
 
 const trip = useTripStore()
 const ui = useUiStore()
 const { itemsOfSelectedDay, selectedDate, currentTrip } = storeToRefs(trip)
-const { hoveredItemId, hoveredTransitIndex } = storeToRefs(ui)
+const { hoveredItemId, hoveredTransitId } = storeToRefs(ui)
 
 const dayColor = computed(() => {
   const days = trip.days || []
@@ -138,12 +142,46 @@ function restrictToKorea(kakao) {
   kakao.maps.event.addListener(mapInstance, 'zoom_changed', clampCenter)
 }
 
+let feedbackOverlays = [] // ⚠️/✨ 피드백 배지
+let blinkFrames = [] // 빨강 깜빡임 rAF 핸들
+
 function clearOverlays() {
   overlays.forEach(({ overlay }) => { try { overlay.setMap(null) } catch {} })
   overlays = []
   polylines.forEach(({ pl }) => { try { pl.setMap(null) } catch {} })
   polylines = []
+  feedbackOverlays.forEach((ov) => { try { ov.setMap(null) } catch {} })
+  feedbackOverlays = []
+  blinkFrames.forEach((h) => cancelAnimationFrame(h))
+  blinkFrames = []
   if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null }
+  if (tourAnimFrame) { cancelAnimationFrame(tourAnimFrame); tourAnimFrame = null }
+}
+
+// 나쁨 경로: strokeOpacity 를 깜빡이게 (rAF)
+function blinkPolyline(pl) {
+  let t = 0
+  const step = () => {
+    t += 0.16
+    try { pl.setOptions({ strokeOpacity: 0.35 + 0.65 * Math.abs(Math.sin(t)) }) } catch {}
+    const h = requestAnimationFrame(step)
+    blinkFrames[blinkFrames.length - 1] = h
+  }
+  blinkFrames.push(requestAnimationFrame(step))
+}
+
+// 지도 위 피드백 배지(⚠️/✨) — CSS 애니메이션
+function addFeedbackBadge({ lat, lng }, emoji, kind) {
+  if (!window.kakao?.maps || lat == null || lng == null) return
+  const el = document.createElement('div')
+  el.className = `trip-fb trip-fb--${kind}`
+  el.textContent = emoji
+  const ov = new window.kakao.maps.CustomOverlay({
+    position: new window.kakao.maps.LatLng(lat, lng),
+    content: el, yAnchor: 0.5, xAnchor: 0.5, zIndex: 9,
+  })
+  ov.setMap(mapInstance)
+  feedbackOverlays.push(ov)
 }
 
 function buildPinEl(num, name, itemId, color) {
@@ -160,6 +198,111 @@ function buildPinEl(num, name, itemId, color) {
   return wrap
 }
 
+// ── 둘러보기(스크롤 매직) 렌더링 ───────────────────────────
+let lastTourDay = null
+let lastTourActiveIdx = -1
+let tourAnimFrame = null
+function clearTourAnim() { if (tourAnimFrame) { cancelAnimationFrame(tourAnimFrame); tourAnimFrame = null } }
+
+// 마지막 트레일 구간을 점→점 성장 드로잉(easeOutCubic)
+function animateSegment(prev, target, color) {
+  const kakao = window.kakao
+  const pl = new kakao.maps.Polyline({ path: [prev, prev], strokeWeight: 4, strokeColor: color, strokeOpacity: 0.95, strokeStyle: 'solid' })
+  pl.setMap(mapInstance)
+  polylines.push({ pl, color, segIdx: -1 })
+  const t0 = performance.now()
+  const dur = 420
+  const lat0 = prev.getLat(), lng0 = prev.getLng()
+  const lat1 = target.getLat(), lng1 = target.getLng()
+  const step = (now) => {
+    const k = Math.min(1, (now - t0) / dur)
+    const e = 1 - Math.pow(1 - k, 3)
+    const cur = new kakao.maps.LatLng(lat0 + (lat1 - lat0) * e, lng0 + (lng1 - lng0) * e)
+    try { pl.setPath([prev, cur]) } catch {}
+    if (k < 1) tourAnimFrame = requestAnimationFrame(step)
+  }
+  tourAnimFrame = requestAnimationFrame(step)
+}
+
+function renderTour() {
+  if (!mapInstance || !window.kakao?.maps) return
+  const kakao = window.kakao
+  clearOverlays()
+  clearTourAnim()
+  const flat = allDayItems.value
+  if (!flat.length) return
+  let activeIdx = flat.findIndex((i) => i.id === ui.tourActiveId)
+  if (activeIdx < 0) activeIdx = 0
+  const active = flat[activeIdx]
+  const activeDay = active._dayIso
+
+  // 날짜별 그룹(전역 순서 gi 보존)
+  const byDay = {}
+  flat.forEach((it, gi) => {
+    const iso = it._dayIso ?? 'unknown'
+    if (!byDay[iso]) byDay[iso] = { dayIdx: it._dayIdx ?? 0, list: [] }
+    byDay[iso].list.push({ it, gi })
+  })
+
+  Object.entries(byDay).forEach(([iso, { dayIdx, list }]) => {
+    const color = dayColorFor(dayIdx)
+    const isActiveDay = iso === activeDay
+    const coords = list.filter(({ it }) => it.lat != null && it.lng != null)
+    const ll = (it) => new kakao.maps.LatLng(it.lat, it.lng)
+
+    if (!isActiveDay) {
+      // 다른 날: 옅은 고스트 라인
+      const pts = coords.map(({ it }) => ll(it))
+      if (pts.length >= 2) {
+        const pl = new kakao.maps.Polyline({ path: pts, strokeWeight: 2, strokeColor: color.pin, strokeOpacity: 0.16, strokeStyle: 'solid' })
+        pl.setMap(mapInstance); polylines.push({ pl, color: color.pin, segIdx: dayIdx })
+      }
+    } else {
+      // 현재 날: 직전까지 누적 트레일(solid) + 마지막 구간 성장 드로잉 + 이후 고스트
+      const past = coords.filter(({ gi }) => gi < activeIdx).map(({ it }) => ll(it))
+      const activeCoord = active.lat != null ? ll(active) : null
+      if (past.length >= 2) {
+        const pl = new kakao.maps.Polyline({ path: past, strokeWeight: 4, strokeColor: color.pin, strokeOpacity: 0.95, strokeStyle: 'solid' })
+        pl.setMap(mapInstance); polylines.push({ pl, color: color.pin, segIdx: dayIdx })
+      }
+      if (past.length >= 1 && activeCoord) {
+        animateSegment(past[past.length - 1], activeCoord, color.pin)
+      }
+      const up = coords.filter(({ gi }) => gi >= activeIdx).map(({ it }) => ll(it))
+      if (up.length >= 2) {
+        const pl = new kakao.maps.Polyline({ path: up, strokeWeight: 2, strokeColor: color.pin, strokeOpacity: 0.22, strokeStyle: 'shortdash' })
+        pl.setMap(mapInstance); polylines.push({ pl, color: color.pin, segIdx: dayIdx })
+      }
+    }
+
+    // 핀
+    list.forEach(({ it, gi }) => {
+      if (it.lat == null || it.lng == null) return
+      const ping = isActiveDay && gi === activeIdx
+      const el = buildPinEl(gi + 1, it.name, it.id, color.pin)
+      if (ping) el.classList.add('trip-map-pin--ping')
+      el.style.opacity = !isActiveDay ? '0.3' : (gi < activeIdx ? '1' : (gi === activeIdx ? '1' : '0.45'))
+      const ov = new kakao.maps.CustomOverlay({ position: ll(it), content: el, yAnchor: 1, xAnchor: 0.5, zIndex: ping ? 8 : 3 })
+      ov.setMap(mapInstance); overlays.push({ itemId: it.id, overlay: ov, el })
+    })
+  })
+
+  // 카메라: 날이 바뀌면 리프레임, 아니면 active 로 panTo
+  if (active.lat != null && active.lng != null) {
+    const target = new kakao.maps.LatLng(active.lat, active.lng)
+    const dayCoords = (byDay[activeDay]?.list ?? []).filter(({ it }) => it.lat != null).map(({ it }) => new kakao.maps.LatLng(it.lat, it.lng))
+    if (activeDay !== lastTourDay && dayCoords.length >= 2) {
+      const b = new kakao.maps.LatLngBounds(); dayCoords.forEach((p) => b.extend(p)); mapInstance.setBounds(b)
+    } else {
+      mapInstance.panTo(target)
+    }
+  }
+
+  lastTourDay = activeDay
+  lastTourActiveIdx = activeIdx
+  applyHoverHighlight(hoveredItemId.value)
+}
+
 // 현재 좌표 구성의 지문. 동일하면 다시 그리지 않아 폴링 시 지도 깜빡임/점프를 막는다.
 let lastSig = ''
 // 마지막으로 화면을 맞춘(setBounds) 좌표 지문. 좌표가 바뀐 경우에만 다시 맞춘다.
@@ -171,6 +314,7 @@ function routeSignature(items) {
 
 function renderRoute() {
   if (!mapInstance || !window.kakao?.maps) return
+  if (props.showAll && ui.tourMode) { renderTour(); return } // 둘러보기 모드는 별도 렌더
   const kakao = window.kakao
   const items = positionedItems.value
   const sig = routeSignature(items)
@@ -190,21 +334,48 @@ function renderRoute() {
       byDay[key].items.push({ ...it, _globalNum: globalIdx + 1 })
       byDay[key].pts.push(pts[globalIdx])
     })
+    const dragIso = ui.draggingDayIso
     Object.entries(byDay).forEach(([iso, { dayIdx, items: dItems, pts: dPts }]) => {
       // 경로 숨김 처리된 날짜는 핀과 경로를 모두 그리지 않는다.
       if (ui.routeHiddenDays[iso]) return
       const color = dayColorFor(dayIdx)
+      const isDrag = dragIso && iso === dragIso
+      const dim = dragIso && iso !== dragIso // 드래그 중엔 다른 날 디밍
+      // 드래그 중인 날의 동선 품질 → 색/연출
+      const quality = isDrag ? routeQuality(dItems) : null
+      const qColor = quality ? QUALITY_COLOR[quality.status] : null
+
       dItems.forEach((it, i) => {
-        const el = buildPinEl(it._globalNum, it.name, it.id, color.pin)
-        const ov = new kakao.maps.CustomOverlay({ position: dPts[i], content: el, yAnchor: 1, xAnchor: 0.5, zIndex: 3 })
+        const el = buildPinEl(it._globalNum, it.name, it.id, qColor || color.pin)
+        if (dim) el.style.opacity = '0.25'
+        const ov = new kakao.maps.CustomOverlay({ position: dPts[i], content: el, yAnchor: 1, xAnchor: 0.5, zIndex: isDrag ? 6 : 3 })
         ov.setMap(mapInstance)
         overlays.push({ itemId: it.id, overlay: ov, el })
       })
-      // 경로 토글: 숨김 처리된 날짜는 폴리라인(경로)을 그리지 않는다 (핀은 유지)
-      if (dPts.length >= 2 && !ui.routeHiddenDays[iso]) {
-        const pl = new kakao.maps.Polyline({ path: dPts, strokeWeight: 3, strokeColor: color.pin, strokeOpacity: 0.85, strokeStyle: 'shortdash' })
-        pl.setMap(mapInstance)
-        polylines.push({ pl, color: color.pin, segIdx: dayIdx })
+
+      if (dPts.length >= 2) {
+        const strokeColor = qColor || color.pin
+        // 구간별 폴리라인 — fromId 로 이동거리 hover 하이라이트 식별, baseColor 는 해당 Day 색
+        for (let i = 0; i < dPts.length - 1; i++) {
+          const pl = new kakao.maps.Polyline({
+            path: [dPts[i], dPts[i + 1]],
+            strokeWeight: isDrag ? 5 : 3,
+            strokeColor,
+            strokeOpacity: dim ? 0.2 : (isDrag ? 1 : 0.85),
+            strokeStyle: isDrag && quality.status === 'good' ? 'solid' : 'shortdash',
+          })
+          pl.setMap(mapInstance)
+          polylines.push({ pl, color: strokeColor, baseColor: color.pin, fromId: dItems[i].id, dayIdx })
+          if (isDrag && quality.status === 'bad') blinkPolyline(pl)
+        }
+        // 드래그 품질 배지(날 단위 1회)
+        if (isDrag && quality.status === 'bad') {
+          const mid = worstLegMidpoint(dItems)
+          if (mid) addFeedbackBadge(mid, '⚠️', 'bad')
+        } else if (isDrag && quality.status === 'good') {
+          const mid = dPts[Math.floor(dPts.length / 2)]
+          addFeedbackBadge({ lat: mid.getLat(), lng: mid.getLng() }, '✨', 'good')
+        }
       }
     })
   } else {
@@ -249,11 +420,12 @@ function applyHoverHighlight(id) {
   })
 }
 
-function applyTransitHighlight(segIdx) {
+// 이동거리 hover: from 장소 id 가 일치하는 구간을 해당 Day 색으로 강조
+function applyTransitHighlight(id) {
   if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null }
-  polylines.forEach(({ pl, color, segIdx: si }) => {
-    if (segIdx != null && si === segIdx) {
-      pl.setOptions({ strokeWeight: 5, strokeColor: '#00B7EB', strokeOpacity: 1, strokeStyle: 'solid' })
+  polylines.forEach(({ pl, color, baseColor, fromId }) => {
+    if (id != null && fromId === id) {
+      pl.setOptions({ strokeWeight: 6, strokeColor: baseColor || color, strokeOpacity: 1, strokeStyle: 'solid' })
       animateDash(pl)
     } else {
       pl.setOptions({ strokeWeight: 3, strokeColor: color, strokeOpacity: 0.85, strokeStyle: 'shortdash' })
@@ -292,7 +464,30 @@ watch(positionedItems, renderRoute, { deep: true })
 watch(selectedDate, renderRoute)
 watch(allDayItems, () => { if (props.showAll) renderRoute() }, { deep: true })
 watch(hoveredItemId, (id) => applyHoverHighlight(id))
-watch(hoveredTransitIndex, (idx) => applyTransitHighlight(idx))
+watch(hoveredTransitId, (id) => applyTransitHighlight(id))
+// 드래그 시작/종료 시 라이브 연출(색/디밍/오버레이) 갱신 — 좌표 동일해도 강제 재렌더
+watch(() => ui.draggingDayIso, () => {
+  if (!props.showAll) return
+  lastSig = ''
+  renderRoute()
+})
+// 둘러보기 모드 진입/종료
+watch(() => ui.tourMode, (on) => {
+  if (!props.showAll) return
+  if (on) {
+    lastTourDay = null
+    lastTourActiveIdx = -1
+    renderTour()
+  } else {
+    clearTourAnim()
+    lastSig = ''
+    renderRoute()
+  }
+})
+// 둘러보기 중 현재 장소 변경 → 트레일/카메라 갱신
+watch(() => ui.tourActiveId, () => {
+  if (props.showAll && ui.tourMode) renderTour()
+})
 // 경로 표시/숨김 토글 시 폴리라인 재구성 (좌표는 그대로라 lastSig 초기화로 강제 재렌더)
 watch(() => ({ ...ui.routeHiddenDays }), () => {
   if (!props.showAll) return
@@ -346,6 +541,27 @@ defineExpose({ onRelayout })
 
 <style>
 /* Global — Kakao mounts content outside scoped boundary. */
+
+/* 드래그 중 동선 품질 피드백 배지 (⚠️ 나쁨 / ✨ 좋음) */
+.trip-fb {
+  font-size: 26px;
+  line-height: 1;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.35));
+  will-change: transform, opacity;
+}
+.trip-fb--bad { animation: trip-fb-warn 0.6s ease-in-out infinite; }
+.trip-fb--good { animation: trip-fb-pop 0.5s cubic-bezier(0.34,1.56,0.64,1) both; }
+@keyframes trip-fb-warn {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-4px) scale(1.18); }
+}
+@keyframes trip-fb-pop {
+  0% { transform: scale(0.2); opacity: 0; }
+  60% { transform: scale(1.35); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
 .trip-map-pin {
   position: relative;
   display: flex;
@@ -382,6 +598,26 @@ defineExpose({ onRelayout })
 .trip-map-pin--active {
   transform: translateY(-4px) scale(1.12);
   z-index: 5 !important;
+}
+/* 둘러보기: 현재 장소 핑 펄스 */
+.trip-map-pin--ping { transform: translateY(-4px) scale(1.18); }
+.trip-map-pin--ping .trip-map-pin__bubble {
+  position: relative;
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--pin-color) 30%, transparent),
+    0 6px 14px -2px color-mix(in srgb, var(--pin-color) 70%, transparent);
+}
+.trip-map-pin--ping .trip-map-pin__bubble::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 9999px;
+  border: 2px solid var(--pin-color);
+  animation: trip-ping 1.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+@keyframes trip-ping {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(2.4); opacity: 0; }
 }
 .trip-map-pin--active .trip-map-pin__bubble {
   filter: brightness(0.92);

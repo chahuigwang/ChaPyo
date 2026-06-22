@@ -131,4 +131,11 @@
         WHERE plan_id = #{planId} AND day_number > #{totalDays}
     </delete>
 
+    <update id="shiftItemOrders">
+        UPDATE trip_plan_items
+        SET item_order = item_order + 1
+        WHERE plan_id = #{planId}
+          AND day_number = #{dayNumber}
+          AND item_order >= #{itemOrder}
+    </update>
 </mapper>

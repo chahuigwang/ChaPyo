@@ -85,7 +85,13 @@ public class TripServiceImpl implements TripService {
             throw new CustomException(TripErrorCode.FORBIDDEN);
         }
 
-        int order = tripMapper.countItemsByDayNumber(planId, request.getDayNumber()) + 1;
+        int order;
+        if (request.getItemOrder() != null) {
+            tripMapper.shiftItemOrders(planId, request.getDayNumber(), request.getItemOrder());
+            order = request.getItemOrder();
+        } else {
+            order = tripMapper.countItemsByDayNumber(planId, request.getDayNumber()) + 1;
+        }
 
         TripPlanItem item = TripPlanItem.builder()
                 .planId(planId)

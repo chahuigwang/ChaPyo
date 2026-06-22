@@ -1,5 +1,7 @@
 package com.chapyo;
 
+import com.chapyo.place.repository.AreaMapper;
+import com.chapyo.place.repository.DistrictMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.vectorstore.VectorStore;
@@ -26,6 +28,12 @@ class BeApplicationTests {
 
     @MockitoBean
     ChatClient chatClient;
+
+    @MockitoBean
+    AreaMapper areaMapper;
+
+    @MockitoBean
+    DistrictMapper districtMapper;
 
     @Test
     void contextLoads() {

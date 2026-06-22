@@ -24,6 +24,8 @@ function toCard(src) {
     address: src.address ?? src.addr1 ?? '',
     firstImage: src.firstImage ?? src.firstImage1 ?? null,
     likeCount: src.likeCount ?? 0,
+    avgRating: src.avgRating ?? null,
+    reviewCount: src.reviewCount ?? null,
     lat: src.lat ?? (src.latitude != null ? Number(src.latitude) : null),
     lng: src.lng ?? (src.longitude != null ? Number(src.longitude) : null),
   }

@@ -4,15 +4,12 @@ import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import { ChevronLeft, ChevronRight, Pencil, Check, Trash2, Loader2 } from 'lucide-vue-next'
 import { useTripStore } from '@/stores/tripStore'
-import { useUiStore } from '@/stores/uiStore'
 import { CATEGORIES } from '@/types/itinerary'
 import CustomCalendar from '@/components/common/CustomCalendar.vue'
 
 const router = useRouter()
 const trip = useTripStore()
-const ui = useUiStore()
 const { startDate, endDate, selectedDate, currentTrip, title } = storeToRefs(trip)
-const { currentView } = storeToRefs(ui)
 
 const titleEditing = ref(false)
 const titleDraft = ref('')
@@ -96,12 +93,8 @@ const weekdays = ['일', '월', '화', '수', '목', '금', '토']
 
 function pick(cell) {
   if (!cell?.inRange) return
+  // 날짜 선택 → 전체 일정에서 해당 날짜가 자동으로 펼쳐지고 스크롤된다.
   trip.selectDate(cell.iso)
-  ui.setCurrentView('daily')
-}
-
-function clearSelection() {
-  ui.setCurrentView('total')
 }
 
 // ── Summary stats ─────────────────────────────────────────────
@@ -240,15 +233,6 @@ async function confirmDeleteTrip() {
             >{{ cell.day }}</button>
           </template>
         </div>
-
-        <!-- 전체 일정 보기 -->
-        <button
-          v-if="currentView === 'daily'"
-          @click="clearSelection"
-          class="mt-3 w-full text-center text-[11px] text-primary hover:underline transition-all"
-        >
-          ← 전체 일정 보기
-        </button>
       </div>
     </div>
 

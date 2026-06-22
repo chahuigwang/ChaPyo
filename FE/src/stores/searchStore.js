@@ -193,6 +193,8 @@ export const useSearchStore = defineStore('search', {
             categoryCode1: item.categoryCode1,
             categoryCode2: item.categoryCode2,
             likeCount: item.likeCount,
+            avgRating: item.avgRating ?? null,
+            reviewCount: item.reviewCount ?? null,
             category: typeToCategory(item.categoryCode2 ?? item.categoryCode1),
           }))
         } else {
@@ -204,6 +206,8 @@ export const useSearchStore = defineStore('search', {
             categoryCode1: item.categoryCode1,
             categoryCode2: item.categoryCode2,
             likeCount: item.likeCount,
+            avgRating: item.avgRating ?? null,
+            reviewCount: item.reviewCount ?? null,
             category: typeToCategory(item.categoryCode2 ?? item.categoryCode1),
           }))]
         }

@@ -1,10 +1,8 @@
 <script setup>
 import { computed } from 'vue'
-import { MapPin, Heart, CalendarPlus, GripVertical } from 'lucide-vue-next'
+import { MapPin, Heart, GripVertical, Star } from 'lucide-vue-next'
 import { findCategory } from '@/types/itinerary'
 import { useStorageStore } from '@/stores/storageStore'
-import { useTripStore } from '@/stores/tripStore'
-import knightImg from '@/assets/knight.png'
 
 const props = defineProps({
   item: { type: Object, required: true },
@@ -13,31 +11,24 @@ const props = defineProps({
 const emit = defineEmits(['detail', 'dragstart', 'dragend'])
 
 const storage = useStorageStore()
-const trip = useTripStore()
 
 const liked = computed(() => storage.isLiked(props.item))
 const likeCount = computed(() => storage.likeCountOf(props.item))
 
+// 리뷰 평점/개수 (BE 응답값). 평점이 있을 때만 노출, 개수는 필드가 오면 표시.
+const avgRating = computed(() => {
+  const v = Number(props.item.avgRating)
+  return Number.isFinite(v) && v > 0 ? v : null
+})
+const ratingText = computed(() => (avgRating.value != null ? avgRating.value.toFixed(1) : ''))
+const reviewCount = computed(() => {
+  const v = Number(props.item.reviewCount)
+  return Number.isFinite(v) ? v : null
+})
+
 function toggleLike(e) {
   e.stopPropagation()
   storage.toggleLike(props.item)
-}
-
-function addToItinerary(e) {
-  e.stopPropagation()
-  const date = trip.selectedDate ?? trip.days?.[0] ?? null
-  if (!date) return
-  trip.addItemToDate(date, {
-    placeId: props.item.placeId ?? props.item.sourceId ?? Number(props.item.id),
-    name: props.item.name,
-    category: props.item.category,
-    memo: props.item.memo || '',
-    address: props.item.address || '',
-    cost: props.item.cost ?? 0,
-    lat: props.item.lat,
-    lng: props.item.lng,
-    firstImage: props.item.firstImage,
-  })
 }
 
 function onDragStart(e) { emit('dragstart', e) }
@@ -61,8 +52,8 @@ function onDragEnd(e) { emit('dragend', e) }
         :alt="item.name"
         class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
       />
-      <div v-else class="w-full h-full">
-        <img :src="knightImg" alt="기본 이미지" class="w-full h-full object-cover object-[center_25%] opacity-40" />
+      <div v-else class="w-full h-full flex items-center justify-center text-[12px] text-slate-400 dark:text-slate-500 select-none">
+        이미지가 없습니다
       </div>
 
       <!-- Drag handle -->
@@ -103,6 +94,12 @@ function onDragEnd(e) { emit('dragend', e) }
       <h3 class="text-[13px] font-bold text-slate-900 dark:text-slate-100 truncate leading-snug">
         {{ item.name }}
       </h3>
+      <!-- 리뷰 평점 · 개수 -->
+      <div v-if="avgRating != null" class="flex items-center gap-1 text-[11px]">
+        <Star :size="11" class="fill-amber-400 text-amber-400" />
+        <span class="font-semibold text-slate-700 dark:text-slate-200">{{ ratingText }}</span>
+        <span v-if="reviewCount != null" class="text-slate-400">리뷰 {{ reviewCount.toLocaleString() }}</span>
+      </div>
       <p
         v-if="item.overview || item.description || item.memo"
         class="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed"
@@ -112,23 +109,6 @@ function onDragEnd(e) { emit('dragend', e) }
       <div v-if="item.address" class="flex items-center gap-1 text-[11px] text-slate-400 dark:text-slate-500">
         <MapPin :size="11" class="shrink-0" />
         <span class="truncate">{{ item.address }}</span>
-      </div>
-
-      <!-- Footer -->
-      <div class="mt-auto pt-2 flex items-center justify-between border-t border-slate-100 dark:border-slate-700/50">
-        <span v-if="likeCount > 0" class="inline-flex items-center gap-1 text-[11px] text-slate-400">
-          <Heart :size="11" class="fill-red-400 text-red-400" />
-          {{ likeCount.toLocaleString() }}
-        </span>
-        <span v-else class="flex-1" />
-        <button
-          @click="addToItinerary"
-          class="shrink-0 inline-flex items-center gap-1.5 px-2.5 h-7 rounded-lg bg-primary/10 text-primary
-                 text-[11px] font-semibold hover:bg-primary hover:text-white transition-colors"
-          title="일정에 추가"
-        >
-          <CalendarPlus :size="12" /> 일정에 추가
-        </button>
       </div>
     </div>
   </div>

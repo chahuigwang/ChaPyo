@@ -165,7 +165,9 @@ function renderRoute() {
       byDay[key].items.push({ ...it, _globalNum: globalIdx + 1 })
       byDay[key].pts.push(pts[globalIdx])
     })
-    Object.values(byDay).forEach(({ dayIdx, items: dItems, pts: dPts }) => {
+    Object.entries(byDay).forEach(([iso, { dayIdx, items: dItems, pts: dPts }]) => {
+      // 경로 숨김 처리된 날짜는 핀과 경로를 모두 그리지 않는다.
+      if (ui.routeHiddenDays[iso]) return
       const color = dayColorFor(dayIdx)
       dItems.forEach((it, i) => {
         const el = buildPinEl(it._globalNum, it.name, it.id, color.pin)
@@ -173,7 +175,8 @@ function renderRoute() {
         ov.setMap(mapInstance)
         overlays.push({ itemId: it.id, overlay: ov, el })
       })
-      if (dPts.length >= 2) {
+      // 경로 토글: 숨김 처리된 날짜는 폴리라인(경로)을 그리지 않는다 (핀은 유지)
+      if (dPts.length >= 2 && !ui.routeHiddenDays[iso]) {
         const pl = new kakao.maps.Polyline({ path: dPts, strokeWeight: 3, strokeColor: color.pin, strokeOpacity: 0.85, strokeStyle: 'shortdash' })
         pl.setMap(mapInstance)
         polylines.push({ pl, color: color.pin, segIdx: dayIdx })
@@ -261,6 +264,12 @@ watch(selectedDate, renderRoute)
 watch(allDayItems, () => { if (props.showAll) renderRoute() }, { deep: true })
 watch(hoveredItemId, (id) => applyHoverHighlight(id))
 watch(hoveredTransitIndex, (idx) => applyTransitHighlight(idx))
+// 경로 표시/숨김 토글 시 폴리라인 재구성 (좌표는 그대로라 lastSig 초기화로 강제 재렌더)
+watch(() => ({ ...ui.routeHiddenDays }), () => {
+  if (!props.showAll) return
+  lastSig = ''
+  renderRoute()
+}, { deep: true })
 
 function onRelayout() {
   nextTick(() => {

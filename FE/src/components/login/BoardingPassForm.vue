@@ -231,7 +231,7 @@ async function submitReset() {
                 <Input
                   v-model="id"
                   :disabled="isLoading || isSuccess"
-                  class="mt-2 bg-slate-100 dark:bg-slate-800 border-transparent focus:bg-white"
+                  class="mt-2 bg-slate-100 dark:bg-slate-800 border-transparent focus:bg-white dark:focus:bg-slate-900"
                   placeholder="example@enjoytrip.com"
                 />
               </label>
@@ -241,7 +241,7 @@ async function submitReset() {
                   v-model="password"
                   type="password"
                   :disabled="isLoading || isSuccess"
-                  class="mt-2 bg-slate-100 dark:bg-slate-800 border-transparent focus:bg-white"
+                  class="mt-2 bg-slate-100 dark:bg-slate-800 border-transparent focus:bg-white dark:focus:bg-slate-900"
                   placeholder="••••••••"
                 />
               </label>
@@ -383,19 +383,19 @@ async function submitReset() {
               <form class="space-y-4" @submit.prevent="submitSignup">
                 <label class="block">
                   <span class="text-[11px] font-medium tracking-wider uppercase text-slate-500 dark:text-slate-400">닉네임</span>
-                  <Input v-model="signupName" :disabled="isSignupBusy" class="mt-2 bg-slate-100 dark:bg-slate-800 border-transparent focus:bg-white" placeholder="홍길동" />
+                  <Input v-model="signupName" :disabled="isSignupBusy" class="mt-2 bg-slate-100 dark:bg-slate-800 border-transparent focus:bg-white dark:focus:bg-slate-900" placeholder="홍길동" />
                 </label>
                 <label class="block">
                   <span class="text-[11px] font-medium tracking-wider uppercase text-slate-500 dark:text-slate-400">이메일</span>
-                  <Input v-model="signupId" :disabled="isSignupBusy" class="mt-2 bg-slate-100 dark:bg-slate-800 border-transparent focus:bg-white" placeholder="example@enjoytrip.com" />
+                  <Input v-model="signupId" :disabled="isSignupBusy" class="mt-2 bg-slate-100 dark:bg-slate-800 border-transparent focus:bg-white dark:focus:bg-slate-900" placeholder="example@enjoytrip.com" />
                 </label>
                 <label class="block">
                   <span class="text-[11px] font-medium tracking-wider uppercase text-slate-500 dark:text-slate-400">비밀번호</span>
-                  <Input v-model="signupPassword" type="password" :disabled="isSignupBusy" class="mt-2 bg-slate-100 dark:bg-slate-800 border-transparent focus:bg-white" placeholder="••••••••" />
+                  <Input v-model="signupPassword" type="password" :disabled="isSignupBusy" class="mt-2 bg-slate-100 dark:bg-slate-800 border-transparent focus:bg-white dark:focus:bg-slate-900" placeholder="••••••••" />
                 </label>
                 <label class="block">
                   <span class="text-[11px] font-medium tracking-wider uppercase text-slate-500 dark:text-slate-400">비밀번호 확인</span>
-                  <Input v-model="signupPasswordConfirm" type="password" :disabled="isSignupBusy" class="mt-2 bg-slate-100 dark:bg-slate-800 border-transparent focus:bg-white" placeholder="••••••••" />
+                  <Input v-model="signupPasswordConfirm" type="password" :disabled="isSignupBusy" class="mt-2 bg-slate-100 dark:bg-slate-800 border-transparent focus:bg-white dark:focus:bg-slate-900" placeholder="••••••••" />
                 </label>
 
                 <p v-if="signupError" class="text-xs text-red-500">{{ signupError }}</p>
@@ -445,19 +445,19 @@ async function submitReset() {
               <form class="space-y-4" @submit.prevent="submitReset">
                 <label class="block">
                   <span class="text-[11px] font-medium tracking-wider uppercase text-slate-500 dark:text-slate-400">닉네임</span>
-                  <Input v-model="resetNickname" :disabled="isResetBusy" class="mt-2 bg-slate-100 dark:bg-slate-800 border-transparent focus:bg-white" placeholder="홍길동" />
+                  <Input v-model="resetNickname" :disabled="isResetBusy" class="mt-2 bg-slate-100 dark:bg-slate-800 border-transparent focus:bg-white dark:focus:bg-slate-900" placeholder="홍길동" />
                 </label>
                 <label class="block">
                   <span class="text-[11px] font-medium tracking-wider uppercase text-slate-500 dark:text-slate-400">이메일</span>
-                  <Input v-model="resetEmail" :disabled="isResetBusy" class="mt-2 bg-slate-100 dark:bg-slate-800 border-transparent focus:bg-white" placeholder="example@enjoytrip.com" />
+                  <Input v-model="resetEmail" :disabled="isResetBusy" class="mt-2 bg-slate-100 dark:bg-slate-800 border-transparent focus:bg-white dark:focus:bg-slate-900" placeholder="example@enjoytrip.com" />
                 </label>
                 <label class="block">
                   <span class="text-[11px] font-medium tracking-wider uppercase text-slate-500 dark:text-slate-400">새 비밀번호</span>
-                  <Input v-model="resetNewPassword" type="password" :disabled="isResetBusy" class="mt-2 bg-slate-100 dark:bg-slate-800 border-transparent focus:bg-white" placeholder="••••••••" />
+                  <Input v-model="resetNewPassword" type="password" :disabled="isResetBusy" class="mt-2 bg-slate-100 dark:bg-slate-800 border-transparent focus:bg-white dark:focus:bg-slate-900" placeholder="••••••••" />
                 </label>
                 <label class="block">
                   <span class="text-[11px] font-medium tracking-wider uppercase text-slate-500 dark:text-slate-400">비밀번호 확인</span>
-                  <Input v-model="resetPasswordConfirm" type="password" :disabled="isResetBusy" class="mt-2 bg-slate-100 dark:bg-slate-800 border-transparent focus:bg-white" placeholder="••••••••" />
+                  <Input v-model="resetPasswordConfirm" type="password" :disabled="isResetBusy" class="mt-2 bg-slate-100 dark:bg-slate-800 border-transparent focus:bg-white dark:focus:bg-slate-900" placeholder="••••••••" />
                 </label>
 
                 <p v-if="resetError" class="text-xs text-red-500">{{ resetError }}</p>

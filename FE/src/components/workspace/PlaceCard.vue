@@ -3,14 +3,17 @@ import { ref, computed } from 'vue'
 import { Clock, Trash2, MapPin, Heart } from 'lucide-vue-next'
 import { findCategory } from '@/types/itinerary'
 import { useStorageStore } from '@/stores/storageStore'
-import { colorForUser } from '@/composables/useUserColor'
 
 const props = defineProps({
   item: { type: Object, required: true },
   index: { type: Number, required: true },
+  // 지도와 동일한 전역 연속 번호. 미지정 시 index 기반.
+  number: { type: Number, default: null },
   hovered: { type: Boolean, default: false },
   pendingDelete: { type: String, default: null },
 })
+
+const seqNumber = computed(() => props.number ?? props.index + 1)
 
 const emit = defineEmits([
   'save', 'request-delete', 'confirm-delete',
@@ -22,7 +25,6 @@ defineExpose({ $el: rootEl })
 
 const storage = useStorageStore()
 const liked = computed(() => storage.isLiked(props.item))
-const nicknameColor = computed(() => colorForUser(props.item.addedByUserId ?? props.item.nickname))
 
 const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
 
@@ -63,7 +65,7 @@ const PLACEHOLDER = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg
           class="absolute top-1.5 left-1.5 z-10 inline-flex items-center justify-center h-5 w-5
                  rounded-full bg-[#00B7EB] text-white text-[11px] font-bold shadow
                  ring-2 ring-white dark:ring-slate-900"
-        >{{ index + 1 }}</span>
+        >{{ seqNumber }}</span>
       </div>
 
       <!-- Content -->
@@ -112,14 +114,8 @@ const PLACEHOLDER = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg
           </span>
         </div>
 
-        <!-- 닉네임 · 금액 · 메모 (왼쪽 같은 라인) -->
-        <div v-if="item.nickname || item.cost || item.memo" class="mt-1.5 flex items-center gap-2 min-w-0">
-          <span
-            v-if="item.nickname"
-            class="shrink-0 max-w-[84px] truncate px-1.5 py-0.5 rounded-md text-[11px] font-semibold"
-            :style="{ color: nicknameColor, backgroundColor: nicknameColor + '1f' }"
-            :title="`${item.nickname} 님이 추가`"
-          >{{ item.nickname }}</span>
+        <!-- 금액 · 메모 (누가 넣었는지는 상세 모달에서만 표시) -->
+        <div v-if="item.cost || item.memo" class="mt-1.5 flex items-center gap-2 min-w-0">
           <span v-if="item.cost" class="shrink-0 text-[11px] font-semibold text-primary">{{ won(item.cost) }}</span>
           <span v-if="item.memo" class="min-w-0 flex-1 truncate text-[11px] text-slate-400 dark:text-slate-500">{{ item.memo }}</span>
         </div>

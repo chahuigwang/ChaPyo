@@ -21,6 +21,8 @@ function toPlaceCard(p) {
     categoryCode2: p.categoryCode2,
     category: typeToCategory(p.categoryCode2 ?? p.categoryCode1),
     likeCount: p.likeCount ?? 0,
+    avgRating: p.avgRating ?? null,
+    reviewCount: p.reviewCount ?? null,
     liked: p.liked ?? false,
   }
 }

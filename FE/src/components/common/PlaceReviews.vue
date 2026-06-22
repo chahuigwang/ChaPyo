@@ -21,6 +21,9 @@ const draftRating = ref(0)
 const hoverRating = ref(0)
 const draftContent = ref('')
 
+// 삭제 확인 상태 (한 번 더 클릭 시 삭제)
+const pendingDeleteId = ref(null)
+
 // 수정 상태
 const editingId = ref(null)
 const editRating = ref(0)
@@ -110,10 +113,21 @@ async function saveEdit(r) {
   }
 }
 
+function requestDelete(r) {
+  pendingDeleteId.value = r.reviewId
+}
+function cancelDelete() {
+  pendingDeleteId.value = null
+}
+
 async function remove(r) {
-  if (!window.confirm('이 리뷰를 삭제할까요?')) return
+  if (pendingDeleteId.value !== r.reviewId) {
+    requestDelete(r)
+    return
+  }
   try {
     await reviewService.remove(props.placeId, r.reviewId)
+    pendingDeleteId.value = null
     await load()
     toast.success?.('리뷰를 삭제했습니다.')
   } catch (err) {
@@ -121,7 +135,7 @@ async function remove(r) {
   }
 }
 
-watch(() => props.placeId, () => { editingId.value = null; resetForm(); load() }, { immediate: true })
+watch(() => props.placeId, () => { editingId.value = null; pendingDeleteId.value = null; resetForm(); load() }, { immediate: true })
 </script>
 
 <template>
@@ -231,7 +245,21 @@ watch(() => props.placeId, () => { editingId.value = null; resetForm(); load() }
                 <button @click="startEdit(r)" class="p-1 rounded text-slate-400 hover:text-primary transition-colors" title="수정">
                   <Pencil :size="13" />
                 </button>
-                <button @click="remove(r)" class="p-1 rounded text-slate-400 hover:text-red-500 transition-colors" title="삭제">
+                <button
+                  v-if="pendingDeleteId === r.reviewId"
+                  @click="remove(r)"
+                  @mouseleave="cancelDelete"
+                  class="px-2 h-6 rounded bg-red-500 text-white text-[11px] font-semibold hover:bg-red-600 transition-colors"
+                  title="한 번 더 클릭하면 삭제됩니다"
+                >
+                  삭제
+                </button>
+                <button
+                  v-else
+                  @click="remove(r)"
+                  class="p-1 rounded text-slate-400 hover:text-red-500 transition-colors"
+                  title="삭제"
+                >
                   <Trash2 :size="13" />
                 </button>
               </template>

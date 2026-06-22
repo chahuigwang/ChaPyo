@@ -1,12 +1,11 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { X, MapPin, Phone, Heart, CalendarPlus, Loader2, Clock, UserRound, Check } from 'lucide-vue-next'
+import { X, MapPin, Phone, Heart, CalendarPlus, Loader2, Clock, UserRound, Check, Star } from 'lucide-vue-next'
 import { findCategory } from '@/types/itinerary'
 import { useStorageStore } from '@/stores/storageStore'
 import { placeService } from '@/api/placeService'
 import PlaceMiniMap from '@/components/common/PlaceMiniMap.vue'
 import PlaceReviews from '@/components/common/PlaceReviews.vue'
-import knightImg from '@/assets/knight.png'
 
 // item 이 null 이면 닫힘. 검색결과/타임라인 아이템 모두 받을 수 있다.
 const props = defineProps({
@@ -40,6 +39,17 @@ function placeIdOf(item) {
 
 const reviewPlaceId = computed(() => placeIdOf(props.item))
 
+// 리뷰 평점/개수 — 평점이 있을 때만 노출, 개수 필드가 오면 함께 표시
+const avgRating = computed(() => {
+  const v = Number(data.value?.avgRating)
+  return Number.isFinite(v) && v > 0 ? v : null
+})
+const ratingText = computed(() => (avgRating.value != null ? avgRating.value.toFixed(1) : ''))
+const reviewCount = computed(() => {
+  const v = Number(data.value?.reviewCount)
+  return Number.isFinite(v) ? v : null
+})
+
 // 열릴 때 기본 정보 즉시 표시 후 GET /places/{placeId} 로 개요/전화/좌표 보강
 watch(() => props.item, async (item) => {
   if (!item) { data.value = null; return }
@@ -60,6 +70,7 @@ watch(() => props.item, async (item) => {
       overview: d.overview ?? data.value.overview,
       tel: d.tel || data.value.tel || '',
       firstImage: d.firstImage1 || data.value.firstImage,
+      avgRating: d.avgRating ?? data.value.avgRating,
       lat: d.latitude != null ? Number(d.latitude) : data.value.lat,
       lng: d.longitude != null ? Number(d.longitude) : data.value.lng,
     }
@@ -93,11 +104,14 @@ watch(() => props.item, async (item) => {
             <!-- Image -->
             <div class="relative w-full h-44 sm:h-52 shrink-0 bg-slate-100 dark:bg-slate-800">
               <img
-                :src="data.firstImage || knightImg"
+                v-if="data.firstImage"
+                :src="data.firstImage"
                 :alt="data.name"
                 class="w-full h-full object-cover"
-                :class="data.firstImage ? '' : 'opacity-40 object-[center_25%]'"
               />
+              <div v-else class="w-full h-full flex items-center justify-center text-[13px] text-slate-400 dark:text-slate-500 select-none">
+                이미지가 없습니다
+              </div>
             </div>
 
             <!-- Scrollable content -->
@@ -107,6 +121,11 @@ watch(() => props.item, async (item) => {
                 <div class="min-w-0 flex-1">
                   <h3 class="text-[17px] font-bold text-slate-900 dark:text-slate-100 leading-snug">{{ data.name }}</h3>
                   <p class="mt-0.5 text-[12px] text-slate-400 dark:text-slate-500">{{ findCategory(data.category)?.label }}</p>
+                  <div v-if="avgRating != null" class="mt-1 flex items-center gap-1 text-[12px]">
+                    <Star :size="13" class="fill-amber-400 text-amber-400" />
+                    <span class="font-bold text-slate-700 dark:text-slate-200">{{ ratingText }}</span>
+                    <span v-if="reviewCount != null" class="text-slate-400">· 리뷰 {{ reviewCount.toLocaleString() }}</span>
+                  </div>
                 </div>
                 <!-- 좋아요 (이름/카테고리 줄 오른쪽 끝) -->
                 <button

@@ -1,43 +1,46 @@
 <script setup>
 import { computed, ref, watch, nextTick, onBeforeUnmount } from 'vue'
 import { storeToRefs } from 'pinia'
-import { Trash2 } from 'lucide-vue-next'
 import PlaceCard from './PlaceCard.vue'
-import DailySummary from './DailySummary.vue'
 import TransitItem from './TransitItem.vue'
 import { useTripStore } from '@/stores/tripStore'
 import { useStorageStore } from '@/stores/storageStore'
 import { useCollabStore } from '@/stores/collabStore'
 import { useUiStore } from '@/stores/uiStore'
 import { useTimelineLogic, snapTimeFor } from '@/composables/useTimelineLogic'
-import { formatDayLabel } from '@/types/itinerary'
-import { dayColorFor } from '@/composables/useDayColor'
 import PlaceDetailModal from '@/components/common/PlaceDetailModal.vue'
-import { Card, CardHeader, CardContent } from '@/components/common'
+
+// 전체 일정 아코디언 안에서 특정 날짜의 상세 타임라인을 인라인으로 렌더한다.
+const props = defineProps({
+  date: { type: String, required: true },
+})
 
 const trip = useTripStore()
 const storage = useStorageStore()
 const collab = useCollabStore()
 const ui = useUiStore()
-const { itemsOfSelectedDay, selectedDate } = storeToRefs(trip)
 const { hoveredItemId } = storeToRefs(ui)
+
+// 이 타임라인이 대상으로 하는 날짜의 아이템 목록
+const dayItems = computed(() => trip.currentTrip?.itemsByDay?.[props.date] ?? [])
+
+// 지도와 동일하게 번호를 날짜별로 1부터 새로 시작하지 않고 전역 연속으로 매긴다.
+// (이전 날짜들의 아이템 수 합 = 이 날짜의 시작 오프셋)
+const startNumber = computed(() => {
+  const t = trip.currentTrip
+  if (!t) return 0
+  let n = 0
+  for (const iso of (trip.days || [])) {
+    if (iso === props.date) break
+    n += t.itemsByDay?.[iso]?.length ?? 0
+  }
+  return n
+})
 
 // 드래그(추가/순서변경) 진행 중 여부 — 이동거리 숨김 + 드롭 영역 확대에 사용
 const isDragging = computed(() => !!storage.dragging)
 
-const selectedDayIndex = computed(() => (trip.days || []).indexOf(selectedDate.value))
-const selectedDayColor = computed(() => dayColorFor(selectedDayIndex.value))
-const selectedDayLabel = computed(() => {
-  if (!selectedDate.value) return ''
-  const idx = selectedDayIndex.value
-  return idx >= 0 ? formatDayLabel(selectedDate.value, idx) : selectedDate.value
-})
-
-const { transits, dailyCost } = useTimelineLogic(itemsOfSelectedDay)
-
-watch(itemsOfSelectedDay, (list) => {
-  if (list && list.length >= 2) collab.seedDemoEditing(list[1].id)
-}, { immediate: true })
+const { transits } = useTimelineLogic(dayItems)
 
 // Map → Timeline: scroll hovered card into view
 const cardRefs = ref({})
@@ -56,7 +59,7 @@ const dropIndex = ref(null)
 function dragPayload() { return storage.dragging }
 
 function onTimelineDragOver(e) {
-  if (!selectedDate.value || !dragPayload()) return
+  if (!dragPayload()) return
   e.preventDefault()
   e.dataTransfer.dropEffect = dragPayload()?.source === 'timeline' ? 'move' : 'copy'
   dropActive.value = true
@@ -68,25 +71,28 @@ function onTimelineDragLeave(e) {
 }
 function onTimelineDrop(e) {
   e.preventDefault()
+  e.stopPropagation()
   const p = dragPayload()
   dropActive.value = false
   const insertAt = dropIndex.value
   dropIndex.value = null
-  if (!p?.item || !selectedDate.value) { storage.clearDragging(); return }
-  if (p.source === 'timeline' && p.fromDate === selectedDate.value) {
+  if (!p?.item) { storage.clearDragging(); return }
+  if (p.source === 'timeline' && p.fromDate === props.date) {
     if (insertAt != null) {
-      trip.reorderInDate(selectedDate.value, p.fromIdx, insertAt)
+      trip.reorderInDate(props.date, p.fromIdx, insertAt)
       const newIdx = insertAt > p.fromIdx ? insertAt - 1 : insertAt
       const snapped = snapTimeFor(newIdx)
       if (snapped) trip.updateItem(p.item.id, { time: snapped })
     }
   } else if (p.source === 'timeline') {
-    // 다른 날짜의 기존 일정 → 현재 날짜로 이동 (PATCH visitDate)
-    const snapped = snapTimeFor(insertAt ?? itemsOfSelectedDay.value.length)
-    trip.moveItemToDate(p.fromDate, selectedDate.value, p.item.id, snapped ? { time: snapped } : {})
+    // 다른 날짜의 기존 일정 → 이 날짜로 이동 (PATCH visitDate)
+    const snapped = snapTimeFor(insertAt ?? dayItems.value.length)
+    trip.moveItemToDate(p.fromDate, props.date, p.item.id, snapped ? { time: snapped } : {})
+    collab.pushHistory({ type: 'add', itemName: p.item.name, byName: collab.me.name })
   } else {
-    const snapped = snapTimeFor(insertAt ?? itemsOfSelectedDay.value.length)
-    trip.addItemToDate(selectedDate.value, snapped ? { ...p.item, time: snapped } : p.item)
+    const snapped = snapTimeFor(insertAt ?? dayItems.value.length)
+    trip.addItemToDate(props.date, snapped ? { ...p.item, time: snapped } : p.item)
+    collab.pushHistory({ type: 'add', itemName: p.item.name, byName: collab.me.name })
     // 보관함(좋아요)에서 일정으로 가져와도 좋아요는 유지(복사)
   }
   storage.clearDragging()
@@ -108,7 +114,7 @@ function onCardDragOver(e, idx) {
   dropActive.value = true
 }
 function onCardDragStart(e, item, idx) {
-  storage.setDragging({ source: 'timeline', item, fromDate: selectedDate.value, fromIdx: idx })
+  storage.setDragging({ source: 'timeline', item, fromDate: props.date, fromIdx: idx })
   try { e.dataTransfer.setData('text/plain', item.id); e.dataTransfer.effectAllowed = 'move' } catch {}
 }
 function onCardDragEnd() {
@@ -135,88 +141,75 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocClick))
 
 function requestDelete(item) { pendingDelete.value = item.id }
 function confirmDelete(item) {
-  trip.removeItem(item.id)
+  trip.removeItemFromDate(props.date, item.id)
   collab.pushHistory({ type: 'remove', itemName: item.name, byName: collab.me.name })
   pendingDelete.value = null
   if (detail.value?.id === item.id) detail.value = null
 }
-
-const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
 </script>
 
 <template>
-  <Card class="flex flex-col min-h-0">
-    <CardHeader>
-      <DailySummary
-        :date="selectedDate"
-        :day-label="selectedDayLabel"
-        :day-color="selectedDayColor"
-        :item-count="itemsOfSelectedDay.length"
-        :daily-cost="dailyCost"
+  <div
+    class="rounded-lg transition-all"
+    :class="dropActive ? 'ring-2 ring-dashed ring-primary bg-primary/5' : ''"
+    @dragover="onTimelineDragOver"
+    @dragleave="onTimelineDragLeave"
+    @drop="onTimelineDrop"
+  >
+    <div v-if="dayItems.length" class="flex flex-col pb-1">
+      <!-- 맨 앞 드롭 영역 -->
+      <div
+        @dragover="onSlotDragOver($event, 0)"
+        class="rounded-lg transition-all"
+        :class="isDragging
+          ? (dropIndex === 0 ? 'h-9 bg-primary/15 ring-2 ring-dashed ring-primary/50 mb-1' : 'h-6')
+          : 'h-1'"
       />
-    </CardHeader>
-
-    <CardContent
-      class="flex-1 overflow-y-auto overflow-x-hidden pt-2 rounded-lg transition-all"
-      :class="dropActive ? 'ring-2 ring-dashed ring-primary bg-primary/5' : ''"
-      @dragover="onTimelineDragOver"
-      @dragleave="onTimelineDragLeave"
-      @drop="onTimelineDrop"
-    >
-      <div v-if="itemsOfSelectedDay.length" class="flex flex-col pb-4">
-        <!-- 맨 앞 드롭 영역 -->
-        <div
-          @dragover="onSlotDragOver($event, 0)"
-          class="mx-4 rounded-lg transition-all"
-          :class="isDragging
-            ? (dropIndex === 0 ? 'h-9 bg-primary/15 ring-2 ring-dashed ring-primary/50 mb-1' : 'h-6')
-            : 'h-1'"
+      <template v-for="(item, idx) in dayItems" :key="item.id">
+        <PlaceCard
+          :ref="el => { if (el?.$el) cardRefs[item.id] = el.$el; else if (el) cardRefs[item.id] = el }"
+          :item="item"
+          :index="idx"
+          :number="startNumber + idx + 1"
+          :hovered="hoveredItemId === item.id"
+          :pending-delete="pendingDelete"
+          @click="detail = item"
+          @mouseenter="ui.setHoveredItem(item.id)"
+          @mouseleave="ui.clearHoveredItem(item.id)"
+          @dragstart="onCardDragStart($event, item, idx)"
+          @dragend="onCardDragEnd"
+          @dragover="onCardDragOver($event, idx)"
+          @save="onItemSave(item, $event)"
+          @request-delete="requestDelete(item)"
+          @confirm-delete="confirmDelete(item)"
         />
-        <template v-for="(item, idx) in itemsOfSelectedDay" :key="item.id">
-          <PlaceCard
-            :ref="el => { if (el?.$el) cardRefs[item.id] = el.$el; else if (el) cardRefs[item.id] = el }"
-            :item="item"
-            :index="idx"
-            :hovered="hoveredItemId === item.id"
-            :pending-delete="pendingDelete"
-            @click="detail = item"
-            @mouseenter="ui.setHoveredItem(item.id)"
-            @mouseleave="ui.clearHoveredItem(item.id)"
-            @dragstart="onCardDragStart($event, item, idx)"
-            @dragend="onCardDragEnd"
-            @dragover="onCardDragOver($event, idx)"
-            @save="onItemSave(item, $event)"
-            @request-delete="requestDelete(item)"
-            @confirm-delete="confirmDelete(item)"
-          />
 
+        <div
+          @dragover="onSlotDragOver($event, idx + 1)"
+          class="relative flex flex-col items-center transition-all"
+        >
+          <!-- 드래그 중: 이동거리 숨기고 잡기 쉬운 드롭 영역 표시 (맨 뒤 영역 포함) -->
           <div
-            @dragover="onSlotDragOver($event, idx + 1)"
-            class="relative flex flex-col items-center transition-all"
-          >
-            <!-- 드래그 중: 이동거리 숨기고 잡기 쉬운 드롭 영역 표시 (맨 뒤 영역 포함) -->
-            <div
-              v-if="isDragging"
-              class="w-full mx-4 rounded-lg transition-all"
-              :class="dropIndex === idx + 1 ? 'h-9 bg-primary/15 ring-2 ring-dashed ring-primary/50' : 'h-6'"
-            />
-            <TransitItem
-              v-else-if="idx < itemsOfSelectedDay.length - 1"
-              :item="item"
-              :next="itemsOfSelectedDay[idx + 1]"
-              :auto-km="transits[idx]?.km ?? null"
-              :auto-mins="transits[idx]?.mins ?? null"
-              @hover-transit="ui.setHoveredTransit(idx)"
-              @leave-transit="ui.clearHoveredTransit()"
-            />
-          </div>
-        </template>
-      </div>
+            v-if="isDragging"
+            class="w-full rounded-lg transition-all"
+            :class="dropIndex === idx + 1 ? 'h-9 bg-primary/15 ring-2 ring-dashed ring-primary/50' : 'h-6'"
+          />
+          <TransitItem
+            v-else-if="idx < dayItems.length - 1"
+            :item="item"
+            :next="dayItems[idx + 1]"
+            :auto-km="transits[idx]?.km ?? null"
+            :auto-mins="transits[idx]?.mins ?? null"
+            @hover-transit="ui.setHoveredTransit(idx)"
+            @leave-transit="ui.clearHoveredTransit()"
+          />
+        </div>
+      </template>
+    </div>
 
-      <div v-else class="rounded-xl bg-slate-50 dark:bg-slate-800/40 p-12 text-center text-sm text-slate-500 dark:text-slate-400 shadow-inner">
-        아직 일정이 없습니다. AI에게 추천을 요청하거나 직접 추가해 보세요.
-      </div>
-    </CardContent>
+    <div v-else class="rounded-xl bg-slate-50 dark:bg-slate-800/40 p-6 text-center text-[12px] text-slate-500 dark:text-slate-400">
+      아직 일정이 없습니다. 검색·좋아요 또는 AI 추천에서 장소를 드래그해 추가해 보세요.
+    </div>
 
     <!-- 상세보기 모달 (검색과 동일한 리치 모달 + 메모/비용 편집) -->
     <PlaceDetailModal
@@ -226,5 +219,5 @@ const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
       @close="detail = null"
       @save="onDetailSave"
     />
-  </Card>
+  </div>
 </template>

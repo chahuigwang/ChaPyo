@@ -9,7 +9,7 @@ import {
   Sun,
   Moon,
   Heart,
-  MessageSquare,
+  BotMessageSquare,
   Search,
   MapPin,
   ChevronLeft,
@@ -91,7 +91,7 @@ const currentPanel = computed(() => PANEL_MAP[activePanel.value] ?? null)
           :class="isActive('chat') ? railBtnActive : railBtn"
           title="AI 채팅"
         >
-          <MessageSquare :size="18" />
+          <BotMessageSquare :size="18" />
         </button>
         <button
           @click="ui.togglePanel('search')"

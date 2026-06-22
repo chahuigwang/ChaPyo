@@ -22,6 +22,9 @@ public class TripPlanItemRequest {
     @Schema(description = "방문 시간", example = "10:00")
     private LocalTime visitTime;
 
+    @Schema(description = "삽입할 순서 (null이면 마지막에 추가)", example = "2")
+    private Integer itemOrder;
+
     @Schema(description = "비용", example = "3000")
     private Integer cost;
 

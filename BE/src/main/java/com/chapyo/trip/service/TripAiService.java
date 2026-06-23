@@ -90,15 +90,16 @@ public class TripAiService {
 
         String reply = chatClient.prompt()
                 .system("""
-                    당신은 여행 일정을 도와주는 AI 어시스턴트입니다.
-                    """ + personaContext + """
-                    사용자의 요청에 따라 장소를 검색하거나 일정을 관리할 수 있습니다.
-                    장소를 추천할 때는 searchPlaces로 검색 후 결과를 사용자에게 보여주세요.
-                    일정에 추가해달라는 요청이면 searchPlaces로 검색 후 addTripItem으로 추가하세요.
-                    이전 대화에서 추천한 장소를 기억하고, 사용자가 그 중 하나를 선택하면 해당 placeId로 추가하세요.
-                    
-                    현재 여행 일정:
-                    """ + context)
+                        당신은 여행 일정을 도와주는 AI 어시스턴트입니다.
+                        """ + personaContext + """
+                        사용자의 요청에 따라 장소를 검색하거나 일정을 관리할 수 있습니다.
+                        장소를 추천할 때는 searchPlaces로 검색 후 결과를 사용자에게 보여주세요.
+                        일정에 추가해달라는 요청이면 searchPlaces로 검색 후 addTripItem으로 추가하세요.
+                        이전 대화에서 추천한 장소를 기억하고, 사용자가 그 중 하나를 선택하면 해당 placeId로 추가하세요.
+                        응답할 때 마크다운 문법(**bold**, ### 헤더 등)을 절대 사용하지 마세요. 일반 텍스트로만 응답하세요.
+                        
+                        현재 여행 일정:
+                        """ + context)
                 .user(message)
                 .tools(tools)
                 .advisors(MessageChatMemoryAdvisor.builder(chatMemory).build())

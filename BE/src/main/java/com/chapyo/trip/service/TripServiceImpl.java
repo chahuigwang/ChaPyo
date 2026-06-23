@@ -5,12 +5,15 @@ import com.chapyo.trip.dto.request.TripItemOrderRequest;
 import com.chapyo.trip.dto.request.TripPlanItemRequest;
 import com.chapyo.trip.dto.request.TripPlanItemUpdateRequest;
 import com.chapyo.trip.dto.request.TripPlanUpdateRequest;
+import com.chapyo.trip.dto.request.TripRouteRequest;
 import com.chapyo.trip.dto.response.MemberResponse;
 import com.chapyo.trip.dto.response.TripPlanDetailResponse;
 import com.chapyo.trip.dto.response.TripPlanItemResponse;
 import com.chapyo.trip.dto.response.TripPlanResponse;
+import com.chapyo.trip.dto.response.TripRouteResponse;
 import com.chapyo.trip.entity.TripPlan;
 import com.chapyo.trip.entity.TripPlanItem;
+import com.chapyo.trip.entity.TripPlanRoute;
 import com.chapyo.trip.exception.TripErrorCode;
 import com.chapyo.trip.mapper.TripMapper;
 import com.chapyo.user.entity.User;
@@ -18,6 +21,8 @@ import com.chapyo.user.repository.UserMapper;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -120,6 +125,7 @@ public class TripServiceImpl implements TripService {
 
         List<MemberResponse> members = tripMapper.findMembersByPlanId(planId);
         List<TripPlanItemResponse> items = tripMapper.findItemsByPlanId(planId, userId);
+        List<TripRouteResponse> routes = tripMapper.findRoutesByPlanId(planId);
 
         return TripPlanDetailResponse.builder()
                 .planId(plan.getPlanId())
@@ -129,6 +135,7 @@ public class TripServiceImpl implements TripService {
                 .isOwner(plan.getOwnerId().equals(userId))
                 .members(members)
                 .items(items)
+                .routes(routes)
                 .build();
     }
 
@@ -215,6 +222,23 @@ public class TripServiceImpl implements TripService {
             throw new CustomException(TripErrorCode.FORBIDDEN);
         }
 
+        // 현재 순서 조회
+        List<TripPlanItem> currentItems = tripMapper.findItemsByPlanIdSimple(planId);
+        Map<Long, Integer> currentOrderMap = currentItems.stream()
+                .collect(Collectors.toMap(TripPlanItem::getItemId, TripPlanItem::getItemOrder));
+
+        // 순서가 바뀐 아이템 ID 목록 추출
+        List<Long> changedItemIds = request.getItemOrders().stream()
+                .filter(io -> !io.getOrder().equals(currentOrderMap.get(io.getItemId())))
+                .map(TripItemOrderRequest.ItemOrder::getItemId)
+                .toList();
+
+        // 변경된 아이템 관련 route 삭제
+        if (!changedItemIds.isEmpty()) {
+            tripMapper.deleteRoutesByItemIds(changedItemIds);
+        }
+
+        // 순서 업데이트
         for (TripItemOrderRequest.ItemOrder itemOrder : request.getItemOrders()) {
             tripMapper.updateItemOrder(itemOrder.getItemId(), itemOrder.getOrder());
         }
@@ -254,5 +278,22 @@ public class TripServiceImpl implements TripService {
         }
 
         tripMapper.deleteMember(planId, targetUserId);
+    }
+
+    @Override
+    @Transactional
+    public void saveRoute(Long planId, TripRouteRequest request, Long userId) {
+        if (!tripMapper.existsMember(planId, userId)) {
+            throw new CustomException(TripErrorCode.FORBIDDEN);
+        }
+
+        TripPlanRoute route = TripPlanRoute.builder()
+                .fromItemId(request.getFromItemId())
+                .toItemId(request.getToItemId())
+                .moveTime(request.getMoveTime())
+                .cost(request.getCost())
+                .build();
+
+        tripMapper.upsertRoute(route);
     }
 }

@@ -1,0 +1,30 @@
+package com.chapyo.trip.dto.response;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Getter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@Schema(description = "이동 정보 응답")
+public class TripRouteResponse {
+
+    @Schema(description = "이동 정보 ID", example = "1")
+    private Long routeId;
+
+    @Schema(description = "출발 아이템 ID", example = "1")
+    private Long fromItemId;
+
+    @Schema(description = "도착 아이템 ID", example = "2")
+    private Long toItemId;
+
+    @Schema(description = "소요 시간 (분)", example = "30")
+    private Integer moveTime;
+
+    @Schema(description = "이동 비용", example = "1500")
+    private Integer cost;
+}

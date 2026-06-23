@@ -141,4 +141,34 @@
           AND day_number = #{dayNumber}
           AND item_order >= #{itemOrder}
     </update>
+
+    <select id="findItemsByPlanIdSimple" resultType="TripPlanItem">
+        SELECT item_id, item_order, day_number
+        FROM trip_plan_items
+        WHERE plan_id = #{planId}
+    </select>
+
+    <insert id="upsertRoute" useGeneratedKeys="true" keyProperty="routeId">
+        INSERT INTO trip_plan_routes (from_item_id, to_item_id, move_time, cost)
+        VALUES (#{fromItemId}, #{toItemId}, #{moveTime}, #{cost})
+        ON DUPLICATE KEY UPDATE
+                             move_time = #{moveTime},
+                             cost = #{cost}
+    </insert>
+
+    <delete id="deleteRoutesByItemIds">
+        DELETE FROM trip_plan_routes
+        WHERE from_item_id IN
+        <foreach collection="itemIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+        OR to_item_id IN
+        <foreach collection="itemIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </delete>
+
+    <select id="findRoutesByPlanId" resultType="TripRouteResponse">
+        SELECT route_id, from_item_id, to_item_id, move_time, cost
+        FROM trip_plan_routes
+        WHERE from_item_id IN (
+            SELECT item_id FROM trip_plan_items WHERE plan_id = #{planId}
+        )
+    </select>
 </mapper>

@@ -1,6 +1,5 @@
 package com.chapyo.trip.controller;
 
-
 import com.chapyo.common.response.BaseResponse;
 import com.chapyo.trip.dto.request.TripAiChatRequest;
 import com.chapyo.trip.dto.response.TripAiChatResponse;
@@ -27,7 +26,8 @@ public class TripAiController {
             @RequestBody @Valid TripAiChatRequest request,
             @AuthenticationPrincipal Long userId) {
 
-        String reply = tripAiService.chat(planId, userId, request.getMessage());
-        return BaseResponse.success(new TripAiChatResponse(reply));
+        TripAiChatResponse response = tripAiService.chat(
+                planId, userId, request.getMessage(), request.getPersona());
+        return BaseResponse.success(response);
     }
 }

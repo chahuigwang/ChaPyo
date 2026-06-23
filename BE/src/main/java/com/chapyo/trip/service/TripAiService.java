@@ -1,17 +1,20 @@
 package com.chapyo.trip.service;
 
+import com.chapyo.place.repository.PlaceMapper;
 import com.chapyo.place.repository.AreaMapper;
 import com.chapyo.place.repository.DistrictMapper;
+import com.chapyo.trip.dto.request.TripAiChatRequest;
+import com.chapyo.trip.dto.response.TripAiChatResponse;
 import com.chapyo.trip.dto.response.TripPlanItemResponse;
 import com.chapyo.trip.mapper.TripMapper;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.InMemoryChatMemoryRepository;
 import org.springframework.ai.chat.memory.MessageWindowChatMemory;
-import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Service;
 
@@ -30,12 +33,14 @@ public class TripAiService {
     private final TripMapper tripMapper;
     private final VectorStore vectorStore;
     private final TripService tripService;
+    private final PlaceMapper placeMapper;
     private final AreaMapper areaMapper;
     private final DistrictMapper districtMapper;
 
     private Map<String, Integer> areaCodeMap;
     private Map<String, Integer> districtCodeMap;
     private final Map<String, ChatMemory> memoryMap = new ConcurrentHashMap<>();
+    private final Map<String, String> personaMap = new ConcurrentHashMap<>();
 
     @PostConstruct
     public void init() {
@@ -64,30 +69,44 @@ public class TripAiService {
         );
     }
 
-    public String chat(Long planId, Long userId, String message) {
-        List<TripPlanItemResponse> items = tripMapper.findItemsByPlanId(planId, userId);
-        String context = buildPlanContext(items);
+    public TripAiChatResponse chat(Long planId, Long userId, String message, String persona) {
         String conversationId = planId + "_" + userId;
 
-        TripAiTools tools = new TripAiTools(vectorStore, tripService, tripMapper, chatClient, areaCodeMap, districtCodeMap, planId, userId);
+        if (persona != null && !persona.isBlank()) {
+            personaMap.put(conversationId, persona);
+        }
+
+        String savedPersona = personaMap.get(conversationId);
+        String personaContext = savedPersona != null && !savedPersona.isBlank()
+                ? "사용자 페르소나: " + savedPersona + "\n"
+                : "";
+
+        List<TripPlanItemResponse> items = tripMapper.findItemsByPlanId(planId, userId);
+        String context = buildPlanContext(items);
+
+        TripAiTools tools = new TripAiTools(vectorStore, tripService, tripMapper, placeMapper,
+                chatClient, areaCodeMap, districtCodeMap, planId, userId);
         ChatMemory chatMemory = getOrCreateMemory(planId, userId);
 
-        return chatClient.prompt()
+        String reply = chatClient.prompt()
                 .system("""
-                        당신은 여행 일정을 도와주는 AI 어시스턴트입니다.
-                        사용자의 요청에 따라 장소를 검색하거나 일정을 관리할 수 있습니다.
-                        장소를 추천할 때는 searchPlaces로 검색 후 결과를 사용자에게 보여주세요.
-                        일정에 추가해달라는 요청이면 searchPlaces로 검색 후 addTripItem으로 추가하세요.
-                        이전 대화에서 추천한 장소를 기억하고, 사용자가 그 중 하나를 선택하면 해당 placeId로 추가하세요.
-                        
-                        현재 여행 일정:
-                        """ + context)
+                    당신은 여행 일정을 도와주는 AI 어시스턴트입니다.
+                    """ + personaContext + """
+                    사용자의 요청에 따라 장소를 검색하거나 일정을 관리할 수 있습니다.
+                    장소를 추천할 때는 searchPlaces로 검색 후 결과를 사용자에게 보여주세요.
+                    일정에 추가해달라는 요청이면 searchPlaces로 검색 후 addTripItem으로 추가하세요.
+                    이전 대화에서 추천한 장소를 기억하고, 사용자가 그 중 하나를 선택하면 해당 placeId로 추가하세요.
+                    
+                    현재 여행 일정:
+                    """ + context)
                 .user(message)
                 .tools(tools)
                 .advisors(MessageChatMemoryAdvisor.builder(chatMemory).build())
                 .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, conversationId))
                 .call()
                 .content();
+
+        return new TripAiChatResponse(reply, tools.getLastSearchedPlaces());
     }
 
     private String buildPlanContext(List<TripPlanItemResponse> items) {

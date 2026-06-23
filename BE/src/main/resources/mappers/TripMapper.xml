@@ -149,9 +149,10 @@
     </select>
 
     <insert id="upsertRoute" useGeneratedKeys="true" keyProperty="routeId">
-        INSERT INTO trip_plan_routes (from_item_id, to_item_id, move_time, cost)
-        VALUES (#{fromItemId}, #{toItemId}, #{moveTime}, #{cost})
+        INSERT INTO trip_plan_routes (from_item_id, to_item_id, transport, move_time, cost)
+        VALUES (#{fromItemId}, #{toItemId}, #{transport}, #{moveTime}, #{cost})
         ON DUPLICATE KEY UPDATE
+                             transport = #{transport},
                              move_time = #{moveTime},
                              cost = #{cost}
     </insert>
@@ -165,10 +166,11 @@
     </delete>
 
     <select id="findRoutesByPlanId" resultType="TripRouteResponse">
-        SELECT route_id, from_item_id, to_item_id, move_time, cost
+        SELECT route_id, from_item_id, to_item_id, transport, move_time, cost
         FROM trip_plan_routes
         WHERE from_item_id IN (
             SELECT item_id FROM trip_plan_items WHERE plan_id = #{planId}
         )
     </select>
+
 </mapper>

@@ -81,10 +81,12 @@ httpClient.interceptors.response.use(normalizeSuccess, async (err) => {
   return normalizeError(err)
 })
 
+// config(3번째 인자)로 per-request 옵션(timeout 등) 오버라이드 가능.
+// AI 챗봇처럼 응답이 느린 엔드포인트는 { timeout: 0 }(무제한)로 호출한다.
 export const http = {
-  get: (url, params) => httpClient.get(url, { params }),
-  post: (url, body) => httpClient.post(url, body),
-  put: (url, body) => httpClient.put(url, body),
-  patch: (url, body) => httpClient.patch(url, body),
-  delete: (url) => httpClient.delete(url),
+  get: (url, params, config) => httpClient.get(url, { params, ...config }),
+  post: (url, body, config) => httpClient.post(url, body, config),
+  put: (url, body, config) => httpClient.put(url, body, config),
+  patch: (url, body, config) => httpClient.patch(url, body, config),
+  delete: (url, config) => httpClient.delete(url, config),
 }

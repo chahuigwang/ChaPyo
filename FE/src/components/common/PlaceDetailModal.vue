@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { X, MapPin, Phone, Heart, Loader2, UserRound, Check, Star, Dices, ChevronDown, LoaderPinwheel } from 'lucide-vue-next'
+import { X, MapPin, Phone, Heart, Loader2, UserRound, Check, CheckCircle, Star, Dices, ChevronDown, LoaderPinwheel } from 'lucide-vue-next'
 import { findCategory } from '@/types/itinerary'
 import { useStorageStore } from '@/stores/storageStore'
 import { useTripStore } from '@/stores/tripStore'
@@ -53,9 +53,13 @@ const error = ref(false)
 // 편집용 드래프트(메모/비용)
 const memoDraft = ref('')
 const costDraft = ref(0)
+const saved = ref(false)
+let savedTimer = null
 function saveEdit() {
   emit('save', { memo: (memoDraft.value || '').trim(), cost: Number(costDraft.value) || 0 })
-  emit('close')
+  saved.value = true
+  if (savedTimer) clearTimeout(savedTimer)
+  savedTimer = window.setTimeout(() => { saved.value = false }, 2000)
 }
 
 const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
@@ -290,9 +294,16 @@ watch(() => props.item, async (item) => {
                 </label>
                 <button
                   @click="saveEdit"
-                  class="w-full h-9 rounded-lg bg-primary text-white text-[13px] font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-1.5"
+                  class="w-full h-9 rounded-lg text-[13px] font-semibold transition-all duration-300 flex items-center justify-center gap-1.5"
+                  :class="saved
+                    ? 'bg-emerald-500 text-white scale-[1.02] shadow-md shadow-emerald-200 dark:shadow-emerald-900/40'
+                    : 'bg-primary text-white hover:bg-primary/90'"
                 >
-                  <Check :size="14" /> 저장
+                  <Transition name="save-icon" mode="out-in">
+                    <CheckCircle v-if="saved" :size="15" key="done" class="shrink-0" />
+                    <Check v-else :size="14" key="idle" class="shrink-0" />
+                  </Transition>
+                  <span>{{ saved ? '저장됨!' : '저장' }}</span>
                 </button>
               </div>
 
@@ -343,4 +354,9 @@ watch(() => props.item, async (item) => {
 .fade-leave-active { transition: opacity 0.2s ease; }
 .fade-enter-from,
 .fade-leave-to { opacity: 0; }
+
+.save-icon-enter-active { transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1); }
+.save-icon-leave-active { transition: all 0.12s ease-in; }
+.save-icon-enter-from { opacity: 0; transform: scale(0.4) rotate(-45deg); }
+.save-icon-leave-to   { opacity: 0; transform: scale(0.4) rotate(45deg); }
 </style>

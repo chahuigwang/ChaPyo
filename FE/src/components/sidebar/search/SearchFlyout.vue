@@ -298,6 +298,11 @@ function onDistrictOutside(e) {
 
       <template v-else>
 
+        <!-- 드래그 온보딩 힌트 (결과가 있을 때만) -->
+        <div v-if="results.length" class="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/8 dark:bg-primary/15 mb-1">
+          <span class="text-[11px] text-primary font-medium">💡 카드를 오른쪽 일정 패널로 드래그하면 추가돼요</span>
+        </div>
+
         <draggable
           :list="results"
           item-key="id"

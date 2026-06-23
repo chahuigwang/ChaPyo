@@ -127,63 +127,74 @@ watch(() => ui.tourActiveId, (id) => {
 
 <template>
   <div>
-    <draggable
-      :list="dayList"
-      item-key="id"
-      :group="{ name: 'itinerary', pull: true, put: true }"
-      :animation="180"
-      :disabled="ui.tourMode"
-      handle=".place-card"
-      filter="button"
-      :prevent-on-filter="false"
-      ghost-class="sr-ghost"
-      chosen-class="sr-chosen"
-      drag-class="sr-drag"
-      class="flex flex-col gap-0.5 min-h-[44px]"
-      @start="onDragStart"
-      @end="onDragEnd"
-      @change="onChange"
-    >
-      <template #item="{ element: item, index: idx }">
-        <div
-          class="sr-row transition-all duration-300"
-          :class="ui.tourMode
-            ? (ui.tourActiveId === item.id ? 'tour-active' : 'tour-dim')
-            : ''"
-        >
-          <PlaceCard
-            :ref="el => setCardRef(el, item.id)"
-            :item="item"
-            :index="idx"
-            :number="startNumber + idx + 1"
-            :color="dayColor.pin"
-            :hovered="hoveredItemId === item.id"
-            :pending-delete="pendingDelete"
-            @click="detail = item"
-            @mouseenter="ui.setHoveredItem(item.id)"
-            @mouseleave="ui.clearHoveredItem(item.id)"
-            @save="onItemSave(item, $event)"
-            @request-delete="requestDelete(item)"
-            @confirm-delete="confirmDelete(item)"
-          />
-          <TransitItem
-            v-if="idx < dayList.length - 1"
-            :item="item"
-            :next="dayList[idx + 1]"
-            :auto-km="transits[idx]?.km ?? null"
-            :auto-mins="transits[idx]?.mins ?? null"
-            @hover-transit="ui.setHoveredTransit(item.id)"
-            @leave-transit="ui.clearHoveredTransit()"
-          />
-        </div>
-      </template>
-    </draggable>
+    <!-- 드래그 존 래퍼: 아이템이 없으면 힌트 위에 draggable이 겹쳐 실제 드롭을 받는다 -->
+    <div class="relative" :class="!dayList.length ? 'min-h-[104px]' : ''">
+      <draggable
+        :list="dayList"
+        item-key="id"
+        :group="{ name: 'itinerary', pull: true, put: true }"
+        :animation="180"
+        :disabled="ui.tourMode"
+        handle=".place-card"
+        filter="button"
+        :prevent-on-filter="false"
+        ghost-class="sr-ghost"
+        chosen-class="sr-chosen"
+        drag-class="sr-drag"
+        :class="!dayList.length ? 'absolute inset-0 z-10' : 'flex flex-col gap-0.5 min-h-[44px]'"
+        @start="onDragStart"
+        @end="onDragEnd"
+        @change="onChange"
+      >
+        <template #item="{ element: item, index: idx }">
+          <div
+            class="sr-row transition-all duration-300"
+            :class="ui.tourMode
+              ? (ui.tourActiveId === item.id ? 'tour-active' : 'tour-dim')
+              : ''"
+          >
+            <PlaceCard
+              :ref="el => setCardRef(el, item.id)"
+              :item="item"
+              :index="idx"
+              :number="startNumber + idx + 1"
+              :color="dayColor.pin"
+              :hovered="hoveredItemId === item.id"
+              :pending-delete="pendingDelete"
+              @click="detail = item"
+              @mouseenter="ui.setHoveredItem(item.id)"
+              @mouseleave="ui.clearHoveredItem(item.id)"
+              @save="onItemSave(item, $event)"
+              @request-delete="requestDelete(item)"
+              @confirm-delete="confirmDelete(item)"
+            />
+            <TransitItem
+              v-if="idx < dayList.length - 1"
+              :item="item"
+              :next="dayList[idx + 1]"
+              :auto-km="transits[idx]?.km ?? null"
+              :auto-mins="transits[idx]?.mins ?? null"
+              @hover-transit="ui.setHoveredTransit(item.id)"
+              @leave-transit="ui.clearHoveredTransit()"
+            />
+          </div>
+        </template>
+      </draggable>
 
-    <div
-      v-if="!dayList.length"
-      class="mt-1 rounded-xl bg-slate-50 dark:bg-slate-800/40 p-6 text-center text-[12px] text-slate-500 dark:text-slate-400"
-    >
-      아직 일정이 없습니다. 검색·좋아요 또는 AI 추천에서 장소를 드래그해 추가해 보세요.
+      <!-- 빈 드롭 존 힌트 (pointer-events-none 으로 draggable 이벤트가 아래로 통과) -->
+      <div
+        v-if="!dayList.length"
+        class="pointer-events-none absolute inset-0 rounded-xl border-2 border-dashed border-primary/25 bg-primary/5 dark:bg-primary/10 flex flex-col items-center justify-center gap-1.5"
+      >
+        <div class="drag-hint-icon">
+          <svg width="26" height="26" viewBox="0 0 28 28" fill="none">
+            <path d="M10 6v10M10 6L7 9M10 6l3 3" stroke="#00B7EB" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            <rect x="6" y="14" width="16" height="10" rx="3" fill="#00B7EB" fill-opacity="0.15" stroke="#00B7EB" stroke-width="1.5"/>
+          </svg>
+        </div>
+        <p class="text-[12px] font-semibold text-primary">장소를 여기로 드래그하세요</p>
+        <p class="text-[11px] text-slate-400 dark:text-slate-500">검색 · 좋아요 · AI 추천 카드를 끌어다 놓으면 추가돼요</p>
+      </div>
     </div>
 
     <!-- 상세보기 모달 -->
@@ -202,6 +213,13 @@ watch(() => ui.tourActiveId, (id) => {
 .sr-ghost { opacity: 0.4; }
 .sr-chosen { cursor: grabbing; }
 .sr-drag { opacity: 0.9; }
+
+/* 빈 드롭존 아이콘 위아래 bounce */
+@keyframes drag-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+.drag-hint-icon { animation: drag-bounce 1.8s ease-in-out infinite; }
 
 /* 둘러보기 모드: 중앙 카드 강조 / 나머지 디밍 */
 .tour-active { transform: scale(1.03); }

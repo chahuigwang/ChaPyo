@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
-import { placeService } from '@/api/placeService'
+import { http } from '@/api/httpClient'
+import { ENDPOINTS } from '@/api/endpoints'
 import { typeToCategory } from '@/stores/searchStore'
+import { useTripStore } from '@/stores/tripStore'
 
 let _seq = 0
 const nextId = () => `m_${Date.now()}_${++_seq}`
@@ -8,8 +10,6 @@ const nextId = () => `m_${Date.now()}_${++_seq}`
 const GREETING =
   '여행 페르소나(예: "미식가", "INTJ 20대 남자")를 입력하고, 가고 싶은 분위기나 지역을 알려주세요. 맞춤 관광지를 추천해 드릴게요.'
 
-// BE PlaceResponse → 카드/상세/좋아요 공통 아이템 형태로 정규화.
-// (검색결과 results 와 동일 스키마: placeId 기반으로 좋아요/상세 조회가 동작)
 function toPlaceCard(p) {
   return {
     placeId: p.placeId,
@@ -44,7 +44,6 @@ export const useChatStore = defineStore('chat', {
       const persona = this.persona.trim()
       this.messages.push({ id: nextId(), role: 'user', content, ts: Date.now() })
 
-      // persona 미입력 시 안내만 하고 요청은 보내지 않는다.
       if (!persona) {
         this.messages.push({
           id: nextId(),
@@ -57,16 +56,41 @@ export const useChatStore = defineStore('chat', {
 
       this.isTyping = true
       try {
-        const { text: reply, content: places } = await placeService.recommendAi({
-          persona,
-          text: content,
-        })
+        const tripStore = useTripStore()
+        const planId = tripStore.currentTripId
+
+        let reply = ''
+        let places = []
+
+        if (planId && /^\d+$/.test(String(planId))) {
+          // POST /api/v1/trips/{planId}/ai/chat
+          // body: persona(페르소나)와 message(사용자 입력)를 분리해 전송
+          // Response: { success, data: { reply, places } }
+          // AI 응답은 10초를 넘길 수 있으므로 timeout 0(무제한)으로 호출 → 셀프 취소 방지
+          const { data } = await http.post(
+            ENDPOINTS.trips.aiChat(planId),
+            { persona, message: content },
+            { timeout: 0 },
+          )
+          reply = data?.data?.reply ?? ''
+          places = (data?.data?.places ?? []).map(toPlaceCard)
+        } else {
+          // 여행 미선택 시 fallback: 기존 AI 추천 API
+          const { data } = await http.post(
+            ENDPOINTS.tourism.ai,
+            { persona, text: content },
+            { timeout: 0 },
+          )
+          reply = data?.data?.text ?? ''
+          places = (data?.data?.content ?? []).map(toPlaceCard)
+        }
+
         this.messages.push({
           id: nextId(),
           role: 'ai',
           content: reply || '추천 결과를 가져왔어요.',
           ts: Date.now(),
-          places: places.map(toPlaceCard),
+          places,
         })
       } catch (err) {
         this.messages.push({

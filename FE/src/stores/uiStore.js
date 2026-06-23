@@ -48,6 +48,13 @@ export const useUiStore = defineStore('ui', {
     togglePanel(name) {
       this.activePanel = this.activePanel === name ? null : name
     },
+    // 특정 날짜만 지도에 표시 (iso=null 이면 전체 표시)
+    setDayFocus(iso, allIsos = []) {
+      if (!iso) { this.routeHiddenDays = {}; return }
+      const hidden = {}
+      allIsos.forEach((d) => { if (d !== iso) hidden[d] = true })
+      this.routeHiddenDays = hidden
+    },
     // 호환용 (기존 호출처 대응)
     openSidebar() { if (!this.activePanel) this.activePanel = 'plan' },
     closeSidebar() { this.activePanel = null },

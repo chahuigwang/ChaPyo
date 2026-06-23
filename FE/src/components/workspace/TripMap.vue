@@ -287,13 +287,19 @@ function renderTour() {
     })
   })
 
-  // 카메라: 날이 바뀌면 리프레임, 아니면 active 로 panTo
+  // 카메라: 최초 진입은 bounds 맞춤, 이후 모든 이동은 panTo (Day 변경 포함)
   if (active.lat != null && active.lng != null) {
     const target = new kakao.maps.LatLng(active.lat, active.lng)
-    const dayCoords = (byDay[activeDay]?.list ?? []).filter(({ it }) => it.lat != null).map(({ it }) => new kakao.maps.LatLng(it.lat, it.lng))
-    if (activeDay !== lastTourDay && dayCoords.length >= 2) {
-      const b = new kakao.maps.LatLngBounds(); dayCoords.forEach((p) => b.extend(p)); mapInstance.setBounds(b)
+    if (lastTourDay === null) {
+      // 첫 진입: 오늘 전체 핀이 보이도록 한 번만 setBounds
+      const dayCoords = (byDay[activeDay]?.list ?? []).filter(({ it }) => it.lat != null).map(({ it }) => new kakao.maps.LatLng(it.lat, it.lng))
+      if (dayCoords.length >= 2) {
+        const b = new kakao.maps.LatLngBounds(); dayCoords.forEach((p) => b.extend(p)); mapInstance.setBounds(b)
+      } else {
+        mapInstance.panTo(target)
+      }
     } else {
+      // 이후 모든 이동(같은 날·다른 날 모두): panTo 로 부드럽게
       mapInstance.panTo(target)
     }
   }

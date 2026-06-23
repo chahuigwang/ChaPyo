@@ -176,6 +176,7 @@ watch(() => ui.tourActiveId, (id) => {
               :auto-mins="transits[idx]?.mins ?? null"
               @hover-transit="ui.setHoveredTransit(item.id)"
               @leave-transit="ui.clearHoveredTransit()"
+              @save-route="trip.setRoute(item.id, dayList[idx + 1].id, $event)"
             />
           </div>
         </template>

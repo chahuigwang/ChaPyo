@@ -110,7 +110,11 @@ const totalDays = computed(() => {
 const totalCost = computed(() => {
   const t = currentTrip.value
   if (!t) return 0
-  return Object.values(t.itemsByDay).flat().reduce((sum, i) => sum + (Number(i.cost) || 0), 0)
+  // 장소 비용 + 이동 비용(transitAfter) 합산
+  return Object.values(t.itemsByDay).flat().reduce(
+    (sum, i) => sum + (Number(i.cost) || 0) + (Number(i.transitAfter?.cost) || 0),
+    0,
+  )
 })
 
 const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'

@@ -32,10 +32,18 @@ export const useChatStore = defineStore('chat', {
     persona: '미식가',
     messages: [{ id: nextId(), role: 'ai', content: GREETING, ts: Date.now() }],
     isTyping: false,
+    typingStartedAt: null, // 요청 시작 시각 (ms) — 경과 시간 표시용
+    _abortController: null,
   }),
   actions: {
     setPersona(text) {
       this.persona = text ?? ''
+    },
+    cancelRequest() {
+      if (this._abortController) {
+        this._abortController.abort()
+        this._abortController = null
+      }
     },
     async sendMessage(text) {
       const content = text?.trim()
@@ -54,7 +62,11 @@ export const useChatStore = defineStore('chat', {
         return
       }
 
+      const controller = new AbortController()
+      this._abortController = controller
       this.isTyping = true
+      this.typingStartedAt = Date.now()
+
       try {
         const tripStore = useTripStore()
         const planId = tripStore.currentTripId
@@ -63,23 +75,18 @@ export const useChatStore = defineStore('chat', {
         let places = []
 
         if (planId && /^\d+$/.test(String(planId))) {
-          // POST /api/v1/trips/{planId}/ai/chat
-          // body: persona(페르소나)와 message(사용자 입력)를 분리해 전송
-          // Response: { success, data: { reply, places } }
-          // AI 응답은 10초를 넘길 수 있으므로 timeout 0(무제한)으로 호출 → 셀프 취소 방지
           const { data } = await http.post(
             ENDPOINTS.trips.aiChat(planId),
             { persona, message: content },
-            { timeout: 0 },
+            { timeout: 0, signal: controller.signal },
           )
           reply = data?.data?.reply ?? ''
           places = (data?.data?.places ?? []).map(toPlaceCard)
         } else {
-          // 여행 미선택 시 fallback: 기존 AI 추천 API
           const { data } = await http.post(
             ENDPOINTS.tourism.ai,
             { persona, text: content },
-            { timeout: 0 },
+            { timeout: 0, signal: controller.signal },
           )
           reply = data?.data?.text ?? ''
           places = (data?.data?.content ?? []).map(toPlaceCard)
@@ -93,6 +100,8 @@ export const useChatStore = defineStore('chat', {
           places,
         })
       } catch (err) {
+        // 사용자가 직접 취소한 경우 시스템 메시지 없이 조용히 종료
+        if (err?.code === 'ERR_CANCELED' || controller.signal.aborted) return
         this.messages.push({
           id: nextId(),
           role: 'system',
@@ -101,6 +110,8 @@ export const useChatStore = defineStore('chat', {
         })
       } finally {
         this.isTyping = false
+        this.typingStartedAt = null
+        this._abortController = null
       }
     },
     pushSystemNotice(content) {

@@ -135,7 +135,7 @@ watch(() => props.item, async (item) => {
         class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4"
         @click.self="emit('close')"
       >
-        <div class="relative w-full max-w-5xl max-h-[88vh] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl flex flex-col sm:flex-row overflow-y-auto sm:overflow-hidden">
+        <div class="relative w-full max-w-[1000px] max-h-[90vh] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl flex flex-col sm:flex-row overflow-y-auto sm:overflow-hidden">
           <!-- Close -->
           <button
             @click="emit('close')"

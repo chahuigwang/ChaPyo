@@ -18,6 +18,7 @@ export const ENDPOINTS = {
     item: (id, itemId) => `/api/v1/trips/${id}/items/${itemId}`,
     itemOrders: (id) => `/api/v1/trips/${id}/items/orders`,
     itemPayer: (id, itemId) => `/api/v1/trips/${id}/items/${itemId}/payer`, // 비용 담당자 지정(BE 구현 예정)
+    routes: (id) => `/api/v1/trips/${id}/routes`, // 아이템 간 이동 정보(소요시간/비용) 저장
     members: (id) => `/api/v1/trips/${id}/members`,
     member: (id, userId) => `/api/v1/trips/${id}/members/${userId}`,
     aiChat: (id) => `/api/v1/trips/${id}/ai/chat`,

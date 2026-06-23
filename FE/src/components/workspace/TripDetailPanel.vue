@@ -51,6 +51,13 @@ function dateWithWeekday(iso) {
 
 const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
 
+// hex(#RRGGBB) → rgba 문자열. Day 카드 틴트(낮은 alpha)는 라이트/다크 양쪽에서 자연스럽다.
+function hexToRgba(hex, alpha = 1) {
+  const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex || '')
+  if (!m) return `rgba(0,0,0,${alpha})`
+  return `rgba(${parseInt(m[1], 16)}, ${parseInt(m[2], 16)}, ${parseInt(m[3], 16)}, ${alpha})`
+}
+
 const tripTotalDays = computed(() => {
   const t = currentTrip.value
   if (!t?.startDate || !t?.endDate) return 0
@@ -62,7 +69,11 @@ const tripTotalDays = computed(() => {
 const tripTotalCost = computed(() => {
   const t = currentTrip.value
   if (!t) return 0
-  return Object.values(t.itemsByDay).flat().reduce((s, i) => s + (Number(i.cost) || 0), 0)
+  // 장소 비용 + 이동 비용(transitAfter)을 합산 → 일자별 합계와 일치
+  return Object.values(t.itemsByDay).flat().reduce(
+    (s, i) => s + (Number(i.cost) || 0) + (Number(i.transitAfter?.cost) || 0),
+    0,
+  )
 })
 
 const tripMembers = computed(() => currentTrip.value?.members ?? [])
@@ -205,7 +216,7 @@ onBeforeUnmount(stopTourTimer)
   <div class="flex-1 h-full flex flex-col min-h-0 relative" @click="closeAllDropdowns">
     <div class="flex-1 flex min-h-0 overflow-hidden">
       <!-- Left: scrollable accordion itinerary (각 날짜 = 상세 타임라인) -->
-      <div ref="listScroll" class="w-96 shrink-0 h-full overflow-y-auto bg-slate-50 dark:bg-slate-950 px-4 py-4 transition-colors">
+      <div ref="listScroll" class="w-[27rem] shrink-0 h-full overflow-y-auto bg-slate-50 dark:bg-slate-950 px-4 py-4 transition-colors">
         <div class="flex flex-col gap-3">
 
           <!-- Per-day accordion cards -->
@@ -214,11 +225,16 @@ onBeforeUnmount(stopTourTimer)
             :key="day.iso"
             :ref="el => { if (el) dayRefs[day.iso] = el }"
             class="shrink-0 rounded-xl bg-white dark:bg-slate-900 shadow-sm transition-all duration-150"
+            :style="{
+              borderColor: hexToRgba(day.color.pin, 0.28),
+              backgroundColor: hexToRgba(day.color.pin, 0.05),
+            }"
             :class="ui.draggingDayIso === day.iso ? 'ring-2 ring-primary/40' : ''"
           >
             <!-- Day header -->
             <div
-              class="px-4 py-3 flex items-center gap-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors select-none"
+              class="px-4 py-3 flex items-center gap-2 cursor-pointer transition-colors select-none rounded-t-xl"
+              :style="{ backgroundColor: hexToRgba(day.color.pin, 0.09) }"
               @click="toggleDay(day.iso)"
             >
               <ChevronDown
@@ -272,47 +288,47 @@ onBeforeUnmount(stopTourTimer)
           <TripMap ref="mapRef" class="h-full w-full rounded-2xl shadow-sm overflow-hidden" :show-all="true" />
 
           <!-- 지도 좌상단: 벤토 그리드 (날짜 · 인원 · 금액) -->
-          <div v-if="currentTrip" class="absolute top-3 left-3 z-10 flex gap-1.5">
+          <div v-if="currentTrip" class="absolute top-3 left-3 z-10 flex gap-2">
 
             <!-- 날짜 (클릭 시 일자 드롭다운 + 루트 포커스) -->
             <div class="relative">
               <button
                 @click="toggleDaysOpen"
-                class="flex items-center gap-1.5 h-9 px-3 rounded-xl shadow-md backdrop-blur-md transition-all hover:bg-white dark:hover:bg-slate-900"
+                class="flex items-center gap-2 h-10 px-4 rounded-xl shadow-md backdrop-blur-md transition-all"
                 :class="focusDayIso
-                  ? 'bg-primary text-white'
-                  : 'bg-white/90 dark:bg-slate-900/90'"
+                  ? 'bg-primary text-white hover:bg-primary/90'
+                  : 'bg-white/90 dark:bg-slate-900/90 hover:bg-white dark:hover:bg-slate-900'"
               >
-                <CalendarDays :size="13" class="shrink-0" :class="focusDayIso ? 'text-white' : 'text-primary'" />
-                <span class="text-[12px] font-bold" :class="focusDayIso ? 'text-white' : 'text-slate-900 dark:text-slate-100'">
+                <CalendarDays :size="15" class="shrink-0" :class="focusDayIso ? 'text-white' : 'text-primary'" />
+                <span class="text-[13px] font-bold" :class="focusDayIso ? 'text-white' : 'text-slate-900 dark:text-slate-100'">
                   {{ focusDayIso ? `Day ${allDays.find(d=>d.iso===focusDayIso)?.dayNum}` : `${tripTotalDays}일` }}
                 </span>
-                <ChevronDown :size="11" class="transition-transform" :class="[daysOpen ? 'rotate-180' : '', focusDayIso ? 'text-white/70' : 'text-slate-400']" />
+                <ChevronDown :size="13" class="transition-transform" :class="[daysOpen ? 'rotate-180' : '', focusDayIso ? 'text-white/70' : 'text-slate-400']" />
               </button>
               <Transition enter-active-class="transition-all duration-150 ease-out" enter-from-class="opacity-0 -translate-y-1" leave-active-class="transition-all duration-100 ease-in" leave-to-class="opacity-0 -translate-y-1">
-                <div v-if="daysOpen" class="absolute top-full left-0 mt-1.5 w-52 rounded-xl bg-white dark:bg-slate-900 shadow-xl py-2 z-20">
-                  <div class="px-3 pb-1.5 mb-1 border-b border-slate-100 dark:border-slate-800">
-                    <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">날짜별 루트</p>
+                <div v-if="daysOpen" class="absolute top-full left-0 mt-2 w-60 rounded-xl bg-white dark:bg-slate-900 shadow-xl py-2 z-20">
+                  <div class="px-4 pb-2 mb-1 border-b border-slate-100 dark:border-slate-800">
+                    <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">날짜별 루트</p>
                   </div>
                   <button
                     @click.stop="selectDayFocus(null); daysOpen=false"
-                    class="w-full flex items-center gap-2 px-3 py-1.5 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800"
+                    class="w-full flex items-center gap-2 px-4 py-2 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800"
                     :class="!focusDayIso ? 'text-primary font-semibold' : 'text-slate-600 dark:text-slate-300'"
                   >
-                    <span class="text-[12px]">전체 보기</span>
+                    <span class="text-[13px]">전체 보기</span>
                   </button>
                   <button
                     v-for="day in allDays"
                     :key="day.iso"
                     @click.stop="selectDayFocus(day.iso)"
-                    class="w-full flex items-center justify-between px-3 py-1.5 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800"
+                    class="w-full flex items-center justify-between px-4 py-2 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800"
                     :class="focusDayIso === day.iso ? 'bg-primary/5 dark:bg-primary/10' : ''"
                   >
-                    <div class="flex items-center gap-1.5">
-                      <span class="text-[10px] font-bold px-1.5 py-0.5 rounded" :style="{ backgroundColor: day.color.bg, color: day.color.fg }">Day {{ day.dayNum }}</span>
-                      <span class="text-[11px] text-slate-600 dark:text-slate-300">{{ day.dateLabel }}</span>
+                    <div class="flex items-center gap-2">
+                      <span class="text-[11px] font-bold px-2 py-0.5 rounded" :style="{ backgroundColor: day.color.bg, color: day.color.fg }">Day {{ day.dayNum }}</span>
+                      <span class="text-[12px] text-slate-600 dark:text-slate-300">{{ day.dateLabel }}</span>
                     </div>
-                    <span v-if="focusDayIso === day.iso" class="text-[10px] text-primary font-bold">표시 중</span>
+                    <span v-if="focusDayIso === day.iso" class="text-[11px] text-primary font-bold">표시 중</span>
                   </button>
                 </div>
               </Transition>
@@ -322,28 +338,28 @@ onBeforeUnmount(stopTourTimer)
             <div class="relative">
               <button
                 @click="toggleMembersOpen"
-                class="flex items-center gap-1.5 h-9 px-3 rounded-xl bg-white/90 dark:bg-slate-900/90 shadow-md backdrop-blur-md transition-colors hover:bg-white dark:hover:bg-slate-900"
+                class="flex items-center gap-2 h-10 px-4 rounded-xl bg-white/90 dark:bg-slate-900/90 shadow-md backdrop-blur-md transition-colors hover:bg-white dark:hover:bg-slate-900"
               >
-                <Users :size="13" class="text-primary shrink-0" />
-                <span class="text-[12px] font-bold text-slate-900 dark:text-slate-100">{{ tripMembers.length }}명</span>
-                <ChevronDown :size="11" class="text-slate-400 transition-transform" :class="membersOpen ? 'rotate-180' : ''" />
+                <Users :size="15" class="text-primary shrink-0" />
+                <span class="text-[13px] font-bold text-slate-900 dark:text-slate-100">{{ tripMembers.length }}명</span>
+                <ChevronDown :size="13" class="text-slate-400 transition-transform" :class="membersOpen ? 'rotate-180' : ''" />
               </button>
               <Transition enter-active-class="transition-all duration-150 ease-out" enter-from-class="opacity-0 -translate-y-1" leave-active-class="transition-all duration-100 ease-in" leave-to-class="opacity-0 -translate-y-1">
-                <div v-if="membersOpen" class="absolute top-full left-0 mt-1.5 w-44 rounded-xl bg-white dark:bg-slate-900 shadow-xl py-2 z-20">
-                  <div class="px-3 pb-1.5 mb-1 border-b border-slate-100 dark:border-slate-800">
-                    <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">참여 인원</p>
+                <div v-if="membersOpen" class="absolute top-full left-0 mt-2 w-52 rounded-xl bg-white dark:bg-slate-900 shadow-xl py-2 z-20">
+                  <div class="px-4 pb-2 mb-1 border-b border-slate-100 dark:border-slate-800">
+                    <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">참여 인원</p>
                   </div>
-                  <div v-if="!tripMembers.length" class="px-3 py-2 text-[11px] text-slate-400">멤버 없음</div>
+                  <div v-if="!tripMembers.length" class="px-4 py-2 text-[12px] text-slate-400">멤버 없음</div>
                   <div
                     v-for="m in tripMembers"
                     :key="m.userId ?? m.nickname"
-                    class="flex items-center gap-2.5 px-3 py-1.5"
+                    class="flex items-center gap-3 px-4 py-2"
                   >
-                    <span class="h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0"
+                    <span class="h-7 w-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white shrink-0"
                       :style="{ backgroundColor: colorForUser(m.userId ?? m.nickname) }">
                       {{ (m.nickname || '?')[0] }}
                     </span>
-                    <span class="text-[12px] font-medium text-slate-700 dark:text-slate-200 truncate">{{ m.nickname }}</span>
+                    <span class="text-[13px] font-medium text-slate-700 dark:text-slate-200 truncate">{{ m.nickname }}</span>
                   </div>
                 </div>
               </Transition>
@@ -353,27 +369,27 @@ onBeforeUnmount(stopTourTimer)
             <div class="relative">
               <button
                 @click="toggleCostOpen"
-                class="flex items-center gap-1.5 h-9 px-3 rounded-xl bg-white/90 dark:bg-slate-900/90 shadow-md backdrop-blur-md transition-colors hover:bg-white dark:hover:bg-slate-900"
+                class="flex items-center gap-2 h-10 px-4 rounded-xl bg-white/90 dark:bg-slate-900/90 shadow-md backdrop-blur-md transition-colors hover:bg-white dark:hover:bg-slate-900"
               >
-                <Wallet :size="13" class="text-primary shrink-0" />
-                <span class="text-[12px] font-bold text-slate-900 dark:text-slate-100">{{ won(tripTotalCost) }}</span>
-                <ChevronDown :size="11" class="text-slate-400 transition-transform" :class="costOpen ? 'rotate-180' : ''" />
+                <Wallet :size="15" class="text-primary shrink-0" />
+                <span class="text-[13px] font-bold text-slate-900 dark:text-slate-100">{{ won(tripTotalCost) }}</span>
+                <ChevronDown :size="13" class="text-slate-400 transition-transform" :class="costOpen ? 'rotate-180' : ''" />
               </button>
               <Transition enter-active-class="transition-all duration-150 ease-out" enter-from-class="opacity-0 -translate-y-1" leave-active-class="transition-all duration-100 ease-in" leave-to-class="opacity-0 -translate-y-1">
-                <div v-if="costOpen" class="absolute top-full left-0 mt-1.5 w-52 rounded-xl bg-white dark:bg-slate-900 shadow-xl py-2 z-20">
-                  <div class="px-3 pb-1.5 mb-1 border-b border-slate-100 dark:border-slate-800">
-                    <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">일자별 비용</p>
+                <div v-if="costOpen" class="absolute top-full left-0 mt-2 w-60 rounded-xl bg-white dark:bg-slate-900 shadow-xl py-2 z-20">
+                  <div class="px-4 pb-2 mb-1 border-b border-slate-100 dark:border-slate-800">
+                    <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">일자별 비용</p>
                   </div>
-                  <div v-for="day in allDays" :key="day.iso" class="flex items-center justify-between px-3 py-1.5">
-                    <div class="flex items-center gap-1.5">
-                      <span class="text-[10px] font-bold px-1.5 py-0.5 rounded" :style="{ backgroundColor: day.color.bg, color: day.color.fg }">Day {{ day.dayNum }}</span>
-                      <span class="text-[11px] text-slate-500 dark:text-slate-400">{{ day.dateLabel }}</span>
+                  <div v-for="day in allDays" :key="day.iso" class="flex items-center justify-between px-4 py-2">
+                    <div class="flex items-center gap-2">
+                      <span class="text-[11px] font-bold px-2 py-0.5 rounded" :style="{ backgroundColor: day.color.bg, color: day.color.fg }">Day {{ day.dayNum }}</span>
+                      <span class="text-[12px] text-slate-500 dark:text-slate-400">{{ day.dateLabel }}</span>
                     </div>
-                    <span class="text-[11px] font-bold" :class="day.cost ? 'text-primary' : 'text-slate-300 dark:text-slate-600'">{{ day.cost ? won(day.cost) : '—' }}</span>
+                    <span class="text-[12px] font-bold" :class="day.cost ? 'text-primary' : 'text-slate-300 dark:text-slate-600'">{{ day.cost ? won(day.cost) : '—' }}</span>
                   </div>
-                  <div class="mx-3 mt-1.5 pt-1.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                    <span class="text-[11px] font-semibold text-slate-500 dark:text-slate-400">합계</span>
-                    <span class="text-[12px] font-bold text-primary">{{ won(tripTotalCost) }}</span>
+                  <div class="mx-4 mt-2 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                    <span class="text-[12px] font-semibold text-slate-500 dark:text-slate-400">합계</span>
+                    <span class="text-[13px] font-bold text-primary">{{ won(tripTotalCost) }}</span>
                   </div>
                 </div>
               </Transition>
@@ -384,13 +400,13 @@ onBeforeUnmount(stopTourTimer)
           <button
             @click="toggleTour"
             :disabled="!tourMode && !tourEnabled"
-            class="absolute top-3 right-3 z-10 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl text-[12px] font-semibold shadow-md backdrop-blur-md transition-all hover:-translate-y-0.5 disabled:opacity-40 disabled:cursor-not-allowed"
+            class="absolute top-3 right-3 z-10 inline-flex items-center gap-2 h-11 px-5 rounded-xl text-[14px] font-semibold shadow-md backdrop-blur-md transition-all hover:-translate-y-0.5 disabled:opacity-40 disabled:cursor-not-allowed"
             :class="tourMode
               ? 'bg-red-500 text-white hover:bg-red-600'
               : 'bg-white/90 dark:bg-slate-900/90 text-primary hover:bg-white'"
             :title="tourMode ? '둘러보기 종료' : '일정 둘러보기'"
           >
-            <component :is="tourMode ? Square : Play" :size="14" :class="tourMode ? 'fill-white' : 'fill-primary'" />
+            <component :is="tourMode ? Square : Play" :size="17" :class="tourMode ? 'fill-white' : 'fill-primary'" />
             {{ tourMode ? '둘러보기 종료' : '둘러보기' }}
           </button>
 

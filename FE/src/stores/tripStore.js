@@ -19,6 +19,25 @@ function isServerId(id) {
   return /^\d+$/.test(String(id ?? ''))
 }
 
+// 폴링 재동기화 시 "실제로 바뀐 게 있는지" 판별용 시그니처.
+// 동일하면 plan 객체 교체를 건너뛰어 지도/리스트의 불필요한 전체 재렌더(깜빡임)를 막는다.
+function planSignature(plan) {
+  if (!plan) return ''
+  const parts = []
+  parts.push(plan.title ?? '', plan.startDate ?? '', plan.endDate ?? '')
+  parts.push((plan.members ?? []).map((m) => m.userId ?? m.nickname).join(','))
+  for (const date of Object.keys(plan.itemsByDay ?? {}).sort()) {
+    parts.push('|' + date)
+    for (const it of plan.itemsByDay[date]) {
+      const t = it.transitAfter ?? {}
+      parts.push(
+        `${it.id}:${it.time ?? ''}:${it.cost ?? ''}:${it.memo ?? ''}:${it.payerId ?? ''}:${it.payerName ?? ''}:${it.lat ?? ''}:${it.lng ?? ''}:${it.firstImage ? 1 : 0}:${it.name ?? ''}:${t.mins ?? ''}:${t.cost ?? ''}`,
+      )
+    }
+  }
+  return parts.join('§')
+}
+
 // 일정 추가 payload에서 BE place 참조 ID 추출. (검색결과 id=placeId, 보관함 sourceId=placeId)
 function resolvePlaceId(payload) {
   const raw = payload?.placeId ?? payload?.sourceId ?? payload?.id
@@ -129,6 +148,11 @@ export const useTripStore = defineStore('trip', {
       const items = [...(raw.items ?? [])].sort(
         (a, b) => (a.itemOrder ?? 0) - (b.itemOrder ?? 0),
       )
+      // 이동 정보(routes): fromItemId 기준으로 매핑 → 출발 아이템의 transitAfter 로 연결
+      const routesByFrom = {}
+      for (const r of (raw.routes ?? [])) {
+        if (r?.fromItemId != null) routesByFrom[r.fromItemId] = r
+      }
       for (const it of items) {
         const date = dayNumberToDate(start, end, it.dayNumber)
         if (!date) continue
@@ -138,9 +162,14 @@ export const useTripStore = defineStore('trip', {
         const lng = it.longitude ?? enrich.lng ?? null
         if (lat != null && lng != null) this._cachePlace(it.placeId, { ...enrich, lat, lng })
         if (!itemsByDay[date]) itemsByDay[date] = []
+        const route = routesByFrom[it.itemId]
         const built = new TravelItem({
           id: `srv_${it.itemId}`,
           serverId: it.itemId,
+          // 출발 아이템에 이동 정보(소요시간/비용) 연결. 없으면 기본값.
+          transitAfter: route
+            ? { routeId: route.routeId ?? null, toItemId: route.toItemId ?? null, cost: route.cost ?? 0, mins: route.moveTime ?? null, method: '' }
+            : { cost: 0, mins: null, method: '' },
           placeId: it.placeId,
           name: it.title ?? enrich.name ?? '',
           category: enrich.category ?? 'place',
@@ -204,7 +233,15 @@ export const useTripStore = defineStore('trip', {
         const raw = await tripService.detail(id)
         if (!raw) return null
         const idx = this.trips.findIndex((x) => x.id === String(id))
-        const plan = this._planFromDetail(raw, idx >= 0 ? this.trips[idx] : null)
+        const prev = idx >= 0 ? this.trips[idx] : null
+        const plan = this._planFromDetail(raw, prev)
+        // 폴링 결과가 기존과 구조적으로 동일하면 교체하지 않는다.
+        // (새 객체로 갈아끼우면 deep-watch 가 지도/리스트를 통째로 다시 그려 깜빡인다)
+        if (prev && planSignature(prev) === planSignature(plan)) {
+          this.currentTripId = prev.id
+          this.seeded = true
+          return prev
+        }
         if (idx >= 0) this.trips[idx] = plan
         else this.trips.unshift(plan)
         this.currentTripId = plan.id
@@ -485,6 +522,38 @@ export const useTripStore = defineStore('trip', {
         }).catch((err) => {
           this.lastError = err?.message ?? 'setItemPayer failed'
           useToastStore().error('담당자 지정에 실패했습니다.')
+        })
+      }
+    },
+    // 아이템 간 이동 정보(소요시간/비용) 저장: 낙관적 로컬 반영 후 POST /routes
+    // fromId/toId 는 일정 아이템의 로컬 id(srv_*). 서버 itemId(serverId)로 변환해 전송.
+    setRoute(fromId, toId, { moveTime, cost } = {}) {
+      const trip = this.currentTrip
+      if (!trip) return
+      let from = null, to = null
+      for (const list of Object.values(trip.itemsByDay)) {
+        for (const it of list) {
+          if (it.id === fromId) from = it
+          if (it.id === toId) to = it
+        }
+      }
+      if (!from) return
+      // 낙관적 로컬 반영
+      from.transitAfter = {
+        ...(from.transitAfter ?? {}),
+        mins: moveTime ?? null,
+        cost: Number(cost) || 0,
+      }
+      trip.touch()
+      if (from.serverId && to?.serverId && isServerId(trip.id)) {
+        tripService.saveRoute(trip.id, {
+          fromItemId: from.serverId,
+          toItemId: to.serverId,
+          moveTime: moveTime ?? null,
+          cost: Number(cost) || 0,
+        }).catch((err) => {
+          this.lastError = err?.message ?? 'saveRoute failed'
+          useToastStore().error('이동 정보 저장에 실패했습니다.')
         })
       }
     },

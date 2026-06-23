@@ -155,7 +155,7 @@ const currentPanel = computed(() => PANEL_MAP[activePanel.value] ?? null)
         'h-full flex flex-col min-h-0 bg-white dark:bg-slate-900 overflow-hidden',
         'transition-[width] duration-300 ease-in-out',
         'border-l border-slate-100 dark:border-slate-800',
-        sidebarOpen ? 'w-[22rem] border-r border-gray-200/80 dark:border-slate-700/60' : 'w-0 border-r-0',
+        sidebarOpen ? 'w-[25rem] border-r border-gray-200/80 dark:border-slate-700/60' : 'w-0 border-r-0',
       ]"
     >
       <Transition name="panel-switch" mode="out-in">

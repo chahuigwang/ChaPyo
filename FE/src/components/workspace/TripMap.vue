@@ -581,6 +581,12 @@ defineExpose({ onRelayout })
   transform-origin: bottom center;
   transition: transform .2s ease;
   --pin-color: #00B7EB;
+  /* 폴링 등으로 핀이 새로 그려질 때 부드럽게 등장 */
+  animation: trip-pin-in .28s ease-out;
+}
+@keyframes trip-pin-in {
+  from { opacity: 0; transform: translateY(4px) scale(0.92); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 .trip-map-pin__bubble {
   min-width: 26px;

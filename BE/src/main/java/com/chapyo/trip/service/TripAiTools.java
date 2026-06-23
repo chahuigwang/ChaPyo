@@ -1,5 +1,8 @@
 package com.chapyo.trip.service;
 
+import com.chapyo.place.dto.AiSelectionResult;
+import com.chapyo.place.dto.response.PlaceResponse;
+import com.chapyo.place.repository.PlaceMapper;
 import com.chapyo.trip.dto.request.TripItemOrderRequest;
 import com.chapyo.trip.dto.request.TripItemOrderRequest.ItemOrder;
 import com.chapyo.trip.dto.request.TripPlanItemRequest;
@@ -15,6 +18,7 @@ import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -25,18 +29,24 @@ public class TripAiTools {
     private final VectorStore vectorStore;
     private final TripService tripService;
     private final TripMapper tripMapper;
+    private final PlaceMapper placeMapper;
     private final ChatClient chatClient;
     private final Map<String, Integer> areaCodeMap;
     private final Map<String, Integer> districtCodeMap;
     private final Long planId;
     private final Long userId;
 
+    private List<Long> lastSearchedPlaceIds = new ArrayList<>();
+    private List<PlaceResponse> lastSearchedPlaces = new ArrayList<>();
+
     public TripAiTools(VectorStore vectorStore, TripService tripService, TripMapper tripMapper,
-            ChatClient chatClient, Map<String, Integer> areaCodeMap,
-            Map<String, Integer> districtCodeMap, Long planId, Long userId) {
+            PlaceMapper placeMapper, ChatClient chatClient,
+            Map<String, Integer> areaCodeMap, Map<String, Integer> districtCodeMap,
+            Long planId, Long userId) {
         this.vectorStore = vectorStore;
         this.tripService = tripService;
         this.tripMapper = tripMapper;
+        this.placeMapper = placeMapper;
         this.chatClient = chatClient;
         this.areaCodeMap = areaCodeMap;
         this.districtCodeMap = districtCodeMap;
@@ -44,11 +54,15 @@ public class TripAiTools {
         this.userId = userId;
     }
 
+    public List<PlaceResponse> getLastSearchedPlaces() {
+        return lastSearchedPlaces;
+    }
+
     @Tool(description = """
             여행지, 맛집, 카페 등 장소를 검색합니다.
             keyword: 검색할 내용 (예: 부산 해운대 맛집, 제주 카페, 경복궁 근처 한식)
-            areaName: 광역시도 정식 명칭 (서울특별시, 부산광역시, 제주특별자치도 등). 지역 언급 없으면 null.
-            districtName: 시군구 이름 (강남구, 해운대구 등). 시군구 언급 없으면 null.
+            areaName: 도/광역시 단위 지역 정식 명칭 (서울특별시, 부산광역시, 제주특별자치도 등). 언급 없으면 null.
+            districtName: 시/군/구 단위 지역 정식 명칭 (강남구, 마포구, 해운대구, 제주시 등). 언급 없으면 null.
             """)
     public List<Map<String, Object>> searchPlaces(String keyword, String areaName, String districtName) {
         Integer areaCode = areaName != null ? areaCodeMap.get(areaName) : null;
@@ -56,6 +70,7 @@ public class TripAiTools {
 
         log.debug("searchPlaces 호출: keyword={}, areaCode={}, districtCode={}", keyword, areaCode, districtCode);
 
+        // HyDE
         String hypotheticalDoc = chatClient.prompt()
                 .system("사용자 요청에 맞는 장소 소개글을 2~3문장으로 작성하세요. 장소명은 지어내지 마세요.")
                 .user(keyword)
@@ -80,12 +95,54 @@ public class TripAiTools {
         List<Document> docs = vectorStore.similaritySearch(builder.build());
         log.debug("벡터 검색 결과: {}건", docs.size());
 
-        return docs.stream()
-                .map(doc -> Map.<String, Object>of(
-                        "placeId", Long.parseLong(doc.getMetadata().get("placeId").toString()),
-                        "description", doc.getText()
+        if (docs.isEmpty()) {
+            lastSearchedPlaceIds = List.of();
+            lastSearchedPlaces = List.of();
+            return List.of();
+        }
+
+        // LLM 후보 선정
+        AiSelectionResult result = chatClient.prompt()
+                .system("""
+                        사용자 요청에 맞는 장소를 후보 중에서 최대 5개 선정하세요.
+                        JSON으로만 반환하세요. 형식: {"placeIds": [1, 2, 3], "recommendText": "추천 멘트"}
+                        적합한 장소가 없으면 placeIds를 빈 배열로 반환하세요.
+                        """)
+                .user(buildSelectionPrompt(keyword, docs))
+                .call()
+                .entity(AiSelectionResult.class);
+
+        if (result == null || result.placeIds() == null || result.placeIds().isEmpty()) {
+            lastSearchedPlaceIds = List.of();
+            lastSearchedPlaces = List.of();
+            return List.of();
+        }
+
+        // MySQL 조회
+        lastSearchedPlaces = placeMapper.selectByIds(result.placeIds(), userId);
+        lastSearchedPlaceIds = result.placeIds();
+
+        log.debug("선정된 placeIds: {}", lastSearchedPlaceIds);
+
+        return lastSearchedPlaces.stream()
+                .map(p -> Map.<String, Object>of(
+                        "placeId", p.getPlaceId(),
+                        "title", p.getTitle(),
+                        "addr1", p.getAddr1() != null ? p.getAddr1() : ""
                 ))
                 .collect(Collectors.toList());
+    }
+
+    private String buildSelectionPrompt(String keyword, List<Document> docs) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("요청: ").append(keyword).append("\n\n");
+        sb.append("후보 장소:\n");
+        for (Document doc : docs) {
+            Long placeId = Long.parseLong(doc.getMetadata().get("placeId").toString());
+            sb.append("- placeId: ").append(placeId)
+                    .append(", 내용: ").append(doc.getText()).append("\n");
+        }
+        return sb.toString();
     }
 
     @Tool(description = """
@@ -109,7 +166,7 @@ public class TripAiTools {
     }
 
     @Tool(description = """
-            여행 일정을 수정합니다. (같은 일차 내에서 메모, 비용 등을 수정할 때 사용)
+            여행 일정을 수정합니다. 같은 일차 내에서 메모, 비용 등을 수정할 때 사용합니다.
             itemId: 수정할 일정 ID (현재 일정 목록에서 확인 가능)
             dayNumber: 변경할 일차
             cost: 비용 (변경 없으면 null)
@@ -137,18 +194,14 @@ public class TripAiTools {
     public String moveItem(Long itemId, int targetDayNumber, int targetItemOrder) {
         log.debug("moveItem 호출: itemId={}, targetDayNumber={}, targetItemOrder={}", itemId, targetDayNumber, targetItemOrder);
 
-        // 목적지 일차의 기존 일정 순서 밀기
         tripMapper.shiftItemOrders(planId, targetDayNumber, targetItemOrder);
 
-        // dayNumber 변경
         TripPlanItemUpdateRequest request = TripPlanItemUpdateRequest.builder()
                 .dayNumber(targetDayNumber)
                 .build();
         tripService.updateItem(planId, itemId, request, userId);
 
-        // 목적지 순서로 설정
         tripMapper.updateItemOrder(itemId, targetItemOrder);
-
         return "%d일차 %d번째로 일정(itemId: %d)을 이동했습니다.".formatted(targetDayNumber, targetItemOrder, itemId);
     }
 
@@ -184,7 +237,6 @@ public class TripAiTools {
             title: 변경할 제목 (변경 없으면 null)
             startDate: 변경할 시작일 yyyy-MM-dd 형식 (변경 없으면 null)
             endDate: 변경할 종료일 yyyy-MM-dd 형식 (변경 없으면 null)
-            주의: 날짜를 줄이면 해당 일차를 초과하는 일정이 자동으로 삭제됩니다.
             """)
     public String updateTripPlan(String title, String startDate, String endDate) {
         log.debug("updateTripPlan 호출: title={}, startDate={}, endDate={}", title, startDate, endDate);

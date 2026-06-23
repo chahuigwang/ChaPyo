@@ -15,7 +15,8 @@ public class TripPlanItem {
     private Long itemId;
     private Long planId;
     private Long placeId;
-    private Long userId;
+    private Long adderId;
+    private Long payerId;
     private Integer dayNumber;
     private Integer itemOrder;
     private LocalTime visitTime;

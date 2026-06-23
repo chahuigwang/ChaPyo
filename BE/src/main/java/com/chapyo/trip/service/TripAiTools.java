@@ -69,7 +69,7 @@ public class TripAiTools {
         TripPlanItem item = TripPlanItem.builder()
                 .planId(planId)
                 .placeId(placeId)
-                .userId(userId)
+                .adderId(userId)
                 .dayNumber(dayNumber)
                 .itemOrder(itemOrder)
                 .cost(0)

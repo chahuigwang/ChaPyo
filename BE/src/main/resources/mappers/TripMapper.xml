@@ -41,8 +41,8 @@
     </select>
 
     <insert id="insertItem" useGeneratedKeys="true" keyProperty="itemId">
-        INSERT INTO trip_plan_items (plan_id, place_id, user_id, day_number, item_order, visit_time, cost, memo)
-        VALUES (#{planId}, #{placeId}, #{userId}, #{dayNumber}, #{itemOrder}, #{visitTime}, #{cost}, #{memo})
+        INSERT INTO trip_plan_items (plan_id, place_id, adder_id, day_number, item_order, visit_time, cost, memo)
+        VALUES (#{planId}, #{placeId}, #{adderId}, #{dayNumber}, #{itemOrder}, #{visitTime}, #{cost}, #{memo})
     </insert>
 
     <select id="findPlanById" resultType="TripPlan">
@@ -61,7 +61,8 @@
     <select id="findItemsByPlanId" resultType="TripPlanItemResponse">
         SELECT tpi.item_id, tpi.place_id, p.title, p.addr1, p.first_image1 AS img, tpi.day_number,
                tpi.item_order, tpi.visit_time, tpi.cost, tpi.memo,
-               tpi.user_id, u.nickname,
+               tpi.adder_id, adder.nickname AS adder_nickname,
+               tpi.payer_id, payer.nickname AS payer_nickname,
                p.latitude, p.longitude,
                EXISTS (
                    SELECT 1 FROM place_likes
@@ -69,7 +70,8 @@
                ) AS liked
         FROM trip_plan_items tpi
                  JOIN places p ON tpi.place_id = p.place_id
-                 JOIN users u ON tpi.user_id = u.user_id
+                 JOIN users adder ON tpi.adder_id = adder.user_id
+                 LEFT JOIN users payer ON tpi.payer_id = payer.user_id
         WHERE tpi.plan_id = #{planId}
         ORDER BY tpi.day_number, tpi.item_order
     </select>
@@ -96,7 +98,7 @@
     </select>
 
     <select id="findItemById" resultType="TripPlanItem">
-        SELECT item_id, plan_id, place_id, user_id, day_number, item_order, visit_time, cost, memo
+        SELECT item_id, plan_id, place_id, adder_id, payer_id, day_number, item_order, visit_time, cost, memo
         FROM trip_plan_items
         WHERE item_id = #{itemId}
     </select>
@@ -105,8 +107,9 @@
         UPDATE trip_plan_items
         SET day_number = #{dayNumber},
             visit_time = #{visitTime},
-            cost = #{cost},
-            memo = #{memo}
+            cost       = #{cost},
+            memo       = #{memo},
+            payer_id   = #{payerId}
         WHERE item_id = #{itemId}
     </update>
 

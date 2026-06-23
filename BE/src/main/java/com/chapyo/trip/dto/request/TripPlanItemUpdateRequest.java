@@ -23,4 +23,7 @@ public class TripPlanItemUpdateRequest {
 
     @Schema(description = "메모", example = "입장권 미리 예매")
     private String memo;
+
+    @Schema(description = "결제자 ID", example = "1")
+    private Long payerId;
 }

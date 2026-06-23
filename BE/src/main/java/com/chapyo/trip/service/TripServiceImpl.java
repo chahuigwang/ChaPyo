@@ -96,7 +96,7 @@ public class TripServiceImpl implements TripService {
         TripPlanItem item = TripPlanItem.builder()
                 .planId(planId)
                 .placeId(request.getPlaceId())
-                .userId(userId)
+                .adderId(userId)
                 .dayNumber(request.getDayNumber())
                 .itemOrder(order)
                 .visitTime(request.getVisitTime())
@@ -187,6 +187,7 @@ public class TripServiceImpl implements TripService {
                 .visitTime(request.getVisitTime())
                 .cost(request.getCost())
                 .memo(request.getMemo())
+                .payerId(request.getPayerId())
                 .build();
 
         tripMapper.updateItem(updated);

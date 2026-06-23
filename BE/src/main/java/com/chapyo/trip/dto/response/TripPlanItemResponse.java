@@ -47,10 +47,16 @@ public class TripPlanItemResponse {
     private String memo;
 
     @Schema(description = "추가한 사용자 ID", example = "1")
-    private Long userId;
+    private Long adderId;
 
-    @Schema(description = "추가한 사용자 닉네임", example = "chapyo")
-    private String nickname;
+    @Schema(description = "추가한 사용자 닉네임", example = "번개최광")
+    private String adderNickname;
+
+    @Schema(description = "결제자 ID", example = "1")
+    private Long payerId;
+
+    @Schema(description = "결제자 닉네임", example = "나는슈퍼고야용")
+    private String payerNickname;
 
     @Schema(description = "위도", example = "37.579617")
     private BigDecimal latitude;

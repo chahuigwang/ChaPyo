@@ -13,6 +13,7 @@ public class TripPlanRoute {
     private Long routeId;
     private Long fromItemId;
     private Long toItemId;
+    private String transport;
     private Integer moveTime;
     private Integer cost;
 }

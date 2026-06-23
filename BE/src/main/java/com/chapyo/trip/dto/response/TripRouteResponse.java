@@ -1,6 +1,7 @@
 package com.chapyo.trip.dto.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -21,6 +22,9 @@ public class TripRouteResponse {
 
     @Schema(description = "도착 아이템 ID", example = "2")
     private Long toItemId;
+
+    @Schema(description = "교통수단", example = "버스")
+    private String transport;
 
     @Schema(description = "소요 시간 (분)", example = "30")
     private Integer moveTime;

@@ -18,6 +18,9 @@ public class TripRouteRequest {
     @NotNull
     private Long toItemId;
 
+    @Schema(description = "교통수단", example = "버스")
+    private String transport;
+
     @Schema(description = "소요 시간 (분)", example = "30")
     private Integer moveTime;
 

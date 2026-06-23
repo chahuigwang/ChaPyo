@@ -31,17 +31,17 @@ const displayKm = computed(() => props.autoKm ?? '?')
 </script>
 
 <template>
-  <div class="w-full py-0.5 flex flex-col">
+  <div class="w-full py-1 flex flex-col">
     <div
-      class="w-full flex items-center gap-3 px-4 py-2 rounded-xl
-             bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-800
+      class="w-full flex items-center gap-2 px-4 py-2 rounded-xl
+             bg-slate-50 dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-800
              transition-all duration-200"
       @mouseenter="emit('hover-transit')"
       @mouseleave="emit('leave-transit')"
     >
-      <Car :size="14" class="text-primary shrink-0" />
+      <Car :size="18" class="text-primary shrink-0" />
       <div class="flex-1 min-w-0">
-        <div class="text-[11px] font-medium text-slate-600 dark:text-slate-300">
+        <div class="text-[12px] font-medium text-slate-600 dark:text-slate-300">
           {{ displayKm }}km
         </div>
       </div>

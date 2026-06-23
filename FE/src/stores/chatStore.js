@@ -29,7 +29,7 @@ function toPlaceCard(p) {
 
 export const useChatStore = defineStore('chat', {
   state: () => ({
-    persona: '',
+    persona: '미식가',
     messages: [{ id: nextId(), role: 'ai', content: GREETING, ts: Date.now() }],
     isTyping: false,
   }),

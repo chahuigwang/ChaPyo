@@ -139,7 +139,7 @@ watch(() => ui.tourActiveId, (id) => {
       ghost-class="sr-ghost"
       chosen-class="sr-chosen"
       drag-class="sr-drag"
-      class="flex flex-col gap-2 min-h-[44px]"
+      class="flex flex-col gap-0.5 min-h-[44px]"
       @start="onDragStart"
       @end="onDragEnd"
       @change="onChange"

@@ -43,7 +43,9 @@ const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
 function dateWithWeekday(iso) {
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return iso
-  return `${iso}(${WEEKDAYS[d.getDay()]})`
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${mm}-${dd} (${WEEKDAYS[d.getDay()]})`
 }
 
 const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원'
@@ -196,7 +198,7 @@ onBeforeUnmount(stopTourTimer)
 
             <!-- Accordion content: 해당 날짜의 상세 타임라인 -->
             <div class="accordion-wrap" :class="expanded.has(day.iso) ? 'accordion-open' : ''">
-              <div class="px-4 pb-3">
+              <div class="px-4 py-3">
                 <DayTimeline :date="day.iso" />
               </div>
             </div>

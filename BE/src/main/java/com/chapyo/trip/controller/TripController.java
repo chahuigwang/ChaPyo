@@ -6,6 +6,7 @@ import com.chapyo.trip.dto.request.TripItemOrderRequest;
 import com.chapyo.trip.dto.request.TripPlanItemRequest;
 import com.chapyo.trip.dto.request.TripPlanItemUpdateRequest;
 import com.chapyo.trip.dto.request.TripPlanUpdateRequest;
+import com.chapyo.trip.dto.request.TripRouteRequest;
 import com.chapyo.trip.dto.response.TripPlanDetailResponse;
 import com.chapyo.trip.dto.response.TripPlanResponse;
 import com.chapyo.trip.service.TripService;
@@ -151,5 +152,16 @@ public class TripController {
 
         tripService.removeMember(planId, targetUserId, userId);
         return ResponseEntity.ok(BaseResponse.success("멤버 내보내기 성공"));
+    }
+
+    @Operation(summary = "이동 정보 저장")
+    @PostMapping("/{planId}/routes")
+    public ResponseEntity<BaseResponse<Void>> saveRoute(
+            @PathVariable Long planId,
+            @RequestBody @Valid TripRouteRequest request,
+            @AuthenticationPrincipal Long userId) {
+
+        tripService.saveRoute(planId, request, userId);
+        return ResponseEntity.ok(BaseResponse.success("이동 정보가 저장되었습니다."));
     }
 }

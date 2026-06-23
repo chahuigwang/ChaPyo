@@ -31,4 +31,7 @@ public class TripPlanDetailResponse {
 
     @Schema(description = "일정 목록")
     private List<TripPlanItemResponse> items;
+
+    @Schema(description = "이동 정보 목록")
+    private List<TripRouteResponse> routes;
 }

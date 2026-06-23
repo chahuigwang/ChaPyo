@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 import { ChevronLeft, ChevronRight, Pencil, Check, Trash2, Loader2 } from 'lucide-vue-next'
 import { useTripStore } from '@/stores/tripStore'
 import { CATEGORIES } from '@/types/itinerary'
+import { computeCostSplit } from '@/composables/useCostSplit'
 import CustomCalendar from '@/components/common/CustomCalendar.vue'
 
 const router = useRouter()
@@ -136,6 +137,14 @@ const categoryStats = computed(() => {
 
 const hasAnyItem = computed(() => categoryStats.value.some((s) => s.count > 0))
 
+// ── 유저별 비용 분담 ──────────────────────────────────────────
+const costSplit = computed(() => {
+  const t = currentTrip.value
+  if (!t) return { rows: [], total: 0, perShare: 0 }
+  const items = Object.values(t.itemsByDay).flat()
+  return computeCostSplit(items, t.members ?? [])
+})
+
 // ── 여행 삭제 (2단계 확인) ───────────────────────────────────
 const deletePending = ref(false)
 const deleting = ref(false)
@@ -153,7 +162,7 @@ async function confirmDeleteTrip() {
 <template>
   <div class="flex-1 flex flex-col min-h-0 overflow-y-auto">
     <div class="px-5 pt-5 pb-3">
-      <h2 class="text-xl font-bold text-slate-800 dark:text-slate-100 mb-3">여행 설정</h2>
+      <h2 class="text-xl font-bold text-slate-800 dark:text-slate-100 mb-3">여행 요약</h2>
 
       <!-- Trip Title Edit -->
       <div class="mb-4">
@@ -187,14 +196,14 @@ async function confirmDeleteTrip() {
     </div>
 
     <!-- 1. 출발 -->
-    <div class="mx-5 mb-3 flex items-center justify-between rounded-lg px-4 py-3
+    <div class="mx-5 mb-2 flex items-center justify-between rounded-lg px-4 py-3
                 bg-sky-50 dark:bg-sky-900/15 transition-colors">
       <span class="text-[15px] font-bold uppercase tracking-widest text-sky-500 dark:text-sky-400">FROM</span>
       <CustomCalendar :model-value="startDate" @update:model-value="onStartChange" />
     </div>
 
     <!-- 2. 캘린더 -->
-    <div class="px-4 pb-4">
+    <div class="px-4 pb-2">
       <div class="rounded-xl bg-slate-50 dark:bg-slate-800/60 p-3">
         <!-- Month nav -->
         <div class="flex items-center justify-between mb-3">
@@ -244,7 +253,7 @@ async function confirmDeleteTrip() {
     </div>
 
     <!-- 4. 요약 (총 기간 + 총 비용) -->
-    <div class="px-5 pb-4">
+    <div class="px-5 pb-2">
       <div class="rounded-xl bg-slate-50 dark:bg-slate-800/60 px-4 py-4 flex items-center justify-between">
         <div class="flex flex-col">
           <span class="text-[13px] font-semibold text-slate-500 dark:text-slate-400">총 기간</span>
@@ -257,6 +266,26 @@ async function confirmDeleteTrip() {
       </div>
     </div>
 
+
+    <!-- 5-1. 유저별 비용 분담 -->
+    <div v-if="costSplit.rows.length" class="px-5 pb-2">
+      <div class="rounded-xl bg-slate-50 dark:bg-slate-800/60 px-4 py-4">
+        <div class="flex items-center justify-between mb-3">
+          <p class="text-[13px] font-semibold text-slate-500 dark:text-slate-400">멤버별 정산</p>
+        </div>
+        <div class="space-y-2.5">
+          <div
+            v-for="row in costSplit.rows"
+            :key="row.userId ?? row.nickname"
+            class="flex items-center gap-2.5"
+          >
+            <span class="h-2.5 w-2.5 rounded-full shrink-0" :style="{ backgroundColor: row.color }" />
+            <span class="text-[12px] font-medium text-slate-700 dark:text-slate-200 truncate flex-1">{{ row.nickname }}</span>
+            <span class="text-[12px] font-bold text-slate-900 dark:text-slate-100 shrink-0">{{ won(row.amount) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
     <!-- 5. 카테고리 분포 -->
     <div class="px-5 pb-6">
       <div class="rounded-xl bg-slate-50 dark:bg-slate-800/60 px-4 py-4">

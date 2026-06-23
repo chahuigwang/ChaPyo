@@ -17,6 +17,7 @@ export const ENDPOINTS = {
     items: (id) => `/api/v1/trips/${id}/items`,
     item: (id, itemId) => `/api/v1/trips/${id}/items/${itemId}`,
     itemOrders: (id) => `/api/v1/trips/${id}/items/orders`,
+    itemPayer: (id, itemId) => `/api/v1/trips/${id}/items/${itemId}/payer`, // 비용 담당자 지정(BE 구현 예정)
     members: (id) => `/api/v1/trips/${id}/members`,
     member: (id, userId) => `/api/v1/trips/${id}/members/${userId}`,
   },

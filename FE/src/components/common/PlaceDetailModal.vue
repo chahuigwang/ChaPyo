@@ -1,11 +1,14 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { X, MapPin, Phone, Heart, Loader2, UserRound, Check, Star } from 'lucide-vue-next'
+import { X, MapPin, Phone, Heart, Loader2, UserRound, Check, Star, Dices, ChevronDown, LoaderPinwheel } from 'lucide-vue-next'
 import { findCategory } from '@/types/itinerary'
 import { useStorageStore } from '@/stores/storageStore'
+import { useTripStore } from '@/stores/tripStore'
 import { placeService } from '@/api/placeService'
+import { colorForUser } from '@/composables/useUserColor'
 import PlaceMiniMap from '@/components/common/PlaceMiniMap.vue'
 import PlaceReviews from '@/components/common/PlaceReviews.vue'
+import CostRouletteModal from '@/components/common/CostRouletteModal.vue'
 
 // item 이 null 이면 닫힘. 검색결과/타임라인 아이템 모두 받을 수 있다.
 const props = defineProps({
@@ -16,6 +19,32 @@ const props = defineProps({
 const emit = defineEmits(['close', 'add', 'save'])
 
 const storage = useStorageStore()
+const trip = useTripStore()
+
+// ── 비용 담당자 (payer) ──
+const members = computed(() => trip.members ?? [])
+const payerId = computed(() => data.value?.payerId ?? null)
+const payerName = computed(() => data.value?.payerName ?? null)
+const payerLabel = computed(() => payerName.value || 'N분의 1')
+// 색상은 멤버 목록과 동일하게 userId(없으면 닉네임) 기준 → 드롭다운/지정 색 일치
+const payerColor = computed(() => {
+  if (payerId.value == null && !payerName.value) return null
+  return colorForUser(payerId.value ?? payerName.value)
+})
+const targetOpen = ref(false)
+const rouletteOpen = ref(false)
+function isPayer(m) {
+  if (payerId.value != null && m.userId != null) return payerId.value === m.userId
+  return payerName.value != null && payerName.value === m.nickname
+}
+// member 객체(또는 null=균등) 로 담당자 지정
+function setPayer(member) {
+  const pid = member?.userId ?? null
+  const pname = member?.nickname ?? null
+  if (data.value) { data.value.payerId = pid; data.value.payerName = pname }
+  if (data.value?.id) trip.setItemPayer(data.value.id, pid, pname)
+  targetOpen.value = false
+}
 
 const data = ref(null)
 const loading = ref(false)
@@ -185,15 +214,71 @@ watch(() => props.item, async (item) => {
 
               <!-- 비용/메모 편집 (타임라인 아이템) -->
               <div v-if="editable" class="space-y-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 p-3">
-                <label class="block">
+                <!-- 비용 라벨 + (룰렛 버튼 · 담당자 드롭다운) -->
+                <div class="flex items-center justify-between gap-2">
                   <span class="text-[11px] font-medium text-slate-400 dark:text-slate-500">비용 (원)</span>
-                  <input
-                    v-model.number="costDraft"
-                    type="number" min="0" placeholder="0"
-                    class="mt-1 w-full h-9 rounded-lg bg-white dark:bg-slate-900 px-3 text-[13px]
-                           text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-primary/30 transition-all"
-                  />
-                </label>
+                  <div class="flex items-center gap-1.5">
+                    <!-- 룰렛 -->
+                    <button
+                      type="button"
+                      @click="rouletteOpen = true"
+                      title="담당자 룰렛 돌리기"
+                      class="h-7 w-7 rounded-lg flex items-center justify-center bg-white dark:bg-slate-900 text-primary hover:bg-primary hover:text-white transition-colors shadow-sm"
+                    >
+                      <LoaderPinwheel :size="16" />
+                    </button>
+                    <!-- 담당자 드롭다운 -->
+                    <div class="relative">
+                      <button
+                        type="button"
+                        @click="targetOpen = !targetOpen"
+                        class="h-7 inline-flex items-center gap-1.5 pl-2 pr-1.5 rounded-lg bg-white dark:bg-slate-900 text-[11px] font-semibold text-slate-700 dark:text-slate-200 hover:ring-2 hover:ring-primary/30 transition-all shadow-sm"
+                      >
+                        <span class="h-2 w-2 rounded-full shrink-0" :style="{ backgroundColor: payerColor || '#cbd5e1' }" />
+                        {{ payerLabel }}
+                        <ChevronDown :size="12" class="text-slate-400 transition-transform" :class="targetOpen ? 'rotate-180' : ''" />
+                      </button>
+                      <Transition
+                        enter-active-class="transition-all duration-150 ease-out"
+                        enter-from-class="opacity-0 -translate-y-1"
+                        leave-active-class="transition-all duration-100 ease-in"
+                        leave-to-class="opacity-0 -translate-y-1"
+                      >
+                        <div
+                          v-if="targetOpen"
+                          class="absolute right-0 top-full mt-1 z-20 w-40 max-h-56 overflow-y-auto rounded-xl bg-white dark:bg-slate-900 shadow-xl py-1.5"
+                        >
+                          <button
+                            type="button"
+                            @click="setPayer(null)"
+                            class="w-full flex items-center gap-2 px-3 py-1.5 text-[12px] text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800"
+                            :class="payerId == null && !payerName ? 'text-primary font-semibold' : 'text-slate-700 dark:text-slate-200'"
+                          >
+                            <span class="h-2 w-2 rounded-full bg-slate-300 shrink-0" /> N분의 1 (균등)
+                          </button>
+                          <button
+                            v-for="m in members"
+                            :key="m.userId ?? m.nickname"
+                            type="button"
+                            @click="setPayer(m)"
+                            class="w-full flex items-center gap-2 px-3 py-1.5 text-[12px] text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800"
+                            :class="isPayer(m) ? 'font-semibold' : 'text-slate-700 dark:text-slate-200'"
+                          >
+                            <span class="h-2 w-2 rounded-full shrink-0" :style="{ backgroundColor: colorForUser(m.userId ?? m.nickname) }" />
+                            <span class="truncate">{{ m.nickname }}</span>
+                          </button>
+                          <div v-if="!members.length" class="px-3 py-1.5 text-[11px] text-slate-400">참여자 없음</div>
+                        </div>
+                      </Transition>
+                    </div>
+                  </div>
+                </div>
+                <input
+                  v-model.number="costDraft"
+                  type="number" min="0" placeholder="0"
+                  class="w-full h-9 rounded-lg bg-white dark:bg-slate-900 px-3 text-[13px]
+                         text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-primary/30 transition-all"
+                />
                 <label class="block">
                   <span class="text-[11px] font-medium text-slate-400 dark:text-slate-500">메모</span>
                   <textarea
@@ -242,6 +327,14 @@ watch(() => props.item, async (item) => {
         </div>
       </div>
     </Transition>
+
+    <!-- 비용 담당자 룰렛 -->
+    <CostRouletteModal
+      :open="rouletteOpen"
+      :members="members"
+      @close="rouletteOpen = false"
+      @result="setPayer"
+    />
   </Teleport>
 </template>
 

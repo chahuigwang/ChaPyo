@@ -48,13 +48,14 @@ export const tripService = {
     await http.delete(ENDPOINTS.trips.remove(planId))
   },
 
-  // PUT /api/v1/trips/{planId}/items/{itemId} → 일정 수정 (일차/시간/비용/메모)
-  async updateItem(planId, itemId, { dayNumber, visitTime, cost, memo } = {}) {
+  // PUT /api/v1/trips/{planId}/items/{itemId} → 일정 수정 (일차/시간/비용/메모/담당자)
+  async updateItem(planId, itemId, { dayNumber, visitTime, cost, memo, payerId } = {}) {
     await http.put(ENDPOINTS.trips.item(planId, itemId), {
       dayNumber: dayNumber ?? null,
       visitTime: visitTime || null,
       cost: cost ?? null,
       memo: memo || null,
+      payerId: payerId !== undefined ? (payerId ?? null) : undefined,
     })
   },
 
@@ -67,6 +68,15 @@ export const tripService = {
   // itemOrders: [{ itemId, order }]
   async updateItemOrders(planId, itemOrders) {
     await http.patch(ENDPOINTS.trips.itemOrders(planId), { itemOrders })
+  },
+
+  // PUT /api/v1/trips/{planId}/items/{itemId}/payer → 비용 담당자 지정
+  // (BE 미구현 — 엔드포인트만 잡아둠. payer 가 null 이면 N분의 1)
+  async setItemPayer(planId, itemId, { payerId, payerName } = {}) {
+    await http.put(ENDPOINTS.trips.itemPayer(planId, itemId), {
+      payerId: payerId ?? null,
+      payerNickname: payerName ?? null,
+    })
   },
 
   // POST /api/v1/trips/{planId}/items → 일정 추가 (itemOrder null이면 서버가 마지막에 부여)

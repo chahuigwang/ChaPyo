@@ -74,6 +74,8 @@ export const useTripStore = defineStore('trip', {
     // placeId → { name, category, address, firstImage, lat, lng }
     // BE 일정 응답엔 좌표/카테고리/이미지가 없어, 추가 시점에 본 정보를 캐시해 상세 재조회 때 보강한다.
     placeCache: {},
+    // serverId(itemId) → { payerId, payerName }. BE 미구현 동안 폴링 재조회가 담당자 지정을 덮어쓰지 않도록 보존.
+    itemPayerOverrides: {},
   }),
   getters: {
     currentTrip(state) {
@@ -149,8 +151,12 @@ export const useTripStore = defineStore('trip', {
           firstImage: it.img ?? enrich.firstImage ?? null,
           lat,
           lng,
-          nickname: it.nickname ?? '',
-          addedByUserId: it.userId ?? null,
+          // 추가한 사람(adder)
+          nickname: it.adderNickname ?? it.nickname ?? '',
+          addedByUserId: it.adderId ?? it.userId ?? null,
+          // 비용 담당자(payer): BE 값 우선, 없으면 로컬 오버라이드(BE 미구현 동안 유지)
+          payerId: it.payerId ?? this.itemPayerOverrides[it.itemId]?.payerId ?? null,
+          payerName: it.payerNickname ?? this.itemPayerOverrides[it.itemId]?.payerName ?? null,
         })
         itemsByDay[date].push(built)
         this._hydratePlaceMeta(built) // 이미지/주소/좌표 보강(placeId별 1회)
@@ -449,6 +455,36 @@ export const useTripStore = defineStore('trip', {
         }).catch((err) => {
           this.lastError = err?.message ?? 'updateItem failed'
           useToastStore().error('일정 수정에 실패했습니다.')
+        })
+      }
+    },
+    // 비용 담당자 지정: 낙관적 로컬 반영 후 PUT /items/{itemId} 에 payerId 포함해 서버 반영
+    setItemPayer(id, payerId, payerName) {
+      const trip = this.currentTrip
+      if (!trip) return
+      let found = null
+      let foundDate = null
+      for (const [d, list] of Object.entries(trip.itemsByDay)) {
+        const it = list.find((x) => x.id === id)
+        if (it) { found = it; foundDate = d; break }
+      }
+      if (!found) return
+      found.payerId = payerId ?? null
+      found.payerName = payerName ?? null
+      if (found.serverId != null) {
+        this.itemPayerOverrides[found.serverId] = { payerId: found.payerId, payerName: found.payerName }
+      }
+      trip.touch()
+      if (found.serverId && isServerId(trip.id)) {
+        tripService.updateItem(trip.id, found.serverId, {
+          dayNumber: dateToDayNumber(trip.startDate, trip.endDate, foundDate),
+          visitTime: found.time,
+          cost: found.cost,
+          memo: found.memo,
+          payerId: found.payerId,
+        }).catch((err) => {
+          this.lastError = err?.message ?? 'setItemPayer failed'
+          useToastStore().error('담당자 지정에 실패했습니다.')
         })
       }
     },

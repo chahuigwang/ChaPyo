@@ -50,6 +50,16 @@ const data = ref(null)
 const loading = ref(false)
 const error = ref(false)
 
+// 모달 안에서 mousedown 시작 → 밖에서 mouseup 해도 닫히지 않도록
+const backdropMousedown = ref(false)
+function onBackdropMousedown(e) {
+  backdropMousedown.value = e.target === e.currentTarget
+}
+function onBackdropClick(e) {
+  if (e.target === e.currentTarget && backdropMousedown.value) emit('close')
+  backdropMousedown.value = false
+}
+
 // 편집용 드래프트(메모/비용)
 const memoDraft = ref('')
 const costDraft = ref(0)
@@ -133,7 +143,8 @@ watch(() => props.item, async (item) => {
       <div
         v-if="data"
         class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4"
-        @click.self="emit('close')"
+        @mousedown="onBackdropMousedown"
+        @click="onBackdropClick"
       >
         <div class="relative w-full max-w-[1000px] max-h-[90vh] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl flex flex-col sm:flex-row overflow-y-auto sm:overflow-hidden">
           <!-- Close -->

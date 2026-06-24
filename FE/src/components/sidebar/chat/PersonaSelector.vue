@@ -7,14 +7,14 @@ const chat = useChatStore()
 const { persona } = storeToRefs(chat)
 
 // 빠른 입력용 예시 칩 — 클릭 시 페르소나 입력란을 채운다.
-const PRESETS = ['미식가', 'INTJ 20대 남자', '가성비 여행러', '감성 사진가', '아이와 함께']
+const PRESETS = ['미식가', 'INTJ 20대 남자', '가성비 여행러', '아이와 함께']
 function applyPreset(p) { chat.setPersona(p) }
 </script>
 
 <template>
-  <div class="px-5 pt-5 pb-4">
+  <div class="px-5 pt-5 pb-0">
     <h2 class="text-xl font-bold text-gray-900 dark:text-slate-100 mb-4">
-      AI 페르소나
+      AI 도우미
     </h2>
 
     <label class="block">
@@ -47,8 +47,8 @@ function applyPreset(p) { chat.setPersona(p) }
       </button>
     </div>
 
-    <p class="mt-2.5 text-[11px] text-slate-400 dark:text-slate-500 leading-relaxed">
-      원하는 정보를 자유롭게 조합해 입력하세요. 입력한 페르소나로 맞춤 추천을 받습니다.
+    <p class="mt-2.5 text-[12px] text-slate-400 dark:text-slate-500 leading-relaxed">
+      원하는 정보를 자유롭게 조합해 입력해 맞춤 추천을 받으세요!
     </p>
   </div>
 </template>

@@ -420,6 +420,52 @@ function renderRoute() {
   applyHoverHighlight(hoveredItemId.value)
 }
 
+// ── 드래그 미리보기 핀(드롭 전, 손 떼기 전) ──────────────────
+let previewOverlay = null
+let previewToken = 0 // 비동기 geocode 경쟁 방지 토큰
+function clearPreviewPin() {
+  previewToken++
+  if (previewOverlay) { try { previewOverlay.setMap(null) } catch {} previewOverlay = null }
+}
+async function renderPreviewPin(p) {
+  if (!mapInstance || !window.kakao?.maps || !p) { clearPreviewPin(); return }
+  const token = ++previewToken
+  let lat = p.lat
+  let lng = p.lng
+  // 검색 결과 등 좌표가 없는 아이템은 주소로 즉시 변환(캐시됨)
+  if ((lat == null || lng == null) && p.address) {
+    const c = await geocodeAddress(p.address)
+    if (token !== previewToken) return // 그새 다른 아이템/종료로 바뀜
+    if (!c) return
+    lat = c.lat; lng = c.lng
+  }
+  if (lat == null || lng == null) return
+  if (token !== previewToken) return
+  // 기존 미리보기 제거(토큰은 유지)
+  if (previewOverlay) { try { previewOverlay.setMap(null) } catch {} previewOverlay = null }
+  const kakao = window.kakao
+  const days = trip.days || []
+  const idx = days.indexOf(p.dayIso)
+  const color = dayColorFor(idx >= 0 ? idx : 0).pin
+  const el = document.createElement('div')
+  el.className = 'trip-map-pin trip-map-pin--preview'
+  el.style.setProperty('--pin-color', color)
+  el.innerHTML = `
+    <div class="trip-map-pin__bubble" title="${p.name ?? ''}">+</div>
+    <div class="trip-map-pin__tail"></div>
+  `
+  previewOverlay = new kakao.maps.CustomOverlay({
+    position: new kakao.maps.LatLng(lat, lng),
+    content: el, yAnchor: 1, xAnchor: 0.5, zIndex: 12,
+  })
+  previewOverlay.setMap(mapInstance)
+  // 미리보기 위치가 현재 화면 밖이면 부드럽게 이동
+  const bounds = mapInstance.getBounds()
+  if (bounds && !bounds.contain(previewOverlay.getPosition())) {
+    mapInstance.panTo(previewOverlay.getPosition())
+  }
+}
+
 function applyHoverHighlight(id) {
   overlays.forEach(({ itemId, el }) => {
     if (el) el.classList.toggle('trip-map-pin--active', !!id && itemId === id)
@@ -457,6 +503,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   clearOverlays()
+  clearPreviewPin()
   mapInstance = null
   if (animFrame) cancelAnimationFrame(animFrame)
 })
@@ -474,6 +521,11 @@ watch(positionedItems, () => { if (!ui.tourMode) renderRoute() }, { deep: true }
 watch(selectedDate, () => { if (!ui.tourMode) renderRoute() })
 watch(allDayItems, () => { if (props.showAll && !ui.tourMode) renderRoute() }, { deep: true })
 watch(hoveredItemId, (id) => applyHoverHighlight(id))
+// 드래그 미리보기 핀: 드래그 중 해당 Day 위에 올라오면 표시, 드롭/종료 시 제거
+watch(() => ui.dragPreview, (p) => {
+  if (p) renderPreviewPin(p)
+  else clearPreviewPin()
+}, { deep: true })
 watch(hoveredTransitId, (id) => applyTransitHighlight(id))
 // 드래그 시작/종료 시 라이브 연출(색/디밍/오버레이) 갱신 — 좌표 동일해도 강제 재렌더
 watch(() => ui.draggingDayIso, () => {
@@ -611,6 +663,36 @@ defineExpose({ onRelayout })
   border-radius: 1px;
   box-shadow: 0 1px 2px rgba(0,0,0,0.15);
 }
+/* 드래그 미리보기 핀(드롭 전) — 크게 + 펄스 */
+.trip-map-pin--preview {
+  transform: translateY(-8px) scale(1.45);
+  z-index: 12 !important;
+  pointer-events: none;
+  animation: trip-pin-in .2s ease-out;
+}
+.trip-map-pin--preview .trip-map-pin__bubble {
+  min-width: 38px;
+  height: 38px;
+  font-size: 22px;
+  font-weight: 800;
+  position: relative;
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--pin-color) 35%, transparent),
+    0 8px 18px -2px color-mix(in srgb, var(--pin-color) 70%, transparent);
+}
+.trip-map-pin--preview .trip-map-pin__bubble::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 9999px;
+  border: 2.5px solid var(--pin-color);
+  animation: trip-ping 1.1s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+.trip-map-pin--preview .trip-map-pin__tail {
+  height: 12px;
+  width: 3px;
+}
+
 .trip-map-pin--active {
   transform: translateY(-4px) scale(1.12);
   z-index: 5 !important;

@@ -14,6 +14,7 @@ import {
   Search,
   MapPin,
   ChevronLeft,
+  Sparkles,
 } from 'lucide-vue-next'
 import { useUiStore } from '@/stores/uiStore'
 import { useTheme } from '@/composables/useTheme'
@@ -91,10 +92,15 @@ const currentPanel = computed(() => PANEL_MAP[activePanel.value] ?? null)
       <div class="flex flex-col items-center gap-1">
         <button
           @click="ui.togglePanel('chat')"
-          :class="isActive('chat') ? railBtnActive : railBtn"
-          title="AI 채팅"
+          class="relative h-10 w-10 rounded-md flex items-center justify-center transition-all hover:-translate-y-0.5 ai-chat-btn"
+          :class="isActive('chat')
+            ? 'text-white shadow-lg shadow-fuchsia-500/40 ai-chat-active'
+            : 'text-white shadow-md shadow-fuchsia-500/25 hover:shadow-lg hover:shadow-fuchsia-500/40'"
+          title="AI 페르소나 채팅"
         >
-          <BotMessageSquare :size="18" />
+          <BotMessageSquare :size="18" class="relative z-10" />
+          <!-- 반짝이 -->
+          <Sparkles :size="9" class="absolute top-1 right-1 z-10 text-amber-200 ai-chat-sparkle" />
         </button>
         <button
           @click="ui.togglePanel('search')"
@@ -166,6 +172,32 @@ const currentPanel = computed(() => PANEL_MAP[activePanel.value] ?? null)
 </template>
 
 <style scoped>
+/* AI 페르소나 챗봇 버튼: 보라→파랑 그라데이션 + 은은한 글로우 펄스 */
+.ai-chat-btn {
+  background: linear-gradient(135deg, #A855F7 0%, #6366F1 50%, #00B7EB 100%);
+  background-size: 180% 180%;
+  animation: ai-chat-gradient 5s ease infinite;
+}
+.ai-chat-active {
+  background: linear-gradient(135deg, #C026D3 0%, #7C3AED 50%, #2563EB 100%);
+  background-size: 180% 180%;
+  animation: ai-chat-gradient 3.5s ease infinite, ai-chat-glow 2.2s ease-in-out infinite;
+}
+@keyframes ai-chat-gradient {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+@keyframes ai-chat-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(168,85,247,0.35); }
+  50% { box-shadow: 0 0 0 5px rgba(168,85,247,0); }
+}
+/* 반짝이 트윙클 */
+.ai-chat-sparkle { animation: ai-chat-twinkle 1.8s ease-in-out infinite; }
+@keyframes ai-chat-twinkle {
+  0%, 100% { opacity: 0.4; transform: scale(0.8) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1.15) rotate(20deg); }
+}
+
 .panel-switch-enter-active,
 .panel-switch-leave-active {
   transition: opacity 160ms ease, transform 160ms ease;

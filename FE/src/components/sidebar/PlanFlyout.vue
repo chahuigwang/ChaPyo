@@ -7,6 +7,10 @@ import { useTripStore } from '@/stores/tripStore'
 import { CATEGORIES } from '@/types/itinerary'
 import { computeCostSplit } from '@/composables/useCostSplit'
 import CustomCalendar from '@/components/common/CustomCalendar.vue'
+import CountUp from '@/components/common/CountUp.vue'
+
+// CountUp 표시 포맷(천단위 콤마 + 원)
+const wonFmt = (n) => (Math.round(n) || 0).toLocaleString('ko-KR') + '원'
 
 const router = useRouter()
 const trip = useTripStore()
@@ -265,7 +269,9 @@ async function confirmDeleteTrip() {
         </div>
         <div class="flex flex-col items-end">
           <span class="text-[13px] font-semibold text-slate-500 dark:text-slate-400">총 비용</span>
-          <span class="text-lg font-bold text-slate-900 dark:text-slate-100 leading-tight">{{ won(totalCost) }}</span>
+          <span class="text-lg font-bold text-slate-900 dark:text-slate-100 leading-tight">
+            <CountUp :value="totalCost" :format="wonFmt" />
+          </span>
         </div>
       </div>
     </div>
@@ -285,7 +291,9 @@ async function confirmDeleteTrip() {
           >
             <span class="h-2.5 w-2.5 rounded-full shrink-0" :style="{ backgroundColor: row.color }" />
             <span class="text-[12px] font-medium text-slate-700 dark:text-slate-200 truncate flex-1">{{ row.nickname }}</span>
-            <span class="text-[12px] font-bold text-slate-900 dark:text-slate-100 shrink-0">{{ won(row.amount) }}</span>
+            <span class="text-[12px] font-bold text-slate-900 dark:text-slate-100 shrink-0">
+              <CountUp :value="row.amount" :format="wonFmt" />
+            </span>
           </div>
         </div>
       </div>

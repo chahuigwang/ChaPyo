@@ -7,6 +7,9 @@ import { useChatStore } from '@/stores/chatStore'
 import draggable from 'vuedraggable'
 import DiscoverPlaceCard from '@/components/common/DiscoverPlaceCard.vue'
 import PlaceDetailModal from '@/components/common/PlaceDetailModal.vue'
+import { useDragPreview } from '@/composables/useDragPreview'
+
+const { onMove, onDragPreviewEnd } = useDragPreview()
 
 // 플라이아웃 → 타임라인 clone 시 원본 참조 공유 방지
 function cloneCard(item) { return { ...item } }
@@ -131,6 +134,8 @@ function onPanelDrop(e) {
         :group="{ name: 'itinerary', pull: 'clone', put: false }"
         :sort="false"
         :clone="cloneCard"
+        :move="onMove"
+        @end="onDragPreviewEnd"
         class="flex flex-col gap-3"
       >
         <template #item="{ element: item }">

@@ -9,6 +9,7 @@ import { useCollabStore } from '@/stores/collabStore'
 import { useUiStore } from '@/stores/uiStore'
 import { useTimelineLogic } from '@/composables/useTimelineLogic'
 import { dayColorFor } from '@/composables/useDayColor'
+import { useDragPreview } from '@/composables/useDragPreview'
 import PlaceDetailModal from '@/components/common/PlaceDetailModal.vue'
 
 // 전체 일정 아코디언 안에서 특정 날짜의 상세 타임라인을 인라인으로 렌더한다.
@@ -48,11 +49,15 @@ function isItineraryItem(el) {
   return /^(srv_|i_)/.test(String(el?.id ?? ''))
 }
 
+// 드래그 미리보기 핀: 소스가 이 타임라인일 때(다른 날 이동/같은 날 정렬) 사용
+const { onMove, onDragPreviewEnd } = useDragPreview()
+
 function onDragStart() {
   ui.setDraggingDay(props.date)
 }
 function onDragEnd() {
   ui.clearDraggingDay()
+  onDragPreviewEnd()
 }
 // vuedraggable @change: 배열은 이미 :list 가 이동/정렬했으므로 서버 반영만 트리거
 function onChange(evt) {
@@ -128,9 +133,10 @@ watch(() => ui.tourActiveId, (id) => {
 <template>
   <div>
     <!-- 드래그 존 래퍼: 아이템이 없으면 힌트 위에 draggable이 겹쳐 실제 드롭을 받는다 -->
-    <div class="relative" :class="!dayList.length ? 'min-h-[104px]' : ''">
+    <div class="relative" :class="!dayList.length ? 'min-h-[150px]' : ''">
       <draggable
         :list="dayList"
+        :data-day-iso="date"
         item-key="id"
         :group="{ name: 'itinerary', pull: true, put: true }"
         :animation="180"
@@ -141,7 +147,8 @@ watch(() => ui.tourActiveId, (id) => {
         ghost-class="sr-ghost"
         chosen-class="sr-chosen"
         drag-class="sr-drag"
-        :class="!dayList.length ? 'absolute inset-0 z-10' : 'flex flex-col gap-0.5 min-h-[44px]'"
+        :class="!dayList.length ? 'relative z-10 min-h-[150px]' : 'flex flex-col gap-0.5 min-h-[44px]'"
+        :move="onMove"
         @start="onDragStart"
         @end="onDragEnd"
         @change="onChange"

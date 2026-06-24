@@ -8,7 +8,7 @@ let _seq = 0
 const nextId = () => `m_${Date.now()}_${++_seq}`
 
 const GREETING =
-  '여행 페르소나(예: "미식가", "INTJ 20대 남자")를 입력하고, 가고 싶은 분위기나 지역을 알려주세요. 맞춤 관광지를 추천해 드릴게요.'
+  '여행지를 추천하거나, 여행 계획 편집을 도와드릴게요. 무엇이든 물어보세요!'
 
 function toPlaceCard(p) {
   return {

@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { Car, Navigation, Pencil, Check, X, Clock, Wallet } from 'lucide-vue-next'
+import { Car, Navigation, Pencil, Check, X, Clock, Wallet, Bus } from 'lucide-vue-next'
 
 const props = defineProps({
   item: { type: Object, required: true },
@@ -28,22 +28,26 @@ function openDirections(e) {
 
 const displayKm = computed(() => props.autoKm ?? '?')
 
-// 저장된 이동 정보(소요시간/비용). 서버 route 가 있으면 그 값, 없으면 추정치(autoMins).
+// 저장된 이동 정보(교통수단/소요시간/비용). 서버 route 가 있으면 그 값, 없으면 추정치(autoMins).
 const savedMins = computed(() => props.item?.transitAfter?.mins ?? null)
 const savedCost = computed(() => Number(props.item?.transitAfter?.cost) || 0)
+const savedMethod = computed(() => props.item?.transitAfter?.method || '')
 const displayMins = computed(() => savedMins.value ?? props.autoMins ?? null)
 // 사용자가 직접 저장한 값이 있는지(추정치와 구분 표시)
-const hasSaved = computed(() => savedMins.value != null || savedCost.value > 0)
+const hasSaved = computed(() => savedMins.value != null || savedCost.value > 0 || !!savedMethod.value)
 
 // 서버 itemId 가 양쪽 다 있어야 저장 가능(로컬 전용 아이템은 편집 불가)
 const canSave = computed(() => props.item?.serverId != null && props.next?.serverId != null)
 
 // ── 인라인 편집 ──
 const editing = ref(false)
+const draftMethod = ref('')
 const draftMins = ref(0)
 const draftCost = ref(0)
+const TRANSPORT_PRESETS = ['도보', '버스', '지하철', '자동차', '택시', '자전거']
 function startEdit(e) {
   e.stopPropagation()
+  draftMethod.value = savedMethod.value
   draftMins.value = displayMins.value ?? 0
   draftCost.value = savedCost.value
   editing.value = true
@@ -55,6 +59,7 @@ function cancel(e) {
 function save(e) {
   e?.stopPropagation()
   emit('save-route', {
+    transport: (draftMethod.value || '').trim(),
     moveTime: Math.max(0, Math.round(Number(draftMins.value) || 0)),
     cost: Math.max(0, Math.round(Number(draftCost.value) || 0)),
   })
@@ -81,6 +86,9 @@ const won = (n) => (Number(n) || 0).toLocaleString('ko-KR')
       <template v-if="!editing">
         <div class="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
           <span class="text-[12px] font-medium text-slate-600 dark:text-slate-300">{{ displayKm }}km</span>
+          <span v-if="savedMethod" class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[11px] font-semibold text-primary bg-primary/10">
+            <Bus :size="11" /> {{ savedMethod }}
+          </span>
           <span v-if="displayMins != null" class="inline-flex items-center gap-0.5 text-[11px] text-slate-500 dark:text-slate-400">
             <Clock :size="11" /> {{ displayMins }}분
           </span>
@@ -111,7 +119,19 @@ const won = (n) => (Number(n) || 0).toLocaleString('ko-KR')
 
       <!-- 편집 모드 -->
       <template v-else>
-        <div class="flex-1 min-w-0 flex items-center gap-1.5" @click.stop>
+        <div class="flex-1 min-w-0 flex items-center gap-1.5 flex-wrap" @click.stop>
+          <div class="flex items-center gap-1 rounded-lg bg-white dark:bg-slate-800 px-2 h-7 shadow-sm">
+            <Bus :size="12" class="text-slate-400 shrink-0" />
+            <input
+              v-model="draftMethod"
+              type="text" list="transit-presets" placeholder="교통수단"
+              class="w-16 bg-transparent outline-none text-[12px] text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
+              @keydown.enter="save" @keydown.esc="cancel"
+            />
+            <datalist id="transit-presets">
+              <option v-for="p in TRANSPORT_PRESETS" :key="p" :value="p" />
+            </datalist>
+          </div>
           <div class="flex items-center gap-1 rounded-lg bg-white dark:bg-slate-800 px-2 h-7 shadow-sm">
             <Clock :size="12" class="text-slate-400 shrink-0" />
             <input

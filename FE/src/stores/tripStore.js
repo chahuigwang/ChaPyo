@@ -31,7 +31,7 @@ function planSignature(plan) {
     for (const it of plan.itemsByDay[date]) {
       const t = it.transitAfter ?? {}
       parts.push(
-        `${it.id}:${it.time ?? ''}:${it.cost ?? ''}:${it.memo ?? ''}:${it.payerId ?? ''}:${it.payerName ?? ''}:${it.lat ?? ''}:${it.lng ?? ''}:${it.firstImage ? 1 : 0}:${it.name ?? ''}:${t.mins ?? ''}:${t.cost ?? ''}`,
+        `${it.id}:${it.time ?? ''}:${it.cost ?? ''}:${it.memo ?? ''}:${it.payerId ?? ''}:${it.payerName ?? ''}:${it.lat ?? ''}:${it.lng ?? ''}:${it.firstImage ? 1 : 0}:${it.name ?? ''}:${t.mins ?? ''}:${t.cost ?? ''}:${t.method ?? ''}`,
       )
     }
   }
@@ -168,7 +168,7 @@ export const useTripStore = defineStore('trip', {
           serverId: it.itemId,
           // 출발 아이템에 이동 정보(소요시간/비용) 연결. 없으면 기본값.
           transitAfter: route
-            ? { routeId: route.routeId ?? null, toItemId: route.toItemId ?? null, cost: route.cost ?? 0, mins: route.moveTime ?? null, method: '' }
+            ? { routeId: route.routeId ?? null, toItemId: route.toItemId ?? null, cost: route.cost ?? 0, mins: route.moveTime ?? null, method: route.transport ?? '' }
             : { cost: 0, mins: null, method: '' },
           placeId: it.placeId,
           name: it.title ?? enrich.name ?? '',
@@ -527,7 +527,7 @@ export const useTripStore = defineStore('trip', {
     },
     // 아이템 간 이동 정보(소요시간/비용) 저장: 낙관적 로컬 반영 후 POST /routes
     // fromId/toId 는 일정 아이템의 로컬 id(srv_*). 서버 itemId(serverId)로 변환해 전송.
-    setRoute(fromId, toId, { moveTime, cost } = {}) {
+    setRoute(fromId, toId, { transport, moveTime, cost } = {}) {
       const trip = this.currentTrip
       if (!trip) return
       let from = null, to = null
@@ -541,6 +541,7 @@ export const useTripStore = defineStore('trip', {
       // 낙관적 로컬 반영
       from.transitAfter = {
         ...(from.transitAfter ?? {}),
+        method: transport ?? '',
         mins: moveTime ?? null,
         cost: Number(cost) || 0,
       }
@@ -549,6 +550,7 @@ export const useTripStore = defineStore('trip', {
         tripService.saveRoute(trip.id, {
           fromItemId: from.serverId,
           toItemId: to.serverId,
+          transport: transport ?? '',
           moveTime: moveTime ?? null,
           cost: Number(cost) || 0,
         }).catch((err) => {
@@ -556,6 +558,43 @@ export const useTripStore = defineStore('trip', {
           useToastStore().error('이동 정보 저장에 실패했습니다.')
         })
       }
+    },
+
+    // Day 순서 변경(드래그): 날짜 슬롯은 고정(start~end), 각 슬롯의 "내용(아이템 집합)"을 재배치한다.
+    // newOrder = 사용자가 끌어 만든 새 iso 순서. dates[i] 슬롯이 newOrder[i] 블록의 아이템을 받는다.
+    reorderDays(newOrder) {
+      const trip = this.currentTrip
+      if (!trip || !Array.isArray(newOrder)) return
+      const dates = enumerateDays(trip.startDate, trip.endDate)
+      if (newOrder.length !== dates.length) return
+      if (newOrder.every((iso, i) => iso === dates[i])) return // 변경 없음
+      const snapshot = {}
+      for (const d of dates) snapshot[d] = trip.itemsByDay[d] ?? []
+      for (let i = 0; i < dates.length; i++) {
+        trip.itemsByDay[dates[i]] = snapshot[newOrder[i]]
+      }
+      trip.touch()
+      // 서버 반영: 내용이 바뀐 슬롯의 아이템에 새 dayNumber + 순서 저장
+      if (!isServerId(trip.id)) return
+      for (let i = 0; i < dates.length; i++) {
+        if (newOrder[i] === dates[i]) continue // 그대로인 슬롯은 스킵
+        const list = trip.itemsByDay[dates[i]] ?? []
+        const dayNumber = i + 1
+        list.forEach((it) => {
+          if (it.serverId == null) return
+          tripService.updateItem(trip.id, it.serverId, {
+            dayNumber,
+            visitTime: it.time,
+            cost: it.cost,
+            memo: it.memo,
+            payerId: it.payerId,
+          }).catch((err) => {
+            this.lastError = err?.message ?? 'reorderDays failed'
+          })
+        })
+        this._persistItemOrders(trip.id, list)
+      }
+      useToastStore().success('일정 순서를 변경했습니다.')
     },
     // 서버 일정 삭제 헬퍼 (serverId 있는 항목만)
     _deleteItemOnServer(planId, item) {

@@ -93,10 +93,11 @@ export const tripService = {
 
   // POST /api/v1/trips/{planId}/routes → 아이템 간 이동 정보(소요시간/비용) 저장
   // fromItemId/toItemId 는 서버 itemId. 같은 구간을 다시 보내면 upsert.
-  async saveRoute(planId, { fromItemId, toItemId, moveTime, cost } = {}) {
+  async saveRoute(planId, { fromItemId, toItemId, transport, moveTime, cost } = {}) {
     await http.post(ENDPOINTS.trips.routes(planId), {
       fromItemId,
       toItemId,
+      transport: transport || null,
       moveTime: moveTime ?? null,
       cost: cost ?? null,
     })

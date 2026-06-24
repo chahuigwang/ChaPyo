@@ -66,6 +66,16 @@ public class LibraryController {
         return ResponseEntity.ok(BaseResponse.success(response));
     }
 
+    @Operation(summary = "라이브러리 상세 조회")
+    @GetMapping("/{libraryId}")
+    public ResponseEntity<BaseResponse<LibraryDetailResponse>> getLibraryDetail(
+            @PathVariable Long libraryId,
+            @AuthenticationPrincipal Long userId) {
+
+        LibraryDetailResponse response = libraryService.getLibraryDetail(libraryId, userId);
+        return ResponseEntity.ok(BaseResponse.success(response));
+    }
+
     @Operation(summary = "라이브러리 삭제")
     @DeleteMapping("/{libraryId}")
     public ResponseEntity<BaseResponse<Void>> deleteLibrary(

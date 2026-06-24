@@ -20,7 +20,7 @@
                COUNT(DISTINCT tpi.item_id) AS item_count,
                COALESCE(SUM(tpi.cost), 0) AS total_cost,
                (tp.owner_id = #{userId}) AS is_owner,
-               COUNT(DISTINCT tpm.user_id) AS member_count
+               (SELECT COUNT(*) FROM trip_plan_members WHERE plan_id = tp.plan_id) AS member_count
         FROM trip_plans tp
                  JOIN trip_plan_members tpm ON tp.plan_id = tpm.plan_id
                  LEFT JOIN trip_plan_items tpi ON tp.plan_id = tpi.plan_id

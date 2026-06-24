@@ -35,7 +35,9 @@
         <where>
             tl.user_id != #{userId}
             <if test="keyword != null and keyword != ''">
-                AND tl.title LIKE CONCAT('%', #{keyword}, '%')
+                AND (tl.title LIKE CONCAT('%', #{keyword}, '%')
+                OR tl.description LIKE CONCAT('%', #{keyword}, '%')
+                OR u.nickname LIKE CONCAT('%', #{keyword}, '%'))
             </if>
         </where>
         ORDER BY tl.created_at DESC
@@ -52,7 +54,9 @@
         <where>
             tl.user_id = #{userId}
             <if test="keyword != null and keyword != ''">
-                AND tl.title LIKE CONCAT('%', #{keyword}, '%')
+                AND (tl.title LIKE CONCAT('%', #{keyword}, '%')
+                OR tl.description LIKE CONCAT('%', #{keyword}, '%')
+                OR u.nickname LIKE CONCAT('%', #{keyword}, '%'))
             </if>
         </where>
         ORDER BY tl.created_at DESC

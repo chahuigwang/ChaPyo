@@ -144,7 +144,7 @@
     </update>
 
     <select id="findItemsByPlanIdSimple" resultType="TripPlanItem">
-        SELECT item_id, item_order, day_number
+        SELECT item_id, place_id, adder_id, day_number, item_order, visit_time, cost, memo
         FROM trip_plan_items
         WHERE plan_id = #{planId}
     </select>

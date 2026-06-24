@@ -174,4 +174,12 @@
         )
     </select>
 
+    <insert id="insertItems">
+        INSERT INTO trip_plan_items (plan_id, place_id, adder_id, day_number, item_order, visit_time, cost, memo)
+        VALUES
+        <foreach collection="items" item="item" separator=",">
+            (#{item.planId}, #{item.placeId}, #{item.adderId}, #{item.dayNumber}, #{item.itemOrder}, #{item.visitTime}, #{item.cost}, #{item.memo})
+        </foreach>
+    </insert>
+
 </mapper>

@@ -28,12 +28,36 @@
 
     <select id="findLibraries" resultType="LibraryResponse">
         SELECT tl.library_id, tl.title, tl.description, u.nickname,
-               tl.view_count, tl.import_count, tl.created_at
+        tl.view_count, tl.import_count, tl.created_at,
+        false AS is_owner
         FROM travel_library tl
-                 JOIN users u ON tl.user_id = u.user_id
+        JOIN users u ON tl.user_id = u.user_id
+        <where>
+            tl.user_id != #{userId}
+            <if test="keyword != null and keyword != ''">
+                AND tl.title LIKE CONCAT('%', #{keyword}, '%')
+            </if>
+        </where>
         ORDER BY tl.created_at DESC
         LIMIT #{limitSize}
-            OFFSET #{offset}
+        OFFSET #{offset}
+    </select>
+
+    <select id="findMyLibraries" resultType="LibraryResponse">
+        SELECT tl.library_id, tl.title, tl.description, u.nickname,
+        tl.view_count, tl.import_count, tl.created_at,
+        true AS is_owner
+        FROM travel_library tl
+        JOIN users u ON tl.user_id = u.user_id
+        <where>
+            tl.user_id = #{userId}
+            <if test="keyword != null and keyword != ''">
+                AND tl.title LIKE CONCAT('%', #{keyword}, '%')
+            </if>
+        </where>
+        ORDER BY tl.created_at DESC
+        LIMIT #{limitSize}
+        OFFSET #{offset}
     </select>
 
     <select id="findLibraryById" resultType="LibraryDetailResponse">

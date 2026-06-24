@@ -76,4 +76,10 @@
         UPDATE travel_library SET view_count = view_count + 1 WHERE library_id = #{libraryId}
     </update>
 
+    <select id="findLibraryEntityById" resultType="TravelLibrary">
+        SELECT library_id, user_id, title, description, view_count, import_count
+        FROM travel_library
+        WHERE library_id = #{libraryId}
+    </select>
+
 </mapper>

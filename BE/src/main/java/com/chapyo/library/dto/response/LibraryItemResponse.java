@@ -1,8 +1,7 @@
-package com.chapyo.trip.dto.response;
+package com.chapyo.library.dto.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -13,8 +12,8 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "여행 일정 응답")
-public class TripPlanItemResponse {
+@Schema(description = "라이브러리 일정 응답")
+public class LibraryItemResponse {
 
     @Schema(description = "아이템 ID", example = "1")
     private Long itemId;
@@ -45,18 +44,6 @@ public class TripPlanItemResponse {
 
     @Schema(description = "메모", example = "입장권 미리 예매")
     private String memo;
-
-    @Schema(description = "추가한 사용자 ID", example = "1")
-    private Long adderId;
-
-    @Schema(description = "추가한 사용자 닉네임", example = "chapyo")
-    private String adderNickname;
-
-    @Schema(description = "결제자 ID", example = "1")
-    private Long payerId;
-
-    @Schema(description = "결제자 닉네임", example = "ssafy")
-    private String payerNickname;
 
     @Schema(description = "위도", example = "37.579617")
     private BigDecimal latitude;

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.chapyo.library.mapper.LibraryMapper">
+
+    <insert id="insertLibrary" useGeneratedKeys="true" keyProperty="libraryId">
+        INSERT INTO travel_library (user_id, title, description)
+        VALUES (#{userId}, #{title}, #{description})
+    </insert>
+
+    <insert id="insertLibraryItems">
+        INSERT INTO library_items (library_id, place_id, day_number, item_order, visit_time, cost, memo)
+        VALUES
+        <foreach collection="items" item="item" separator=",">
+            (#{item.libraryId}, #{item.placeId}, #{item.dayNumber}, #{item.itemOrder}, #{item.visitTime}, #{item.cost}, #{item.memo})
+        </foreach>
+    </insert>
+
+    <insert id="insertLibraryRoutes">
+        INSERT INTO library_routes (library_id, from_item_id, to_item_id, transport, move_time, cost)
+        VALUES
+        <foreach collection="routes" item="route" separator=",">
+            (#{route.libraryId}, #{route.fromItemId}, #{route.toItemId}, #{route.transport}, #{route.moveTime}, #{route.cost})
+        </foreach>
+    </insert>
+
+    <select id="findLibraries" resultType="LibraryResponse">
+        SELECT tl.library_id, tl.title, tl.description, u.nickname,
+               tl.view_count, tl.import_count, tl.created_at
+        FROM travel_library tl
+                 JOIN users u ON tl.user_id = u.user_id
+        ORDER BY tl.created_at DESC
+        LIMIT #{limitSize}
+            OFFSET #{offset}
+    </select>
+
+    <select id="findLibraryById" resultType="LibraryDetailResponse">
+        SELECT tl.library_id, tl.title, tl.description, tl.user_id, u.nickname,
+               tl.view_count, tl.import_count, tl.created_at
+        FROM travel_library tl
+                 JOIN users u ON tl.user_id = u.user_id
+        WHERE tl.library_id = #{libraryId}
+    </select>
+
+    <select id="findItemsByLibraryId" resultType="LibraryItemResponse">
+        SELECT li.item_id, li.place_id, p.title, p.addr1, p.first_image1 AS img,
+               li.day_number, li.item_order, li.visit_time, li.cost, li.memo,
+               p.latitude, p.longitude,
+               EXISTS (
+                   SELECT 1 FROM place_likes
+                   WHERE place_id = p.place_id AND user_id = #{userId}
+               ) AS liked
+        FROM library_items li
+                 JOIN places p ON li.place_id = p.place_id
+        WHERE li.library_id = #{libraryId}
+        ORDER BY li.day_number, li.item_order
+    </select>
+
+    <select id="findRoutesByLibraryId" resultType="LibraryRouteResponse">
+        SELECT from_item_id, to_item_id, transport, move_time, cost
+        FROM library_routes
+        WHERE library_id = #{libraryId}
+    </select>
+
+    <delete id="deleteLibrary">
+        DELETE FROM travel_library WHERE library_id = #{libraryId}
+    </delete>
+
+    <update id="incrementImportCount">
+        UPDATE travel_library SET import_count = import_count + 1 WHERE library_id = #{libraryId}
+    </update>
+
+    <update id="incrementViewCount">
+        UPDATE travel_library SET view_count = view_count + 1 WHERE library_id = #{libraryId}
+    </update>
+
+</mapper>

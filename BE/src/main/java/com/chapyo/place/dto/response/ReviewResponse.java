@@ -23,7 +23,7 @@ public class ReviewResponse {
     @Schema(description = "작성자 ID", example = "1")
     private Long userId;
 
-    @Schema(description = "작성자 닉네임", example = "번개최광")
+    @Schema(description = "작성자 닉네임", example = "chapyo")
     private String nickname;
 
     @Schema(description = "내용", example = "정말 좋았어요!")

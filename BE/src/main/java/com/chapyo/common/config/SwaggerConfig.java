@@ -77,4 +77,12 @@ public class SwaggerConfig {
 				.pathsToMatch("/api/v1/trips/**")
 				.build();
 	}
+
+	@Bean
+	GroupedOpenApi libraryOpenApi() {
+		return GroupedOpenApi.builder()
+				.group("Library 관련 API")
+				.pathsToMatch("/api/v1/library/**")
+				.build();
+	}
 }

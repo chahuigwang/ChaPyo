@@ -13,6 +13,7 @@ import CostRouletteModal from '@/components/common/CostRouletteModal.vue'
 const props = defineProps({
   item: { type: Object, default: null },
   editable: { type: Boolean, default: false }, // 타임라인 아이템이면 메모/비용 편집
+  reviewsWritable: { type: Boolean, default: true }, // false 면 리뷰 작성 UI 숨김
 })
 const emit = defineEmits(['close', 'save'])
 
@@ -309,7 +310,7 @@ watch(() => props.item, async (item) => {
 
           <!-- 리뷰 -->
           <div v-if="reviewPlaceId" class="pt-2 border-t border-slate-100 dark:border-slate-800">
-            <PlaceReviews :place-id="reviewPlaceId" @changed="onReviewsChanged" />
+            <PlaceReviews :place-id="reviewPlaceId" :can-write="reviewsWritable" @changed="onReviewsChanged" />
           </div>
         </div>
       </div>

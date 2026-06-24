@@ -23,6 +23,13 @@ export const ENDPOINTS = {
     member: (id, userId) => `/api/v1/trips/${id}/members/${userId}`,
     aiChat: (id) => `/api/v1/trips/${id}/ai/chat`,
   },
+  library: {
+    list: '/api/v1/library',
+    post: '/api/v1/library',
+    detail: (id) => `/api/v1/library/${id}`,
+    remove: (id) => `/api/v1/library/${id}`,
+    import: (id) => `/api/v1/library/${id}/import`,
+  },
   users: {
     me: '/api/v1/users/me',
     profile: '/api/v1/users/me/profile',

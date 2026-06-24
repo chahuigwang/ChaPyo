@@ -16,6 +16,11 @@ const router = createRouter({
       component: () => import('@/views/PlanDetail.vue'),
       meta: { requiresAuth: true },
     },
+    {
+      path: '/library/:id',
+      component: () => import('@/views/LibraryDetail.vue'),
+      meta: { requiresAuth: true },
+    },
   ],
 })
 

@@ -7,6 +7,7 @@ import { useToastStore } from '@/stores/toastStore'
 
 const props = defineProps({
   placeId: { type: [Number, String], default: null },
+  canWrite: { type: Boolean, default: true }, // false 면 작성/수정/삭제 UI 숨김(읽기 전용)
 })
 // 리뷰 목록이 바뀔 때마다 평균 평점/개수를 상위(상세 모달 → 카드)로 전파해 실시간 반영
 const emit = defineEmits(['changed'])
@@ -160,7 +161,7 @@ watch(() => props.placeId, () => { editingId.value = null; pendingDeleteId.value
     </div>
 
     <!-- 작성 폼 -->
-    <div class="rounded-xl bg-slate-50 dark:bg-slate-800/60 p-3 space-y-2">
+    <div v-if="canWrite" class="rounded-xl bg-slate-50 dark:bg-slate-800/60 p-3 space-y-2">
       <div class="flex items-center gap-0.5">
         <button
           v-for="n in 5" :key="n"
@@ -248,7 +249,7 @@ watch(() => props.placeId, () => { editingId.value = null; pendingDeleteId.value
             </div>
             <div class="flex items-center gap-1.5 shrink-0">
               <span class="text-[11px] text-slate-400">{{ formatDate(r.createdAt) }}</span>
-              <template v-if="isMine(r)">
+              <template v-if="isMine(r) && canWrite">
                 <button @click="startEdit(r)" class="p-1 rounded text-slate-400 hover:text-primary transition-colors" title="수정">
                   <Pencil :size="13" />
                 </button>

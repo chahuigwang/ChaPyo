@@ -1,18 +1,117 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, nextTick, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useRouter } from 'vue-router'
-import { Plus, LogOut, Pencil, Check, X, Loader2, KeyRound, Trash2 } from 'lucide-vue-next'
+import { useRouter, useRoute } from 'vue-router'
+import { Plus, LogOut, Pencil, Check, X, Loader2, KeyRound, Trash2, Library, MapPin, Search } from 'lucide-vue-next'
 import { useTripStore } from '@/stores/tripStore'
 import { useAuthStore } from '@/stores/authStore'
+import { useLibraryStore } from '@/stores/libraryStore'
 import { Button, Input } from '@/components/common'
 import TripCard from '@/components/tripList/TripCard.vue'
+import LibraryCard from '@/components/library/LibraryCard.vue'
+import PublishModal from '@/components/library/PublishModal.vue'
 
 const router = useRouter()
+const route = useRoute()
 const trip = useTripStore()
 const auth = useAuthStore()
+const library = useLibraryStore()
 const { trips } = storeToRefs(trip)
 const { user } = storeToRefs(auth)
+const {
+  items: libraryItems,
+  hasNext: libraryHasNext,
+  loading: libraryLoading,
+  loadingMore: libraryLoadingMore,
+  publishing: libraryPublishing,
+  importingId: libraryImportingId,
+} = storeToRefs(library)
+
+// ── 탭: 내 여행 / 라이브러리 (슬라이딩 언더라인) ───────────────
+const activeTab = ref('mine')
+const tabEls = ref({})
+const barStyle = ref({ left: '0px', width: '0px' })
+function setTabRef(el, id) { if (el) tabEls.value[id] = el }
+function updateBar() {
+  const el = tabEls.value[activeTab.value]
+  if (el) barStyle.value = { left: `${el.offsetLeft}px`, width: `${el.offsetWidth}px` }
+}
+function switchTab(tab) {
+  activeTab.value = tab
+  if (tab === 'library' && !libraryItems.value.length) library.fetchList()
+}
+watch(activeTab, () => nextTick(updateBar))
+onMounted(() => {
+  // 라이브러리 상세에서 돌아올 때 탭 복원 (/list?tab=library)
+  if (route.query.tab === 'library') {
+    activeTab.value = 'library'
+    if (!libraryItems.value.length) library.fetchList()
+  }
+  nextTick(updateBar)
+})
+
+// 내가 게시한 글인지(닉네임 기준 — FE에 userId가 없어 닉네임으로 판별)
+const myNickname = computed(() => user.value?.nickname ?? null)
+function isMineLibrary(lib) {
+  return !!myNickname.value && lib?.nickname === myNickname.value
+}
+
+// ── 라이브러리 필터(전체/내 게시물/다른 사람) + 검색 ──────────
+const LIB_FILTERS = [
+  { id: 'all', label: '전체' },
+  { id: 'mine', label: '내 게시물' },
+  { id: 'others', label: '다른 사람' },
+]
+const libFilter = ref('all')
+const librarySearch = ref('')
+const filteredLibrary = computed(() => {
+  const q = librarySearch.value.trim().toLowerCase()
+  return libraryItems.value.filter((lib) => {
+    if (libFilter.value === 'mine' && !isMineLibrary(lib)) return false
+    if (libFilter.value === 'others' && isMineLibrary(lib)) return false
+    if (q) {
+      const hay = `${lib.title ?? ''} ${lib.description ?? ''} ${lib.nickname ?? ''}`.toLowerCase()
+      if (!hay.includes(q)) return false
+    }
+    return true
+  })
+})
+
+// ── 게시 ──────────────────────────────────────────────────────
+const publishOpen = ref(false)
+const publishTrip = ref(null)
+function openPublish(t) {
+  publishTrip.value = t
+  publishOpen.value = true
+}
+async function submitPublish(payload) {
+  if (!publishTrip.value) return
+  const res = await library.publish({ planId: Number(publishTrip.value.id), ...payload })
+  if (res.ok) {
+    publishOpen.value = false
+    // 라이브러리 탭을 이미 봤다면 최신화
+    if (libraryItems.value.length || activeTab.value === 'library') library.fetchList()
+  }
+}
+
+// ── 상세: 모달 대신 전용 페이지로 이동 ────────────────────────
+function openLibraryDetail(id) {
+  router.push(`/library/${id}`)
+}
+
+// ── 불러오기 (목록 카드에서) ──────────────────────────────────
+async function importLibrary(id) {
+  const res = await library.importLibrary(id)
+  if (res.ok) {
+    await trip.fetchTrips()
+    activeTab.value = 'mine'
+  }
+}
+
+// ── 라이브러리 삭제 (목록 카드에서) ───────────────────────────
+async function deleteLibrary(lib) {
+  await library.remove(lib.libraryId)
+}
 
 const SORT_OPTIONS = [
   { id: 'updated', label: '최근 수정한 순' },
@@ -141,7 +240,12 @@ async function confirmDelete() {
       <!-- Header -->
       <div class="flex items-start justify-between mb-10 gap-6">
         <div>
-          <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100 tracking-tight mt-2">나의 여행 계획</h1>
+          <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100 tracking-tight mt-2">
+            {{ activeTab === 'mine' ? '나의 여행 계획' : '여행 라이브러리' }}
+          </h1>
+          <p class="text-[13px] text-slate-400 dark:text-slate-500 mt-1">
+            {{ activeTab === 'mine' ? '내 여행을 관리하고 라이브러리에 공유하세요.' : '다른 사람의 여행을 내 여행으로 가져오세요.' }}
+          </p>
         </div>
 
         <!-- User card -->
@@ -262,40 +366,147 @@ async function confirmDelete() {
         </div>
       </div>
 
-      <!-- Toolbar -->
-      <div class="flex items-center justify-between mb-5">
-        <Button @click="handleCreateTrip" :disabled="creating">
-          <Loader2 v-if="creating" :size="15" class="animate-spin" />
-          <Plus v-else :size="15" />
-          새 여행
-        </Button>
-        <div v-if="trips.length" class="inline-flex p-1 rounded-lg bg-slate-100 dark:bg-slate-800/60">
-          <button
-            v-for="opt in SORT_OPTIONS"
-            :key="opt.id"
-            class="px-3 py-1.5 text-[12px] font-medium rounded-md transition-all duration-200"
-            :class="sortKey === opt.id
-              ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-sm'
-              : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'"
-            @click="sortKey = opt.id"
-          >{{ opt.label }}</button>
-        </div>
-      </div>
-
-      <!-- Trip grid -->
-      <div v-if="trips.length" class="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <TripCard
-          v-for="t in sortedTrips"
-          :key="t.id"
-          :trip="t"
-          @open="handleOpen($event)"
-          @delete="trip.deleteTrip($event.id)"
+      <!-- Tabs (슬라이딩 언더라인) -->
+      <div class="relative flex items-center gap-1 mb-6 border-b border-slate-200 dark:border-slate-800">
+        <button
+          :ref="el => setTabRef(el, 'mine')"
+          @click="switchTab('mine')"
+          class="inline-flex items-center gap-1.5 px-4 py-2.5 text-[14px] font-semibold transition-colors"
+          :class="activeTab === 'mine'
+            ? 'text-primary'
+            : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'"
+        >
+          <MapPin :size="15" /> 내 여행
+        </button>
+        <button
+          :ref="el => setTabRef(el, 'library')"
+          @click="switchTab('library')"
+          class="inline-flex items-center gap-1.5 px-4 py-2.5 text-[14px] font-semibold transition-colors"
+          :class="activeTab === 'library'
+            ? 'text-primary'
+            : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'"
+        >
+          <Library :size="15" /> 라이브러리
+        </button>
+        <!-- 이동하는 밑줄 -->
+        <span
+          class="absolute bottom-0 h-0.5 bg-primary rounded-full transition-all duration-300 ease-out"
+          :style="barStyle"
         />
       </div>
-      <div v-else class="rounded-xl bg-white/40 dark:bg-slate-900/40 p-16 text-center text-sm text-slate-500 dark:text-slate-400 shadow-inner">
-        아직 여행 계획이 없습니다. "새 여행"을 눌러 시작해 보세요.
-      </div>
+
+      <!-- ── 내 여행 탭 ─────────────────────────────────────── -->
+      <template v-if="activeTab === 'mine'">
+        <!-- Toolbar -->
+        <div class="flex items-center justify-between mb-5">
+          <Button @click="handleCreateTrip" :disabled="creating">
+            <Loader2 v-if="creating" :size="15" class="animate-spin" />
+            <Plus v-else :size="15" />
+            새 여행
+          </Button>
+          <div v-if="trips.length" class="inline-flex p-1 rounded-lg bg-slate-100 dark:bg-slate-800/60">
+            <button
+              v-for="opt in SORT_OPTIONS"
+              :key="opt.id"
+              class="px-3 py-1.5 text-[12px] font-medium rounded-md transition-all duration-200"
+              :class="sortKey === opt.id
+                ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-sm'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'"
+              @click="sortKey = opt.id"
+            >{{ opt.label }}</button>
+          </div>
+        </div>
+
+        <!-- Trip grid -->
+        <div v-if="trips.length" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <TripCard
+            v-for="t in sortedTrips"
+            :key="t.id"
+            :trip="t"
+            @open="handleOpen($event)"
+            @delete="trip.deleteTrip($event.id)"
+            @publish="openPublish($event)"
+          />
+        </div>
+        <div v-else class="rounded-xl bg-white/40 dark:bg-slate-900/40 p-16 text-center text-sm text-slate-500 dark:text-slate-400 shadow-inner">
+          아직 여행 계획이 없습니다. "새 여행"을 눌러 시작해 보세요.
+        </div>
+      </template>
+
+      <!-- ── 라이브러리 탭 ──────────────────────────────────── -->
+      <template v-else>
+        <!-- 툴바: 검색 + 필터 토글 -->
+        <div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-5">
+          <div class="relative flex-1 max-w-sm">
+            <Search :size="15" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              v-model="librarySearch"
+              type="text"
+              placeholder="제목 · 설명 · 작성자 검색"
+              class="w-full h-10 pl-9 pr-3 rounded-xl bg-white dark:bg-slate-900 text-[13px] text-slate-900 dark:text-slate-100 shadow-sm outline-none focus:ring-2 focus:ring-primary/30 transition-all"
+            />
+          </div>
+          <div class="inline-flex p-1 rounded-lg bg-slate-100 dark:bg-slate-800/60 sm:ml-auto">
+            <button
+              v-for="opt in LIB_FILTERS"
+              :key="opt.id"
+              @click="libFilter = opt.id"
+              class="px-3 py-1.5 text-[12px] font-medium rounded-md transition-all duration-200"
+              :class="libFilter === opt.id
+                ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-sm'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'"
+            >{{ opt.label }}</button>
+          </div>
+        </div>
+
+        <!-- 로딩 -->
+        <div v-if="libraryLoading" class="flex items-center justify-center py-20 text-slate-400">
+          <Loader2 :size="24" class="animate-spin" />
+        </div>
+
+        <template v-else>
+          <div v-if="filteredLibrary.length" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <LibraryCard
+              v-for="lib in filteredLibrary"
+              :key="lib.libraryId"
+              :library="lib"
+              :mine="isMineLibrary(lib)"
+              :importing="libraryImportingId === lib.libraryId"
+              @open="openLibraryDetail($event)"
+              @import="importLibrary($event)"
+              @delete="deleteLibrary($event)"
+            />
+          </div>
+          <div v-else class="rounded-xl bg-white/40 dark:bg-slate-900/40 p-16 text-center text-sm text-slate-500 dark:text-slate-400 shadow-inner">
+            <template v-if="librarySearch.trim()">검색 결과가 없습니다.</template>
+            <template v-else-if="libFilter === 'mine'">아직 게시한 여행이 없습니다. 내 여행을 게시해 보세요.</template>
+            <template v-else-if="libFilter === 'others'">다른 사람이 공유한 여행이 없습니다.</template>
+            <template v-else>아직 공유된 여행이 없습니다. 내 여행을 게시해 보세요.</template>
+          </div>
+
+          <!-- 더 보기 (검색/필터 미적용 시에만) -->
+          <div v-if="libraryHasNext && !librarySearch.trim() && libFilter === 'all'" class="flex justify-center mt-6">
+            <button
+              @click="library.loadMore()"
+              :disabled="libraryLoadingMore"
+              class="inline-flex items-center gap-1.5 h-10 px-6 rounded-xl bg-white dark:bg-slate-900 text-[13px] font-semibold text-slate-600 dark:text-slate-300 shadow-sm hover:shadow-md hover:-translate-y-0.5 disabled:opacity-50 transition-all"
+            >
+              <Loader2 v-if="libraryLoadingMore" :size="14" class="animate-spin" />
+              더 보기
+            </button>
+          </div>
+        </template>
+      </template>
     </div>
+
+    <!-- 게시 모달 -->
+    <PublishModal
+      :open="publishOpen"
+      :trip="publishTrip"
+      :publishing="libraryPublishing"
+      @close="publishOpen = false"
+      @submit="submitPublish"
+    />
   </div>
 </template>
 

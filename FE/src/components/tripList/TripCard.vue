@@ -1,13 +1,13 @@
 <script setup>
 import { computed, onBeforeUnmount, ref, toRef, watch, useTemplateRef } from 'vue'
-import { Trash2, LogOut } from 'lucide-vue-next'
+import { Trash2, LogOut, Upload } from 'lucide-vue-next'
 import { enumerateDays } from '@/types/itinerary'
 import { useTripStatus } from '@/composables/useTripStatus'
 
 const props = defineProps({
   trip: { type: Object, required: true },
 })
-const emit = defineEmits(['open', 'delete'])
+const emit = defineEmits(['open', 'delete', 'publish'])
 
 const { status, daysUntilStart, currentDay } = useTripStatus(
   toRef(() => props.trip.startDate),
@@ -156,8 +156,16 @@ onBeforeUnmount(() => {
 
       <!-- Stub: right ~25% — Trash top-right, vertical stacked summaries -->
       <section class="col-span-3 p-5 pl-6 flex flex-col gap-4 relative">
-        <div v-if="trip.isOwner" class="absolute top-3 right-3" @click.stop>
+        <div class="absolute top-3 right-3 flex items-center gap-1.5" @click.stop>
           <button
+            title="라이브러리에 게시"
+            class="p-2.5 rounded-lg opacity-0 group-hover:opacity-100 text-primary bg-primary/10 hover:bg-primary/20 shadow-sm transition-all duration-200"
+            @click="emit('publish', trip)"
+          >
+            <Upload :size="17" class="shrink-0" />
+          </button>
+          <button
+            v-if="trip.isOwner"
             title="삭제"
             class="flex items-center gap-1 rounded-lg transition-all duration-200"
             :class="confirming

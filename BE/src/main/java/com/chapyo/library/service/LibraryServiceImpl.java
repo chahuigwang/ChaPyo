@@ -96,10 +96,18 @@ public class LibraryServiceImpl implements LibraryService {
     }
 
     @Override
-    public PageResponse<LibraryResponse> getLibraries(int page, int size) {
+    public PageResponse<LibraryResponse> getLibraries(Long userId, String keyword, int page, int size) {
         int limitSize = size + 1;
         int offset = page * size;
-        List<LibraryResponse> libraries = libraryMapper.findLibraries(limitSize, offset);
+        List<LibraryResponse> libraries = libraryMapper.findLibraries(userId, keyword, limitSize, offset);
+        return new PageResponse<>(libraries, size);
+    }
+
+    @Override
+    public PageResponse<LibraryResponse> getMyLibraries(Long userId, String keyword, int page, int size) {
+        int limitSize = size + 1;
+        int offset = page * size;
+        List<LibraryResponse> libraries = libraryMapper.findMyLibraries(userId, keyword, limitSize, offset);
         return new PageResponse<>(libraries, size);
     }
 

@@ -34,4 +34,7 @@ public class LibraryResponse {
 
     @Schema(description = "게시일", example = "2026-06-08T10:00:00")
     private LocalDateTime createdAt;
+
+    @Schema(description = "내가 게시한 항목 여부")
+    private boolean isOwner;
 }

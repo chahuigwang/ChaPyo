@@ -7,6 +7,7 @@ import com.chapyo.library.dto.response.LibraryResponse;
 import com.chapyo.library.service.LibraryService;
 import com.chapyo.place.dto.response.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -44,21 +45,24 @@ public class LibraryController {
     @Operation(summary = "라이브러리 목록 조회")
     @GetMapping
     public ResponseEntity<BaseResponse<PageResponse<LibraryResponse>>> getLibraries(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
+            @Parameter(description = "페이지 번호", example = "0") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "페이지 크기", example = "10") @RequestParam(defaultValue = "10") int size,
+            @Parameter(description = "검색어", example = "제주도") @RequestParam(required = false) String keyword,
             @AuthenticationPrincipal Long userId) {
 
-        PageResponse<LibraryResponse> response = libraryService.getLibraries(page, size);
+        PageResponse<LibraryResponse> response = libraryService.getLibraries(userId, keyword, page, size);
         return ResponseEntity.ok(BaseResponse.success(response));
     }
 
-    @Operation(summary = "라이브러리 상세 조회")
-    @GetMapping("/{libraryId}")
-    public ResponseEntity<BaseResponse<LibraryDetailResponse>> getLibraryDetail(
-            @PathVariable Long libraryId,
+    @Operation(summary = "내 라이브러리 목록 조회")
+    @GetMapping("/me")
+    public ResponseEntity<BaseResponse<PageResponse<LibraryResponse>>> getMyLibraries(
+            @Parameter(description = "페이지 번호", example = "0") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "페이지 크기", example = "10") @RequestParam(defaultValue = "10") int size,
+            @Parameter(description = "검색어", example = "제주도") @RequestParam(required = false) String keyword,
             @AuthenticationPrincipal Long userId) {
 
-        LibraryDetailResponse response = libraryService.getLibraryDetail(libraryId, userId);
+        PageResponse<LibraryResponse> response = libraryService.getMyLibraries(userId, keyword, page, size);
         return ResponseEntity.ok(BaseResponse.success(response));
     }
 

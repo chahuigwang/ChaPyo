@@ -17,7 +17,8 @@ public interface LibraryMapper {
     void insertLibrary(TravelLibrary library);
     void insertLibraryItems(@Param("items") List<LibraryItem> items);
     void insertLibraryRoutes(@Param("routes") List<LibraryRoute> routes);
-    List<LibraryResponse> findLibraries(@Param("limitSize") int limitSize, @Param("offset") int offset);
+    List<LibraryResponse> findLibraries(@Param("userId") Long userId, @Param("keyword") String keyword, @Param("limitSize") int limitSize, @Param("offset") int offset);
+    List<LibraryResponse> findMyLibraries(@Param("userId") Long userId, @Param("keyword") String keyword, @Param("limitSize") int limitSize, @Param("offset") int offset);
     LibraryDetailResponse findLibraryById(Long libraryId);
     List<LibraryItemResponse> findItemsByLibraryId(@Param("libraryId") Long libraryId, @Param("userId") Long userId);
     List<LibraryRouteResponse> findRoutesByLibraryId(Long libraryId);

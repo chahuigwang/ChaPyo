@@ -26,6 +26,9 @@ public class TripPlanResponse {
     @Schema(description = "종료일", example = "2026-06-10")
     private LocalDate endDate;
 
+    @Schema(description = "멤버 수", example = "3")
+    private int memberCount;
+
     @Schema(description = "일정 수", example = "3")
     private int itemCount;
 

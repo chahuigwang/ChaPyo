@@ -184,7 +184,10 @@ function addFeedbackBadge({ lat, lng }, emoji, kind) {
   feedbackOverlays.push(ov)
 }
 
-function buildPinEl(num, name, itemId, color) {
+// 핀 겹침 시 작은 번호가 위로 오도록 zIndex 를 번호 역순으로 부여
+const pinZIndex = (num) => 1000 - (Number(num) || 0)
+
+function buildPinEl(num, name, itemId, color, item) {
   const wrap = document.createElement('div')
   wrap.className = 'trip-map-pin'
   wrap.dataset.itemId = itemId
@@ -195,6 +198,11 @@ function buildPinEl(num, name, itemId, color) {
   `
   wrap.addEventListener('mouseenter', () => ui.setHoveredItem(itemId))
   wrap.addEventListener('mouseleave', () => ui.clearHoveredItem(itemId))
+  // 핀 클릭 → 해당 일정 상세(지도 우측 패널). 둘러보기 중에는 무시.
+  wrap.addEventListener('click', () => {
+    if (ui.tourMode || !item) return
+    ui.setFocusedPlace(item, { editable: true })
+  })
   return wrap
 }
 
@@ -279,10 +287,10 @@ function renderTour() {
     list.forEach(({ it, gi }) => {
       if (it.lat == null || it.lng == null) return
       const ping = isActiveDay && gi === activeIdx
-      const el = buildPinEl(gi + 1, it.name, it.id, color.pin)
+      const el = buildPinEl(gi + 1, it.name, it.id, color.pin, it)
       if (ping) el.classList.add('trip-map-pin--ping')
       el.style.opacity = !isActiveDay ? '0.3' : (gi < activeIdx ? '1' : (gi === activeIdx ? '1' : '0.45'))
-      const ov = new kakao.maps.CustomOverlay({ position: ll(it), content: el, yAnchor: 1, xAnchor: 0.5, zIndex: ping ? 8 : 3 })
+      const ov = new kakao.maps.CustomOverlay({ position: ll(it), content: el, yAnchor: 1, xAnchor: 0.5, zIndex: ping ? 2500 : pinZIndex(gi + 1) })
       ov.setMap(mapInstance); overlays.push({ itemId: it.id, overlay: ov, el })
     })
   })
@@ -352,9 +360,9 @@ function renderRoute() {
       const qColor = quality ? QUALITY_COLOR[quality.status] : null
 
       dItems.forEach((it, i) => {
-        const el = buildPinEl(it._globalNum, it.name, it.id, qColor || color.pin)
+        const el = buildPinEl(it._globalNum, it.name, it.id, qColor || color.pin, it)
         if (dim) el.style.opacity = '0.25'
-        const ov = new kakao.maps.CustomOverlay({ position: dPts[i], content: el, yAnchor: 1, xAnchor: 0.5, zIndex: isDrag ? 6 : 3 })
+        const ov = new kakao.maps.CustomOverlay({ position: dPts[i], content: el, yAnchor: 1, xAnchor: 0.5, zIndex: (isDrag ? 2000 : 0) + pinZIndex(it._globalNum) })
         ov.setMap(mapInstance)
         overlays.push({ itemId: it.id, overlay: ov, el })
       })
@@ -387,8 +395,8 @@ function renderRoute() {
   } else {
     const pinColor = dayColor.value.pin
     items.forEach((it, idx) => {
-      const el = buildPinEl(idx + 1, it.name, it.id, pinColor)
-      const overlay = new kakao.maps.CustomOverlay({ position: pts[idx], content: el, yAnchor: 1, xAnchor: 0.5, zIndex: 3 })
+      const el = buildPinEl(idx + 1, it.name, it.id, pinColor, it)
+      const overlay = new kakao.maps.CustomOverlay({ position: pts[idx], content: el, yAnchor: 1, xAnchor: 0.5, zIndex: pinZIndex(idx + 1) })
       overlay.setMap(mapInstance)
       overlays.push({ itemId: it.id, overlay, el })
     })
@@ -418,6 +426,7 @@ function renderRoute() {
     }
   }
   applyHoverHighlight(hoveredItemId.value)
+  applyFocus()
 }
 
 // ── 드래그 미리보기 핀(드롭 전, 손 떼기 전) ──────────────────
@@ -456,13 +465,70 @@ async function renderPreviewPin(p) {
   `
   previewOverlay = new kakao.maps.CustomOverlay({
     position: new kakao.maps.LatLng(lat, lng),
-    content: el, yAnchor: 1, xAnchor: 0.5, zIndex: 12,
+    content: el, yAnchor: 1, xAnchor: 0.5, zIndex: 3000,
   })
   previewOverlay.setMap(mapInstance)
   // 미리보기 위치가 현재 화면 밖이면 부드럽게 이동
   const bounds = mapInstance.getBounds()
   if (bounds && !bounds.contain(previewOverlay.getPosition())) {
     mapInstance.panTo(previewOverlay.getPosition())
+  }
+}
+
+// ── 포커스 핀(장소 카드 클릭) ───────────────────────────────
+let focusOverlay = null
+let focusToken = 0
+function clearFocusPin() {
+  focusToken++
+  if (focusOverlay) { try { focusOverlay.setMap(null) } catch {} focusOverlay = null }
+}
+// 지도에 없는 장소(검색·좋아요·AI)용 단독 핀 — 이모지 없이, 펄스만
+async function renderFocusPin(item) {
+  if (!mapInstance || !window.kakao?.maps || !item) { clearFocusPin(); return }
+  const token = ++focusToken
+  let lat = item.lat
+  let lng = item.lng
+  if ((lat == null || lng == null) && item.address) {
+    const c = await geocodeAddress(item.address)
+    if (token !== focusToken) return
+    if (c) { lat = c.lat; lng = c.lng }
+  }
+  if (lat == null || lng == null) { clearFocusPin(); return }
+  if (token !== focusToken) return
+  if (focusOverlay) { try { focusOverlay.setMap(null) } catch {} focusOverlay = null }
+  const kakao = window.kakao
+  const el = document.createElement('div')
+  el.className = 'trip-map-pin trip-map-pin--focus'
+  el.style.setProperty('--pin-color', '#00B7EB')
+  el.innerHTML = `
+    <div class="trip-map-pin__bubble" title="${item.name ?? ''}"></div>
+    <div class="trip-map-pin__tail"></div>
+  `
+  focusOverlay = new kakao.maps.CustomOverlay({
+    position: new kakao.maps.LatLng(lat, lng),
+    content: el, yAnchor: 1, xAnchor: 0.5, zIndex: 3100,
+  })
+  focusOverlay.setMap(mapInstance)
+  mapInstance.panTo(focusOverlay.getPosition())
+}
+
+// 포커스 적용: 이미 지도에 있는 일정이면 원래 숫자 마커를 키우고,
+// 없으면(검색 등) 단독 핀을 찍는다. 둘러보기 중엔 적용하지 않는다.
+function clearFocusHighlight() {
+  overlays.forEach(({ el }) => { if (el) el.classList.remove('trip-map-pin--focused') })
+}
+function applyFocus() {
+  clearFocusHighlight()
+  clearFocusPin()
+  const item = ui.focusedPlace?.item
+  if (!item || ui.tourMode || !mapInstance) return
+  const found = overlays.find((o) => o.itemId === item.id)
+  if (found) {
+    if (found.el) found.el.classList.add('trip-map-pin--focused')
+    try { found.overlay.setZIndex(3100) } catch {}
+    try { mapInstance.panTo(found.overlay.getPosition()) } catch {}
+  } else {
+    renderFocusPin(item)
   }
 }
 
@@ -504,6 +570,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   clearOverlays()
   clearPreviewPin()
+  clearFocusPin()
   mapInstance = null
   if (animFrame) cancelAnimationFrame(animFrame)
 })
@@ -526,6 +593,8 @@ watch(() => ui.dragPreview, (p) => {
   if (p) renderPreviewPin(p)
   else clearPreviewPin()
 }, { deep: true })
+// 포커스: 장소 카드/핀 클릭 시 — 기존 마커 확대 or 단독 핀
+watch(() => ui.focusedPlace?.item, () => applyFocus(), { deep: true })
 watch(hoveredTransitId, (id) => applyTransitHighlight(id))
 // 드래그 시작/종료 시 라이브 연출(색/디밍/오버레이) 갱신 — 좌표 동일해도 강제 재렌더
 watch(() => ui.draggingDayIso, () => {
@@ -641,23 +710,23 @@ defineExpose({ onRelayout })
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 .trip-map-pin__bubble {
-  min-width: 26px;
-  height: 26px;
-  padding: 0 8px;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 9px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 9999px;
   background: var(--pin-color);
   color: #fff;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
-  box-shadow: 0 4px 10px -2px color-mix(in srgb, var(--pin-color) 55%, transparent);
-  border: 2px solid #fff;
+  box-shadow: 0 4px 12px -2px color-mix(in srgb, var(--pin-color) 55%, transparent);
+  border: 2.5px solid #fff;
 }
 .trip-map-pin__tail {
-  width: 2px;
-  height: 8px;
+  width: 2.5px;
+  height: 10px;
   background: var(--pin-color);
   margin-top: -1px;
   border-radius: 1px;
@@ -691,6 +760,49 @@ defineExpose({ onRelayout })
 .trip-map-pin--preview .trip-map-pin__tail {
   height: 12px;
   width: 3px;
+}
+
+/* 지도에 없는 장소(검색 등) 단독 포커스 핀 — 이모지 없이 펄스만 */
+.trip-map-pin--focus {
+  transform: translateY(-6px) scale(1.25);
+  z-index: 13 !important;
+  animation: trip-pin-in .22s ease-out;
+}
+.trip-map-pin--focus .trip-map-pin__bubble {
+  min-width: 28px;
+  height: 28px;
+  position: relative;
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--pin-color) 35%, transparent),
+    0 8px 18px -2px color-mix(in srgb, var(--pin-color) 70%, transparent);
+}
+.trip-map-pin--focus .trip-map-pin__bubble::after {
+  content: '';
+  position: absolute;
+  inset: -7px;
+  border-radius: 9999px;
+  border: 2.5px solid var(--pin-color);
+  animation: trip-ping 1.2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* 이미 지도에 있는 일정 클릭 → 원래 숫자 마커 확대 + 펄스 */
+.trip-map-pin--focused {
+  transform: translateY(-6px) scale(1.35);
+  z-index: 20 !important;
+}
+.trip-map-pin--focused .trip-map-pin__bubble {
+  position: relative;
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--pin-color) 30%, transparent),
+    0 8px 18px -2px color-mix(in srgb, var(--pin-color) 70%, transparent);
+}
+.trip-map-pin--focused .trip-map-pin__bubble::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 9999px;
+  border: 2.5px solid var(--pin-color);
+  animation: trip-ping 1.3s cubic-bezier(0, 0, 0.2, 1) infinite;
 }
 
 .trip-map-pin--active {

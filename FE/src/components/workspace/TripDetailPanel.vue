@@ -1,13 +1,14 @@
 <script setup>
 import { computed, ref, watch, nextTick, onBeforeUnmount } from 'vue'
 import { storeToRefs } from 'pinia'
-import { ChevronDown, Eye, EyeOff, Play, Square, MapPin, CalendarDays, Wallet, Users } from 'lucide-vue-next'
+import { ChevronDown, Eye, EyeOff, Play, Square, CalendarDays, Wallet, Users } from 'lucide-vue-next'
 import TripMap from './TripMap.vue'
 import DayTimeline from './DayTimeline.vue'
+import PlaceFocusPanel from './PlaceFocusPanel.vue'
 import { useTripStore } from '@/stores/tripStore'
 import { useUiStore } from '@/stores/uiStore'
+import { useCollabStore } from '@/stores/collabStore'
 import { dayColorFor } from '@/composables/useDayColor'
-import { findCategory } from '@/types/itinerary'
 import { colorForUser } from '@/composables/useUserColor'
 
 // 둘러보기 자동 재생 간격(ms). 이 숫자만 바꾸면 즉시 반영됩니다.
@@ -15,7 +16,16 @@ const TOUR_INTERVAL_MS = 2000
 
 const trip = useTripStore()
 const ui = useUiStore()
-const { sidebarOpen, tourMode } = storeToRefs(ui)
+const collab = useCollabStore()
+const { sidebarOpen, tourMode, focusedPlace } = storeToRefs(ui)
+
+// 장소 카드 클릭 → 지도 좌측 패널
+function onFocusSave(patch) {
+  const it = focusedPlace.value?.item
+  if (!it) return
+  trip.updateItem(it.id, patch)
+  collab.pushHistory({ type: 'edit', itemName: it.name, byName: collab.me.name })
+}
 const { currentTrip, days, selectedDate } = storeToRefs(trip)
 
 const listScroll = ref(null)
@@ -92,9 +102,6 @@ function closeMembers() { membersOpen.value = false }
 const daysOpen = ref(false)
 function toggleDaysOpen(e) { e.stopPropagation(); daysOpen.value = !daysOpen.value; costOpen.value = false; membersOpen.value = false }
 function closeDays() { daysOpen.value = false }
-
-// 둘러보기 현재 아이템의 전체 순번
-const activeEntryIndex = computed(() => tourItems.value.findIndex((e) => e.item.id === ui.tourActiveId))
 
 const allDays = computed(() => {
   const t = currentTrip.value
@@ -173,8 +180,6 @@ const tourItems = computed(() => {
   return out
 })
 const tourEnabled = computed(() => tourItems.value.length >= 2)
-// 현재 active 아이템(오른쪽 정보 패널용)
-const activeEntry = computed(() => tourItems.value.find((e) => e.item.id === ui.tourActiveId) ?? null)
 
 let tourTimer = null
 function stopTourTimer() { if (tourTimer) { clearInterval(tourTimer); tourTimer = null } }
@@ -192,8 +197,8 @@ function advanceTour() {
 function enterTour() {
   if (!tourEnabled.value) return
   expanded.value = new Set((allDays.value || []).map((d) => d.iso))
-  ui.setTourActive(tourItems.value[0].item.id)
   ui.setTourMode(true)
+  ui.setTourActive(tourItems.value[0].item.id)
   nextTick(() => {
     listScroll.value?.scrollTo({ top: 0, behavior: 'auto' })
     mapRef.value?.onRelayout()
@@ -204,12 +209,20 @@ function enterTour() {
 function exitTour() {
   stopTourTimer()
   ui.setTourMode(false)
+  ui.clearFocusedPlace()
   nextTick(() => mapRef.value?.onRelayout())
 }
+
+// 둘러보기 진행 중: 현재 장소를 우측 상세 패널에 표시
+watch(() => ui.tourActiveId, (id) => {
+  if (!tourMode.value || !id) return
+  const entry = tourItems.value.find((e) => e.item.id === id)
+  if (entry) ui.setFocusedPlace(entry.item, { editable: true })
+})
 function toggleTour() {
   tourMode.value ? exitTour() : enterTour()
 }
-onBeforeUnmount(stopTourTimer)
+onBeforeUnmount(() => { stopTourTimer(); ui.clearFocusedPlace() })
 </script>
 
 <template>
@@ -286,6 +299,14 @@ onBeforeUnmount(stopTourTimer)
       <div class="flex-1 h-full overflow-hidden bg-slate-50 dark:bg-slate-950 p-4 transition-colors">
         <div class="relative h-full w-full">
           <TripMap ref="mapRef" class="h-full w-full rounded-2xl shadow-sm overflow-hidden" :show-all="true" />
+
+          <!-- 장소 카드/핀 클릭 또는 둘러보기 시 우측 상세 패널 -->
+          <PlaceFocusPanel
+            :item="focusedPlace?.item ?? null"
+            :editable="focusedPlace?.editable ?? false"
+            @close="ui.clearFocusedPlace()"
+            @save="onFocusSave"
+          />
 
           <!-- 지도 좌상단: 벤토 그리드 (날짜 · 인원 · 금액) -->
           <div v-if="currentTrip" class="absolute top-3 left-3 z-10 flex gap-2">
@@ -396,11 +417,11 @@ onBeforeUnmount(stopTourTimer)
             </div>
           </div>
 
-          <!-- 둘러보기 모드 토글 (지도 우상단) -->
+          <!-- 둘러보기 모드 토글 (지도 좌하단) -->
           <button
             @click="toggleTour"
             :disabled="!tourMode && !tourEnabled"
-            class="absolute top-3 right-3 z-10 inline-flex items-center gap-2 h-11 px-5 rounded-xl text-[14px] font-semibold shadow-md backdrop-blur-md transition-all hover:-translate-y-0.5 disabled:opacity-40 disabled:cursor-not-allowed"
+            class="absolute bottom-3 left-3 z-10 inline-flex items-center gap-2 h-11 px-5 rounded-xl text-[14px] font-semibold shadow-md backdrop-blur-md transition-all hover:-translate-y-0.5 disabled:opacity-40 disabled:cursor-not-allowed"
             :class="tourMode
               ? 'bg-red-500 text-white hover:bg-red-600'
               : 'bg-white/90 dark:bg-slate-900/90 text-primary hover:bg-white'"
@@ -409,60 +430,6 @@ onBeforeUnmount(stopTourTimer)
             <component :is="tourMode ? Square : Play" :size="17" :class="tourMode ? 'fill-white' : 'fill-primary'" />
             {{ tourMode ? '둘러보기 종료' : '둘러보기' }}
           </button>
-
-          <!-- 둘러보기 현재 장소 정보 패널 (지도 우하단) -->
-          <Transition name="tour-info">
-            <div
-              v-if="tourMode && activeEntry"
-              :key="activeEntry.item.id"
-              class="absolute bottom-4 right-4 z-10 w-[336px] max-w-[86%] rounded-2xl bg-white/95 dark:bg-slate-900/95 shadow-xl backdrop-blur-md overflow-hidden"
-            >
-              <!-- 진행 헤더: Day · 순번 · 전체 진행바 -->
-              <div class="px-4 py-2.5 flex items-center justify-between bg-slate-50/90 dark:bg-slate-800/80 border-b border-slate-100 dark:border-slate-700/60">
-                <div class="flex items-center gap-2">
-                  <span
-                    class="px-2 py-0.5 rounded-md text-[11px] font-bold border"
-                    :style="{ backgroundColor: activeEntry.color.bg, borderColor: activeEntry.color.pin, color: activeEntry.color.fg }"
-                  >Day {{ activeEntry.dayNum }}</span>
-                  <span class="text-[12px] font-semibold text-slate-600 dark:text-slate-300">
-                    {{ activeEntryIndex + 1 }}번째 일정
-                  </span>
-                </div>
-                <span class="text-[11px] text-slate-400 tabular-nums">{{ activeEntryIndex + 1 }} / {{ tourItems.length }}</span>
-              </div>
-              <!-- 진행 바 -->
-              <div class="h-1 bg-slate-100 dark:bg-slate-800">
-                <div
-                  class="h-full bg-primary transition-all duration-700 ease-out"
-                  :style="{ width: `${((activeEntryIndex + 1) / tourItems.length) * 100}%` }"
-                />
-              </div>
-              <!-- 이미지 -->
-              <div class="h-36 w-full bg-slate-100 dark:bg-slate-800">
-                <img
-                  v-if="activeEntry.item.firstImage"
-                  :src="activeEntry.item.firstImage"
-                  :alt="activeEntry.item.name"
-                  class="w-full h-full object-cover"
-                  draggable="false"
-                />
-                <div v-else class="w-full h-full flex items-center justify-center text-[12px] text-slate-400">이미지 없음</div>
-              </div>
-              <!-- 내용 -->
-              <div class="p-4">
-                <div class="flex items-center gap-1.5 mb-1.5">
-                  <span class="text-[13px] text-slate-400">{{ findCategory(activeEntry.item.category).emoji }} {{ findCategory(activeEntry.item.category).label }}</span>
-                </div>
-                <h3 class="text-[16px] font-bold text-slate-900 dark:text-slate-100 leading-snug">{{ activeEntry.item.name }}</h3>
-                <div v-if="activeEntry.item.address" class="mt-1.5 flex items-center gap-1 text-[12px] text-slate-400">
-                  <MapPin :size="12" class="shrink-0" />
-                  <span class="truncate">{{ activeEntry.item.address }}</span>
-                </div>
-                <p v-if="activeEntry.item.memo" class="mt-2 text-[12px] text-slate-600 dark:text-slate-300 line-clamp-2 leading-relaxed">{{ activeEntry.item.memo }}</p>
-                <div v-if="activeEntry.item.cost" class="mt-2 text-[13px] font-bold text-primary">{{ won(activeEntry.item.cost) }}</div>
-              </div>
-            </div>
-          </Transition>
         </div>
       </div>
     </div>
@@ -485,9 +452,4 @@ onBeforeUnmount(stopTourTimer)
   padding-bottom: 8px;
 }
 
-/* 둘러보기 정보 패널 전환 (장소 바뀔 때) */
-.tour-info-enter-active { transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.22,1,0.36,1); }
-.tour-info-leave-active { transition: opacity 0.2s ease, transform 0.2s ease; position: absolute; }
-.tour-info-enter-from { opacity: 0; transform: translateY(12px) scale(0.97); }
-.tour-info-leave-to { opacity: 0; transform: translateY(-8px) scale(0.98); }
 </style>

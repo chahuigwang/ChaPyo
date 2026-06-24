@@ -19,6 +19,7 @@ export class TripPlan {
     members = [],
     isOwner = false,
     itemCount = null,
+    memberCount = null,
     totalCost = null,
     version = 0,
     updatedAt,
@@ -35,6 +36,7 @@ export class TripPlan {
     this.members = [...members] // [{ userId, nickname }] — 서버 상세 조회로 채워짐
     this.isOwner = !!isOwner // 내가 만든 계획인지 (삭제 권한)
     this.itemCount = itemCount // 목록 응답 제공값 (상세 미로드 시 카드 표시용)
+    this.memberCount = memberCount // 목록 응답 제공값 (멤버 수)
     this.totalCost = totalCost // 목록 응답 제공값
     this.version = Number(version) || 0
     this.updatedAt = updatedAt ?? Date.now()
@@ -73,6 +75,7 @@ export class TripPlan {
       members: [...this.members],
       isOwner: this.isOwner,
       itemCount: this.itemCount,
+      memberCount: this.memberCount,
       totalCost: this.totalCost,
       version: this.version,
       updatedAt: this.updatedAt,

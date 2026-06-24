@@ -2,18 +2,16 @@
 import { ref, nextTick, watch, onUnmounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useChatStore } from '@/stores/chatStore'
-import { useTripStore } from '@/stores/tripStore'
+import { useUiStore } from '@/stores/uiStore'
 import MessageBubble from './MessageBubble.vue'
-import PlaceDetailModal from '@/components/common/PlaceDetailModal.vue'
 
 const AI_EMOJI = '🤖'
 
 const chat = useChatStore()
-const trip = useTripStore()
+const ui = useUiStore()
 const { messages, isTyping, typingStartedAt } = storeToRefs(chat)
 
 const scrollEl = ref(null)
-const detailItem = ref(null)
 const elapsed = ref(0)
 let elapsedTimer = null
 
@@ -35,22 +33,6 @@ const elapsedLabel = () => {
   return `${Math.floor(s / 60)}분 ${s % 60}초`
 }
 
-function addToItinerary(item) {
-  const date = trip.selectedDate ?? trip.days?.[0] ?? null
-  if (!date) return
-  trip.addItemToDate(date, {
-    placeId: item.placeId ?? Number(item.id),
-    name: item.name,
-    category: item.category,
-    memo: item.memo || '',
-    address: item.address || '',
-    cost: item.cost ?? 0,
-    lat: item.lat,
-    lng: item.lng,
-    firstImage: item.firstImage,
-  })
-}
-
 async function scrollToBottom() {
   await nextTick()
   if (scrollEl.value) scrollEl.value.scrollTop = scrollEl.value.scrollHeight
@@ -67,7 +49,7 @@ watch([messages, isTyping], scrollToBottom, { deep: true, immediate: true })
         :key="m.id"
         :message="m"
         :emoji="AI_EMOJI"
-        @detail="detailItem = $event"
+        @detail="ui.setFocusedPlace($event, { editable: false })"
       />
 
       <!-- 대기 버블: 경과 시간 + 취소 버튼 -->
@@ -95,12 +77,5 @@ watch([messages, isTyping], scrollToBottom, { deep: true, immediate: true })
         </div>
       </div>
     </div>
-
-    <PlaceDetailModal
-      :item="detailItem"
-      :show-add="true"
-      @close="detailItem = null"
-      @add="addToItinerary($event); detailItem = null"
-    />
   </div>
 </template>

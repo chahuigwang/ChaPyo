@@ -35,6 +35,11 @@ const totalCost = computed(() => {
 const dayCount = computed(() =>
   enumerateDays(props.trip.startDate, props.trip.endDate).length,
 )
+// 멤버 수: 상세 로드 시 members 배열, 목록만 받은 경우 응답의 memberCount
+const memberCount = computed(() => {
+  const loaded = props.trip.members?.length ?? 0
+  return loaded > 0 ? loaded : (props.trip.memberCount ?? 0)
+})
 const costLabel = computed(() => totalCost.value.toLocaleString('ko-KR'))
 
 const confirming = ref(false)
@@ -171,6 +176,10 @@ onBeforeUnmount(() => {
         <div class="flex flex-col">
           <span class="text-[11px] text-slate-400 dark:text-slate-500">일정</span>
           <span class="text-base font-semibold text-slate-900 dark:text-slate-100">{{ itemCount }}건</span>
+        </div>
+        <div class="flex flex-col">
+          <span class="text-[11px] text-slate-400 dark:text-slate-500">인원</span>
+          <span class="text-base font-semibold text-slate-900 dark:text-slate-100">{{ memberCount }}명</span>
         </div>
       </section>
     </div>

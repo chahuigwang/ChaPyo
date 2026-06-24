@@ -3,14 +3,13 @@ import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { storeToRefs } from 'pinia'
 import { Search, X, Loader2, RotateCcw, ChevronDown } from 'lucide-vue-next'
 import { useSearchStore, PROVINCES, PLACE_TYPE_GROUPS } from '@/stores/searchStore'
-import { useTripStore } from '@/stores/tripStore'
+import { useUiStore } from '@/stores/uiStore'
 import draggable from 'vuedraggable'
 import DiscoverPlaceCard from '@/components/common/DiscoverPlaceCard.vue'
-import PlaceDetailModal from '@/components/common/PlaceDetailModal.vue'
 import { useDragPreview } from '@/composables/useDragPreview'
 
 const search = useSearchStore()
-const trip = useTripStore()
+const ui = useUiStore()
 const { onMove, onDragPreviewEnd } = useDragPreview()
 
 // 플라이아웃 → 타임라인 clone 시 원본 참조 공유 방지 (얕은 복사본을 일정으로 삽입)
@@ -73,28 +72,10 @@ onUnmounted(() => {
 
 
 
-function addToItinerary(item) {
-  const date = trip.selectedDate ?? trip.days?.[0] ?? null
-  if (!date) return
-  trip.addItemToDate(date, {
-    placeId: Number(item.id),
-    name: item.name,
-    category: item.category,
-    memo: item.memo || '',
-    address: item.address || '',
-    cost: item.cost ?? 0,
-    lat: item.lat,
-    lng: item.lng,
-    firstImage: item.firstImage,
-  })
-}
 function clearAll() {
   currentPage.value = 0
   search.resetFilters()
 }
-
-// 클릭한 항목 — PlaceDetailModal 이 placeId로 상세를 조회/표시한다
-const detailItem = ref(null)
 
 // ── Province custom dropdown ─────────────────────────────────
 const provinceOpen = ref(false)
@@ -319,7 +300,7 @@ function onDistrictOutside(e) {
             <DiscoverPlaceCard
               :item="item"
               :draggable="true"
-              @detail="detailItem = $event"
+              @detail="ui.setFocusedPlace($event, { editable: false })"
             />
           </template>
         </draggable>
@@ -349,14 +330,7 @@ function onDistrictOutside(e) {
           키워드와 필터로 장소를 찾아보세요.
         </div>
       </template>
-    </div>     
-    <!-- 상세정보 모달 (검색 카드 클릭) -->
-    <PlaceDetailModal
-      :item="detailItem"
-      :show-add="true"
-      @close="detailItem = null"
-      @add="addToItinerary($event); detailItem = null"
-    />
+    </div>
   </div>
 </template>
 

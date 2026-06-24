@@ -10,7 +10,6 @@ import { useUiStore } from '@/stores/uiStore'
 import { useTimelineLogic } from '@/composables/useTimelineLogic'
 import { dayColorFor } from '@/composables/useDayColor'
 import { useDragPreview } from '@/composables/useDragPreview'
-import PlaceDetailModal from '@/components/common/PlaceDetailModal.vue'
 
 // 전체 일정 아코디언 안에서 특정 날짜의 상세 타임라인을 인라인으로 렌더한다.
 // 드래그는 vuedraggable(SortableJS) 공유 그룹 'itinerary' 로 통일:
@@ -90,16 +89,14 @@ watch(hoveredItemId, (id) => {
 })
 
 // ── CRUD ────────────────────────────────────────────────────
-const detail = ref(null)
 const pendingDelete = ref(null)
 
 function onItemSave(item, patch) {
   trip.updateItem(item.id, patch)
   collab.pushHistory({ type: 'edit', itemName: item.name, byName: collab.me.name })
 }
-function onDetailSave(patch) {
-  if (detail.value) trip.updateItem(detail.value.id, patch)
-}
+// 카드 클릭 → 지도 좌측 상세 패널(편집 가능)
+function openFocus(item) { ui.setFocusedPlace(item, { editable: true }) }
 function onDocClick() { if (pendingDelete.value) pendingDelete.value = null }
 watch(pendingDelete, (id) => {
   if (id) document.addEventListener('click', onDocClick)
@@ -112,7 +109,7 @@ function confirmDelete(item) {
   trip.removeItemFromDate(props.date, item.id)
   collab.pushHistory({ type: 'remove', itemName: item.name, byName: collab.me.name })
   pendingDelete.value = null
-  if (detail.value?.id === item.id) detail.value = null
+  if (ui.focusedPlace?.item?.id === item.id) ui.clearFocusedPlace()
 }
 
 function setCardRef(el, id) {
@@ -168,7 +165,7 @@ watch(() => ui.tourActiveId, (id) => {
               :color="dayColor.pin"
               :hovered="hoveredItemId === item.id"
               :pending-delete="pendingDelete"
-              @click="detail = item"
+              @click="openFocus(item)"
               @mouseenter="ui.setHoveredItem(item.id)"
               @mouseleave="ui.clearHoveredItem(item.id)"
               @save="onItemSave(item, $event)"
@@ -204,15 +201,6 @@ watch(() => ui.tourActiveId, (id) => {
         <p class="text-[11px] text-slate-400 dark:text-slate-500">검색 · 좋아요 · AI 추천 카드를 끌어다 놓으면 추가돼요</p>
       </div>
     </div>
-
-    <!-- 상세보기 모달 -->
-    <PlaceDetailModal
-      :item="detail"
-      :show-add="false"
-      :editable="true"
-      @close="detail = null"
-      @save="onDetailSave"
-    />
   </div>
 </template>
 

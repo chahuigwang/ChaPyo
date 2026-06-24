@@ -13,6 +13,7 @@ export const useUiStore = defineStore('ui', {
     routeHiddenDays: {}, // iso → true 이면 해당 날짜의 지도 경로(폴리라인) 숨김
     draggingDayIso: null, // 일정 카드 드래그 중인 날짜 ISO (지도 라이브 연출 대상)
     dragPreview: null, // 드래그 중(드롭 전) 미리보기 핀 { id, name, lat, lng, dayIso }
+    focusedPlace: null, // 장소 카드 클릭 → 지도 좌측 패널 + 지도 핀 { item, editable }
     tourMode: false, // 둘러보기(스크롤 매직) 모드
     tourActiveId: null, // 둘러보기에서 현재 화면 중앙에 걸린 장소 id
   }),
@@ -41,6 +42,11 @@ export const useUiStore = defineStore('ui', {
       }
     },
     clearDragPreview() { this.dragPreview = null },
+    setFocusedPlace(item, { editable = false } = {}) {
+      if (!item) { this.focusedPlace = null; return }
+      this.focusedPlace = { item, editable: !!editable }
+    },
+    clearFocusedPlace() { this.focusedPlace = null },
     setTourMode(on) {
       this.tourMode = !!on
       if (!on) this.tourActiveId = null

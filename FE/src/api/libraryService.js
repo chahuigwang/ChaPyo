@@ -7,9 +7,23 @@ function unwrap(res) {
 }
 
 export const libraryService = {
-  // GET /api/v1/library?page&size → PageResponse<LibraryResponse> { content, hasNext }
-  async list(page = 0, size = 10) {
-    const res = await http.get(ENDPOINTS.library.list, { page, size })
+  // GET /api/v1/library?page&size&keyword → PageResponse<LibraryResponse> { content, hasNext }
+  async list(page = 0, size = 10, keyword = '') {
+    const params = { page, size }
+    if (keyword) params.keyword = keyword
+    const res = await http.get(ENDPOINTS.library.list, params)
+    const data = unwrap(res) ?? {}
+    return {
+      items: data.content ?? [],
+      hasNext: !!data.hasNext,
+    }
+  },
+
+  // GET /api/v1/library/me?page&size&keyword → 내가 게시한 목록
+  async listMine(page = 0, size = 10, keyword = '') {
+    const params = { page, size }
+    if (keyword) params.keyword = keyword
+    const res = await http.get(ENDPOINTS.library.listMine, params)
     const data = unwrap(res) ?? {}
     return {
       items: data.content ?? [],

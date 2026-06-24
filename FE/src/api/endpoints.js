@@ -25,6 +25,7 @@ export const ENDPOINTS = {
   },
   library: {
     list: '/api/v1/library',
+    listMine: '/api/v1/library/me',
     post: '/api/v1/library',
     detail: (id) => `/api/v1/library/${id}`,
     remove: (id) => `/api/v1/library/${id}`,

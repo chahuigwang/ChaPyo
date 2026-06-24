@@ -56,7 +56,7 @@ onBeforeUnmount(() => { clearRevert(); document.removeEventListener('click', onD
       <!-- 작성자 chip -->
       <div class="flex items-center gap-2">
         <span
-          class="h-6 w-6 rounded-full flex items-center justify-center text-[11px] font-bold text-white shrink-0"
+          class="h-6 w-6 rounded-full inline-flex items-center justify-center text-[11px] font-bold leading-none text-white shrink-0 self-center"
           :style="{ backgroundColor: authorColor }"
         >{{ (library.nickname || '?')[0] }}</span>
         <span class="text-[12px] font-medium text-slate-600 dark:text-slate-300 truncate">{{ library.nickname }}</span>

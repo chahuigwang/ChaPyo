@@ -23,6 +23,10 @@ const {
   hasNext: libraryHasNext,
   loading: libraryLoading,
   loadingMore: libraryLoadingMore,
+  mineItems: libraryMineItems,
+  mineHasNext: libraryMineHasNext,
+  mineLoading: libraryMineLoading,
+  mineLoadingMore: libraryMineLoadingMore,
   publishing: libraryPublishing,
   importingId: libraryImportingId,
 } = storeToRefs(library)
@@ -38,17 +42,22 @@ function updateBar() {
 }
 function switchTab(tab) {
   activeTab.value = tab
-  if (tab === 'library' && !libraryItems.value.length) library.fetchList()
+  if (tab === 'library') fetchLibraryByFilter(libFilter.value)
 }
 watch(activeTab, () => nextTick(updateBar))
 onMounted(() => {
   // 라이브러리 상세에서 돌아올 때 탭 복원 (/list?tab=library)
   if (route.query.tab === 'library') {
     activeTab.value = 'library'
-    if (!libraryItems.value.length) library.fetchList()
+    fetchLibraryByFilter(libFilter.value)
   }
   nextTick(updateBar)
 })
+
+function fetchLibraryByFilter(filter) {
+  if (filter === 'others' && !libraryItems.value.length) library.fetchList('')
+  if (filter === 'mine' && !libraryMineItems.value.length) library.fetchMineList('')
+}
 
 // 내가 게시한 글인지(닉네임 기준 — FE에 userId가 없어 닉네임으로 판별)
 const myNickname = computed(() => user.value?.nickname ?? null)
@@ -56,26 +65,38 @@ function isMineLibrary(lib) {
   return !!myNickname.value && lib?.nickname === myNickname.value
 }
 
-// ── 라이브러리 필터(전체/내 게시물/다른 사람) + 검색 ──────────
+// ── 라이브러리 필터(내 게시물/다른 사람) + 검색 ──────────────
 const LIB_FILTERS = [
-  { id: 'all', label: '전체' },
-  { id: 'mine', label: '내 게시물' },
   { id: 'others', label: '다른 사람' },
+  { id: 'mine', label: '내 게시물' },
 ]
-const libFilter = ref('all')
+const libFilter = ref('others')
 const librarySearch = ref('')
-const filteredLibrary = computed(() => {
-  const q = librarySearch.value.trim().toLowerCase()
-  return libraryItems.value.filter((lib) => {
-    if (libFilter.value === 'mine' && !isMineLibrary(lib)) return false
-    if (libFilter.value === 'others' && isMineLibrary(lib)) return false
-    if (q) {
-      const hay = `${lib.title ?? ''} ${lib.description ?? ''} ${lib.nickname ?? ''}`.toLowerCase()
-      if (!hay.includes(q)) return false
-    }
-    return true
-  })
-})
+
+watch(libFilter, (filter) => {
+  librarySearch.value = ''
+  if (filter === 'others') library.fetchList('')
+  else library.fetchMineList('')
+}, { immediate: false })
+
+const activeLibraryItems = computed(() =>
+  libFilter.value === 'mine' ? libraryMineItems.value : libraryItems.value,
+)
+const activeLibraryLoading = computed(() =>
+  libFilter.value === 'mine' ? libraryMineLoading.value : libraryLoading.value,
+)
+const activeLibraryLoadingMore = computed(() =>
+  libFilter.value === 'mine' ? libraryMineLoadingMore.value : libraryLoadingMore.value,
+)
+const activeLibraryHasNext = computed(() =>
+  libFilter.value === 'mine' ? libraryMineHasNext.value : libraryHasNext.value,
+)
+
+function handleSearch() {
+  const kw = librarySearch.value.trim()
+  if (libFilter.value === 'mine') library.fetchMineList(kw)
+  else library.fetchList(kw)
+}
 
 // ── 게시 ──────────────────────────────────────────────────────
 const publishOpen = ref(false)
@@ -91,6 +112,7 @@ async function submitPublish(payload) {
     publishOpen.value = false
     // 라이브러리 탭을 이미 봤다면 최신화
     if (libraryItems.value.length || activeTab.value === 'library') library.fetchList()
+    if (libraryMineItems.value.length) library.fetchMineList()
   }
 }
 
@@ -437,14 +459,22 @@ async function confirmDelete() {
       <template v-else>
         <!-- 툴바: 검색 + 필터 토글 -->
         <div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-5">
-          <div class="relative flex-1 max-w-sm">
-            <Search :size="15" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              v-model="librarySearch"
-              type="text"
-              placeholder="제목 · 설명 · 작성자 검색"
-              class="w-full h-10 pl-9 pr-3 rounded-xl bg-white dark:bg-slate-900 text-[13px] text-slate-900 dark:text-slate-100 shadow-sm outline-none focus:ring-2 focus:ring-primary/30 transition-all"
-            />
+          <div class="flex items-center gap-2 flex-1 max-w-sm">
+            <div class="relative flex-1">
+              <Search :size="15" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                v-model="librarySearch"
+                type="text"
+                placeholder="제목 · 설명 · 작성자 검색"
+                class="w-full h-10 pl-9 pr-3 rounded-xl bg-white dark:bg-slate-900 text-[13px] text-slate-900 dark:text-slate-100 shadow-sm outline-none focus:ring-2 focus:ring-primary/30 transition-all"
+                @keydown.enter="handleSearch"
+              />
+            </div>
+            <button
+              @click="handleSearch"
+              :disabled="activeLibraryLoading"
+              class="shrink-0 h-10 px-4 rounded-xl bg-primary text-white text-[13px] font-semibold hover:bg-primary/90 disabled:opacity-50 transition-all hover:-translate-y-0.5 shadow-sm"
+            >검색</button>
           </div>
           <div class="inline-flex p-1 rounded-lg bg-slate-100 dark:bg-slate-800/60 sm:ml-auto">
             <button
@@ -460,14 +490,14 @@ async function confirmDelete() {
         </div>
 
         <!-- 로딩 -->
-        <div v-if="libraryLoading" class="flex items-center justify-center py-20 text-slate-400">
+        <div v-if="activeLibraryLoading" class="flex items-center justify-center py-20 text-slate-400">
           <Loader2 :size="24" class="animate-spin" />
         </div>
 
         <template v-else>
-          <div v-if="filteredLibrary.length" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div v-if="activeLibraryItems.length" class="grid grid-cols-1 md:grid-cols-2 gap-5">
             <LibraryCard
-              v-for="lib in filteredLibrary"
+              v-for="lib in activeLibraryItems"
               :key="lib.libraryId"
               :library="lib"
               :mine="isMineLibrary(lib)"
@@ -480,18 +510,17 @@ async function confirmDelete() {
           <div v-else class="rounded-xl bg-white/40 dark:bg-slate-900/40 p-16 text-center text-sm text-slate-500 dark:text-slate-400 shadow-inner">
             <template v-if="librarySearch.trim()">검색 결과가 없습니다.</template>
             <template v-else-if="libFilter === 'mine'">아직 게시한 여행이 없습니다. 내 여행을 게시해 보세요.</template>
-            <template v-else-if="libFilter === 'others'">다른 사람이 공유한 여행이 없습니다.</template>
-            <template v-else>아직 공유된 여행이 없습니다. 내 여행을 게시해 보세요.</template>
+            <template v-else>다른 사람이 공유한 여행이 없습니다.</template>
           </div>
 
-          <!-- 더 보기 (검색/필터 미적용 시에만) -->
-          <div v-if="libraryHasNext && !librarySearch.trim() && libFilter === 'all'" class="flex justify-center mt-6">
+          <!-- 더 보기 (검색 미적용 시에만) -->
+          <div v-if="activeLibraryHasNext && !librarySearch.trim()" class="flex justify-center mt-6">
             <button
-              @click="library.loadMore()"
-              :disabled="libraryLoadingMore"
+              @click="libFilter === 'mine' ? library.loadMoreMine() : library.loadMore()"
+              :disabled="activeLibraryLoadingMore"
               class="inline-flex items-center gap-1.5 h-10 px-6 rounded-xl bg-white dark:bg-slate-900 text-[13px] font-semibold text-slate-600 dark:text-slate-300 shadow-sm hover:shadow-md hover:-translate-y-0.5 disabled:opacity-50 transition-all"
             >
-              <Loader2 v-if="libraryLoadingMore" :size="14" class="animate-spin" />
+              <Loader2 v-if="activeLibraryLoadingMore" :size="14" class="animate-spin" />
               더 보기
             </button>
           </div>

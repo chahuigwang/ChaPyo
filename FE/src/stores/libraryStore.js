@@ -6,11 +6,20 @@ const PAGE_SIZE = 10
 
 export const useLibraryStore = defineStore('library', {
   state: () => ({
+    // 다른 사람 게시물 (/api/v1/library)
     items: [],
     page: 0,
     hasNext: false,
     loading: false,
     loadingMore: false,
+    keyword: '',
+    // 내 게시물 (/api/v1/library/me)
+    mineItems: [],
+    minePage: 0,
+    mineHasNext: false,
+    mineLoading: false,
+    mineLoadingMore: false,
+    mineKeyword: '',
     publishing: false,
     importingId: null,
     // 상세
@@ -18,11 +27,12 @@ export const useLibraryStore = defineStore('library', {
     detailLoading: false,
   }),
   actions: {
-    // 목록 첫 페이지 조회
-    async fetchList() {
+    // 목록 첫 페이지 조회 (keyword로 서버 검색)
+    async fetchList(keyword = '') {
       this.loading = true
+      this.keyword = keyword
       try {
-        const { items, hasNext } = await libraryService.list(0, PAGE_SIZE)
+        const { items, hasNext } = await libraryService.list(0, PAGE_SIZE, keyword)
         this.items = items
         this.page = 0
         this.hasNext = hasNext
@@ -33,13 +43,13 @@ export const useLibraryStore = defineStore('library', {
       }
     },
 
-    // 다음 페이지 누적
+    // 다음 페이지 누적 (다른 사람) — 현재 keyword 유지
     async loadMore() {
       if (!this.hasNext || this.loadingMore || this.loading) return
       this.loadingMore = true
       try {
         const next = this.page + 1
-        const { items, hasNext } = await libraryService.list(next, PAGE_SIZE)
+        const { items, hasNext } = await libraryService.list(next, PAGE_SIZE, this.keyword)
         this.items = [...this.items, ...items]
         this.page = next
         this.hasNext = hasNext
@@ -47,6 +57,39 @@ export const useLibraryStore = defineStore('library', {
         useToastStore().error('더 불러오지 못했습니다.')
       } finally {
         this.loadingMore = false
+      }
+    },
+
+    // 내 게시물 첫 페이지 (keyword로 서버 검색)
+    async fetchMineList(keyword = '') {
+      this.mineLoading = true
+      this.mineKeyword = keyword
+      try {
+        const { items, hasNext } = await libraryService.listMine(0, PAGE_SIZE, keyword)
+        this.mineItems = items
+        this.minePage = 0
+        this.mineHasNext = hasNext
+      } catch (err) {
+        useToastStore().error('내 게시물을 불러오지 못했습니다.')
+      } finally {
+        this.mineLoading = false
+      }
+    },
+
+    // 내 게시물 다음 페이지 — 현재 keyword 유지
+    async loadMoreMine() {
+      if (!this.mineHasNext || this.mineLoadingMore || this.mineLoading) return
+      this.mineLoadingMore = true
+      try {
+        const next = this.minePage + 1
+        const { items, hasNext } = await libraryService.listMine(next, PAGE_SIZE, this.mineKeyword)
+        this.mineItems = [...this.mineItems, ...items]
+        this.minePage = next
+        this.mineHasNext = hasNext
+      } catch (err) {
+        useToastStore().error('더 불러오지 못했습니다.')
+      } finally {
+        this.mineLoadingMore = false
       }
     },
 

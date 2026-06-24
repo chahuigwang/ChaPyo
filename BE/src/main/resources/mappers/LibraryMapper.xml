@@ -10,7 +10,7 @@
         VALUES (#{userId}, #{title}, #{description})
     </insert>
 
-    <insert id="insertLibraryItems">
+    <insert id="insertLibraryItems" useGeneratedKeys="true" keyProperty="itemId">
         INSERT INTO library_items (library_id, place_id, day_number, item_order, visit_time, cost, memo)
         VALUES
         <foreach collection="items" item="item" separator=",">

@@ -17,6 +17,7 @@ import com.chapyo.trip.entity.TripPlan;
 import com.chapyo.trip.entity.TripPlanItem;
 import com.chapyo.trip.mapper.TripMapper;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,10 +44,8 @@ public class LibraryServiceImpl implements LibraryService {
         List<TripPlanItem> currentItems = tripMapper.findItemsByPlanIdSimple(request.getPlanId());
 
         // 일수 계산
-        int dayCount = currentItems.stream()
-                .mapToInt(TripPlanItem::getDayNumber)
-                .max()
-                .orElse(0);
+        TripPlan plan = tripMapper.findPlanById(request.getPlanId());
+        int dayCount = (int) ChronoUnit.DAYS.between(plan.getStartDate(), plan.getEndDate()) + 1;
 
         // 총 비용 계산
         int cost = currentItems.stream()

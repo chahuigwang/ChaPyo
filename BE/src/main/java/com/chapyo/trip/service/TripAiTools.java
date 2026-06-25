@@ -1,6 +1,6 @@
 package com.chapyo.trip.service;
 
-import com.chapyo.place.dto.AiSelectionResult;
+import com.chapyo.trip.dto.AiSelectionResult;
 import com.chapyo.place.dto.response.PlaceResponse;
 import com.chapyo.place.repository.PlaceMapper;
 import com.chapyo.trip.dto.request.TripItemOrderRequest;

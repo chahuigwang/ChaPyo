@@ -131,12 +131,19 @@ export function typeToCategory(categoryCode) {
   return t?.category ?? 'place'
 }
 
+export const SORT_OPTIONS = [
+  { value: 'LIKES', label: '좋아요순' },
+  { value: 'RATING', label: '평점순' },
+  { value: 'REVIEWS', label: '리뷰순' },
+]
+
 export const useSearchStore = defineStore('search', {
   state: () => ({
     keyword: '',
     provinceId: '',
     districtId: '',
     typeId: '',       // category2 코드 (e.g. 'AC01'). 부모 코드(e.g. 'AC') 선택 시 category1로 전송.
+    sortBy: 'LIKES',
     results: [],
     hasNext: false,
     loading: false,
@@ -157,11 +164,13 @@ export const useSearchStore = defineStore('search', {
     setDistrict(id) { this.districtId = id },
     setType(id) { this.typeId = id },
     setKeyword(v) { this.keyword = v },
+    setSortBy(v) { this.sortBy = v },
     resetFilters() {
       this.keyword = ''
       this.provinceId = ''
       this.districtId = ''
       this.typeId = ''
+      this.sortBy = 'LIKES'
     },
 
     async search(page = 0) {
@@ -180,6 +189,7 @@ export const useSearchStore = defineStore('search', {
           districtCode: this.districtId || undefined,
           category1: category1 || undefined,
           category2: category2 || undefined,
+          sort: this.sortBy,
           page,
           size: 10,
         })

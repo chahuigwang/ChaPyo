@@ -100,7 +100,7 @@ onBeforeUnmount(() => {
            shadow-md border border-slate-200/80 dark:border-slate-700/60
            transition-all duration-300 ease-out flex flex-col overflow-hidden"
     :class="[
-      isPast ? 'opacity-60 grayscale' : 'hover:shadow-xl hover:-translate-y-1.5 hover:border-slate-300 dark:hover:border-slate-600',
+      isPast ? 'opacity-60' : 'hover:shadow-xl hover:-translate-y-1.5 hover:border-slate-300 dark:hover:border-slate-600',
       isOngoing ? 'trip-ticket--ongoing' : '',
     ]"
     @click="onCardClick"
@@ -108,7 +108,7 @@ onBeforeUnmount(() => {
     <!-- Top row: left main + right stub -->
     <div class="grid grid-cols-12">
       <!-- Main info: left ~75% -->
-      <section class="col-span-9 p-6 pr-7 min-w-0 flex flex-col overflow-hidden">
+      <section class="col-span-9 p-6 pr-7 min-w-0 flex flex-col overflow-hidden" :class="isPast ? 'grayscale' : ''">
         <div class="flex items-center gap-2 min-w-0">
           <p class="text-[11px] tracking-[0.2em] uppercase text-slate-400 dark:text-slate-500 shrink-0">
             Boarding Pass
@@ -154,46 +154,50 @@ onBeforeUnmount(() => {
         </div>
       </section>
 
-      <!-- Stub: right ~25% — Trash top-right, vertical stacked summaries -->
-      <section class="col-span-3 p-5 pl-6 flex flex-col gap-4 relative">
-        <div class="absolute top-3 right-3 flex items-center gap-1.5" @click.stop>
+      <!-- Stub: right ~25% — action buttons + vertical stacked summaries -->
+      <section class="col-span-3 pt-3 pb-5 pr-4 pl-2 flex flex-col gap-3">
+        <!-- 버튼 영역: 항상 표시, 흑백 모드에서도 색상 유지 (grayscale 미적용) -->
+        <div class="flex items-center justify-end gap-1.5" @click.stop>
           <button
             title="라이브러리에 게시"
-            class="p-2.5 rounded-lg opacity-0 group-hover:opacity-100 text-primary bg-primary/10 hover:bg-primary/20 shadow-sm transition-all duration-200"
+            class="p-2 rounded-lg text-primary bg-primary/10 hover:bg-primary/20 shadow-sm transition-all duration-200"
             @click="emit('publish', trip)"
           >
-            <Upload :size="17" class="shrink-0" />
+            <Upload :size="15" class="shrink-0" />
           </button>
           <button
             v-if="trip.isOwner"
             title="삭제"
             class="flex items-center gap-1 rounded-lg transition-all duration-200"
             :class="confirming
-              ? 'px-3 py-2 bg-red-500 text-white hover:bg-red-600 shadow-md'
-              : 'p-2.5 opacity-0 group-hover:opacity-100 text-red-500 bg-red-50 dark:bg-red-900/25 hover:bg-red-100 dark:hover:bg-red-900/40 shadow-sm'"
+              ? 'px-2.5 py-1.5 bg-red-500 text-white hover:bg-red-600 shadow-md'
+              : 'p-2 text-red-500 bg-red-50 dark:bg-red-900/25 hover:bg-red-100 dark:hover:bg-red-900/40 shadow-sm'"
             @click="confirming ? onConfirmDelete() : onTrashClick()"
           >
-            <Trash2 :size="17" class="shrink-0" />
-            <span v-if="confirming" class="text-[12px] font-semibold whitespace-nowrap">삭제</span>
+            <Trash2 :size="15" class="shrink-0" />
+            <span v-if="confirming" class="text-[11px] font-semibold whitespace-nowrap">삭제</span>
           </button>
         </div>
-        <div class="flex flex-col mt-6">
-          <span class="text-[11px] text-slate-400 dark:text-slate-500">기간</span>
-          <span class="text-base font-semibold text-slate-900 dark:text-slate-100">{{ dayCount }}일</span>
-        </div>
-        <div class="flex flex-col">
-          <span class="text-[11px] text-slate-400 dark:text-slate-500">일정</span>
-          <span class="text-base font-semibold text-slate-900 dark:text-slate-100">{{ itemCount }}건</span>
-        </div>
-        <div class="flex flex-col">
-          <span class="text-[11px] text-slate-400 dark:text-slate-500">인원</span>
-          <span class="text-base font-semibold text-slate-900 dark:text-slate-100">{{ memberCount }}명</span>
+        <!-- 통계 영역: isPast 시 grayscale 적용 -->
+        <div class="flex flex-col gap-3 flex-1 ml-2" :class="isPast ? 'grayscale' : ''">
+          <div class="flex flex-col">
+            <span class="text-[11px] text-slate-400 dark:text-slate-500">기간</span>
+            <span class="text-base font-semibold text-slate-900 dark:text-slate-100">{{ dayCount }}일</span>
+          </div>
+          <div class="flex flex-col">
+            <span class="text-[11px] text-slate-400 dark:text-slate-500">일정</span>
+            <span class="text-base font-semibold text-slate-900 dark:text-slate-100">{{ itemCount }}건</span>
+          </div>
+          <div class="flex flex-col">
+            <span class="text-[11px] text-slate-400 dark:text-slate-500">인원</span>
+            <span class="text-base font-semibold text-slate-900 dark:text-slate-100">{{ memberCount }}명</span>
+          </div>
         </div>
       </section>
     </div>
 
     <!-- Bottom row: total price -->
-    <div class="trip-ticket-total flex items-center justify-between px-6 py-3 bg-slate-50 dark:bg-slate-800/40">
+    <div class="trip-ticket-total flex items-center justify-between px-6 py-3 bg-slate-50 dark:bg-slate-800/40" :class="isPast ? 'grayscale' : ''">
       <span class="text-[14px] font-semibold text-slate-500 dark:text-slate-400">총 비용</span>
       <span class="text-base font-bold tracking-tight text-slate-900 dark:text-slate-100 whitespace-nowrap">
         ₩{{ costLabel }}

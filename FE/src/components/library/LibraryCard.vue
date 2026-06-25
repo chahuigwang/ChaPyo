@@ -62,20 +62,6 @@ onBeforeUnmount(() => { clearRevert(); document.removeEventListener('click', onD
         <span class="text-[12px] font-medium text-slate-600 dark:text-slate-300 truncate">{{ library.nickname }}</span>
         <span v-if="mine" class="px-1.5 py-0.5 rounded-md bg-primary/10 text-primary text-[10px] font-bold shrink-0">내 게시물</span>
         <span v-if="dateLabel" class="text-[11px] text-slate-400 dark:text-slate-500 ml-auto tabular-nums shrink-0">{{ dateLabel }}</span>
-
-        <!-- 삭제 (내 글, hover 시) -->
-        <button
-          v-if="mine"
-          @click.stop="onTrash"
-          class="shrink-0 flex items-center gap-1 rounded-lg transition-all duration-200"
-          :class="confirming
-            ? 'px-2 py-1 bg-red-500 text-white hover:bg-red-600'
-            : 'p-1.5 opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30'"
-          :title="confirming ? '한 번 더 클릭하면 삭제' : '삭제'"
-        >
-          <Trash2 :size="14" class="shrink-0" />
-          <span v-if="confirming" class="text-[11px] font-semibold whitespace-nowrap">삭제</span>
-        </button>
       </div>
 
       <!-- 제목 -->
@@ -89,21 +75,35 @@ onBeforeUnmount(() => { clearRevert(); document.removeEventListener('click', onD
       </p>
     </div>
 
-    <!-- 하단: 통계 + 불러오기 (배경 대비로 구분) -->
+    <!-- 하단: 통계 + 액션 버튼 (배경 대비로 구분) -->
     <div class="flex items-center justify-between px-5 py-3 bg-slate-50 dark:bg-slate-800/40">
       <div class="flex items-center gap-3 text-[12px] text-slate-400 dark:text-slate-500">
         <span class="inline-flex items-center gap-1" title="조회수"><Eye :size="13" /> {{ num(library.viewCount) }}</span>
         <span class="inline-flex items-center gap-1" title="불러오기 수"><Download :size="13" /> {{ num(library.importCount) }}</span>
       </div>
-      <button
-        @click.stop="emit('import', library.libraryId)"
-        :disabled="importing"
-        class="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-primary text-white text-[12px] font-semibold hover:bg-primary/90 disabled:opacity-50 transition-all hover:-translate-y-0.5"
-      >
-        <Loader2 v-if="importing" :size="13" class="animate-spin" />
-        <Download v-else :size="13" />
-        불러오기
-      </button>
+      <div class="flex items-center gap-1.5" @click.stop>
+        <button
+          v-if="mine"
+          @click="onTrash"
+          class="inline-flex items-center gap-1 h-8 rounded-lg transition-all duration-200"
+          :class="confirming
+            ? 'px-3 bg-red-500 text-white hover:bg-red-600'
+            : 'px-2.5 text-red-500 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40'"
+          :title="confirming ? '한 번 더 클릭하면 삭제' : '삭제'"
+        >
+          <Trash2 :size="13" class="shrink-0" />
+          <span v-if="confirming" class="text-[11px] font-semibold whitespace-nowrap">삭제</span>
+        </button>
+        <button
+          @click.stop="emit('import', library.libraryId)"
+          :disabled="importing"
+          class="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-primary text-white text-[12px] font-semibold hover:bg-primary/90 disabled:opacity-50 transition-all hover:-translate-y-0.5"
+        >
+          <Loader2 v-if="importing" :size="13" class="animate-spin" />
+          <Download v-else :size="13" />
+          불러오기
+        </button>
+      </div>
     </div>
   </div>
 </template>

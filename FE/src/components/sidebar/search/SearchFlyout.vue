@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { storeToRefs } from 'pinia'
 import { Search, X, Loader2, RotateCcw, ChevronDown } from 'lucide-vue-next'
-import { useSearchStore, PROVINCES, PLACE_TYPE_GROUPS } from '@/stores/searchStore'
+import { useSearchStore, PROVINCES, PLACE_TYPE_GROUPS, SORT_OPTIONS } from '@/stores/searchStore'
 import { useUiStore } from '@/stores/uiStore'
 import draggable from 'vuedraggable'
 import DiscoverPlaceCard from '@/components/common/DiscoverPlaceCard.vue'
@@ -14,7 +14,7 @@ const { onMove, onDragPreviewEnd } = useDragPreview()
 
 // 플라이아웃 → 타임라인 clone 시 원본 참조 공유 방지 (얕은 복사본을 일정으로 삽입)
 function cloneCard(item) { return { ...item } }
-const { keyword, provinceId, districtId, typeId, results, hasNext, loading, searched, searchError, districts } = storeToRefs(search)
+const { keyword, provinceId, districtId, typeId, sortBy, results, hasNext, loading, searched, searchError, districts } = storeToRefs(search)
 
 const currentPage = ref(0)
 const observerTarget = ref(null)
@@ -39,6 +39,7 @@ onMounted(() => {
   document.addEventListener('mousedown', onCategoryOutside)
   document.addEventListener('mousedown', onProvinceOutside)
   document.addEventListener('mousedown', onDistrictOutside)
+  document.addEventListener('mousedown', onSortOutside)
   if (!search.searched) nextTick(() => search.search(0))
   observer = new IntersectionObserver((entries) => {
     const target = entries[0]
@@ -67,6 +68,7 @@ onUnmounted(() => {
   document.removeEventListener('mousedown', onCategoryOutside)
   document.removeEventListener('mousedown', onProvinceOutside)
   document.removeEventListener('mousedown', onDistrictOutside)
+  document.removeEventListener('mousedown', onSortOutside)
   if (observer) observer.disconnect()
 })
 
@@ -100,6 +102,11 @@ const categoryOpen = ref(false)
 const categoryRef = ref(null)
 const categoryTriggerRef = ref(null)
 
+// ── Sort custom dropdown ─────────────────────────────────────
+const sortOpen = ref(false)
+const sortRef = ref(null)
+const sortTriggerRef = ref(null)
+
 const selectedTypeLabel = computed(() => {
   if (!typeId.value) return '카테고리 전체'
   for (const g of PLACE_TYPE_GROUPS) {
@@ -130,6 +137,9 @@ function onProvinceOutside(e) {
 }
 function onDistrictOutside(e) {
   onOutside(e, districtOpen, districtTriggerRef, districtRef, () => { districtOpen.value = false })
+}
+function onSortOutside(e) {
+  onOutside(e, sortOpen, sortTriggerRef, sortRef, () => { sortOpen.value = false })
 }
 </script>
 
@@ -213,57 +223,95 @@ function onDistrictOutside(e) {
           </Transition>
         </div>
       </div>
-      <!-- Category custom dropdown -->
-      <div class="relative">
-        <button
-          ref="categoryTriggerRef"
-          type="button"
-          @click="categoryOpen = !categoryOpen"
-          class="w-full h-9 px-3 text-[13px] rounded-md bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-1 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-        >
-          <span class="truncate">{{ selectedTypeLabel }}</span>
-          <ChevronDown :size="11" class="shrink-0 text-slate-400 transition-transform duration-200" :class="categoryOpen ? 'rotate-180' : ''" />
-        </button>
-
-        <Transition
-          enter-active-class="transition-all duration-200 ease-out"
-          enter-from-class="opacity-0 scale-95 -translate-y-1"
-          enter-to-class="opacity-100 scale-100 translate-y-0"
-          leave-active-class="transition-all duration-150 ease-in"
-          leave-from-class="opacity-100 scale-100 translate-y-0"
-          leave-to-class="opacity-0 scale-95 -translate-y-1"
-        >
-          <div
-            v-if="categoryOpen"
-            ref="categoryRef"
-            class="absolute left-0 top-full mt-1 z-50 w-full max-h-56 overflow-y-auto bg-white dark:bg-slate-900 rounded-lg shadow-xl py-1"
+      <!-- Category + Sort (같은 비율 grid-cols-2) -->
+      <div class="grid grid-cols-2 gap-2">
+        <!-- Category custom dropdown -->
+        <div class="relative">
+          <button
+            ref="categoryTriggerRef"
+            type="button"
+            @click="categoryOpen = !categoryOpen"
+            class="w-full h-9 px-3 text-[13px] rounded-md bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-1 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           >
-            <button
-              type="button"
-              @click="selectType('')"
-              class="w-full text-left px-3 py-1.5 text-[13px] transition-colors"
-              :class="!typeId ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'"
-            >카테고리 전체</button>
-            <template v-for="group in PLACE_TYPE_GROUPS" :key="group.id">
+            <span class="truncate">{{ selectedTypeLabel }}</span>
+            <ChevronDown :size="11" class="shrink-0 text-slate-400 transition-transform duration-200" :class="categoryOpen ? 'rotate-180' : ''" />
+          </button>
+          <Transition
+            enter-active-class="transition-all duration-200 ease-out"
+            enter-from-class="opacity-0 scale-95 -translate-y-1"
+            enter-to-class="opacity-100 scale-100 translate-y-0"
+            leave-active-class="transition-all duration-150 ease-in"
+            leave-from-class="opacity-100 scale-100 translate-y-0"
+            leave-to-class="opacity-0 scale-95 -translate-y-1"
+          >
+            <div
+              v-if="categoryOpen"
+              ref="categoryRef"
+              class="absolute left-0 top-full mt-1 z-50 w-48 max-h-56 overflow-y-auto bg-white dark:bg-slate-900 rounded-lg shadow-xl py-1"
+            >
               <button
                 type="button"
-                @click="selectType(group.id)"
-                class="w-full text-left px-3 pt-2 pb-0.5 text-[13px] font-bold tracking-wider transition-colors"
-                :class="typeId === group.id
-                  ? 'text-primary'
-                  : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'"
-              >{{ group.label }} <span class="font-normal text-[13px] opacity-70">전체</span></button>
+                @click="selectType('')"
+                class="w-full text-left px-3 py-1.5 text-[13px] transition-colors"
+                :class="!typeId ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'"
+              >카테고리 전체</button>
+              <template v-for="group in PLACE_TYPE_GROUPS" :key="group.id">
+                <button
+                  type="button"
+                  @click="selectType(group.id)"
+                  class="w-full text-left px-3 pt-2 pb-0.5 text-[13px] font-bold tracking-wider transition-colors"
+                  :class="typeId === group.id
+                    ? 'text-primary'
+                    : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'"
+                >{{ group.label }} <span class="font-normal text-[13px] opacity-70">전체</span></button>
+                <button
+                  v-for="t in group.children"
+                  :key="t.id"
+                  type="button"
+                  @click="selectType(t.id)"
+                  class="w-full text-left px-3 py-1.5 text-[13px] transition-colors pl-5"
+                  :class="typeId === t.id ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'"
+                >{{ t.label }}</button>
+              </template>
+            </div>
+          </Transition>
+        </div>
+
+        <!-- Sort custom dropdown -->
+        <div class="relative">
+          <button
+            ref="sortTriggerRef"
+            type="button"
+            @click="sortOpen = !sortOpen"
+            class="w-full h-9 px-2.5 text-[13px] rounded-md bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-1 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          >
+            <span class="truncate">{{ SORT_OPTIONS.find(o => o.value === sortBy)?.label }}</span>
+            <ChevronDown :size="10" class="shrink-0 text-slate-400 transition-transform duration-200" :class="sortOpen ? 'rotate-180' : ''" />
+          </button>
+          <Transition
+            enter-active-class="transition-all duration-200 ease-out"
+            enter-from-class="opacity-0 scale-95 -translate-y-1"
+            enter-to-class="opacity-100 scale-100 translate-y-0"
+            leave-active-class="transition-all duration-150 ease-in"
+            leave-from-class="opacity-100 scale-100 translate-y-0"
+            leave-to-class="opacity-0 scale-95 -translate-y-1"
+          >
+            <div
+              v-if="sortOpen"
+              ref="sortRef"
+              class="absolute left-0 top-full mt-1 z-50 w-full bg-white dark:bg-slate-900 rounded-lg shadow-xl py-1"
+            >
               <button
-                v-for="t in group.children"
-                :key="t.id"
+                v-for="opt in SORT_OPTIONS"
+                :key="opt.value"
                 type="button"
-                @click="selectType(t.id)"
-                class="w-full text-left px-3 py-1.5 text-[13px] transition-colors pl-5"
-                :class="typeId === t.id ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'"
-              >{{ t.label }}</button>
-            </template>
-          </div>
-        </Transition>
+                @click="search.setSortBy(opt.value); sortOpen = false; onSubmit()"
+                class="w-full text-left px-3 py-1.5 text-[13px] transition-colors"
+                :class="sortBy === opt.value ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'"
+              >{{ opt.label }}</button>
+            </div>
+          </Transition>
+        </div>
       </div>
     </section>
 

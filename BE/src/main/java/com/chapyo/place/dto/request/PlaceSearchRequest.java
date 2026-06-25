@@ -1,5 +1,6 @@
 package com.chapyo.place.dto.request;
 
+import com.chapyo.place.enums.PlaceSortType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
@@ -23,6 +24,9 @@ public class PlaceSearchRequest {
 
     @Schema(description = "소분류 코드", example = "HS01")
     private String category2;
+
+    @Schema(description = "정렬 기준", example = "LIKES")
+    private PlaceSortType sort = PlaceSortType.LIKES;
 
     @Schema(description = "페이지 번호 (0부터 시작)", example = "0")
     private int page = 0;

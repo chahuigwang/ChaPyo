@@ -1,4 +1,4 @@
-package com.chapyo.place.dto;
+package com.chapyo.trip.dto;
 
 import java.util.List;
 

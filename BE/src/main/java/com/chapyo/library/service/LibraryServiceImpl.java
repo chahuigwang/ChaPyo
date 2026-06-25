@@ -39,16 +39,34 @@ public class LibraryServiceImpl implements LibraryService {
             throw new CustomException(LibraryErrorCode.FORBIDDEN);
         }
 
+        // 아이템 스냅샷
+        List<TripPlanItem> currentItems = tripMapper.findItemsByPlanIdSimple(request.getPlanId());
+
+        // 일수 계산
+        int dayCount = currentItems.stream()
+                .mapToInt(TripPlanItem::getDayNumber)
+                .max()
+                .orElse(0);
+
+        // 총 비용 계산
+        int cost = currentItems.stream()
+                .mapToInt(item -> item.getCost() != null ? item.getCost() : 0)
+                .sum();
+
+        // 멤버 수 조회
+        int memberCount = tripMapper.findMembersByPlanId(request.getPlanId()).size();
+
         TravelLibrary library = TravelLibrary.builder()
                 .userId(userId)
                 .title(request.getTitle())
                 .description(request.getDescription())
+                .dayCount(dayCount)
+                .cost(cost)
+                .memberCount(memberCount)
                 .build();
 
         libraryMapper.insertLibrary(library);
 
-        // 아이템 스냅샷
-        List<TripPlanItem> currentItems = tripMapper.findItemsByPlanIdSimple(request.getPlanId());
         List<LibraryItem> libraryItems = currentItems.stream()
                 .map(item -> LibraryItem.builder()
                         .libraryId(library.getLibraryId())
@@ -65,12 +83,10 @@ public class LibraryServiceImpl implements LibraryService {
             libraryMapper.insertLibraryItems(libraryItems);
         }
 
-        // route 스냅샷 - trip item id → library item id 매핑 필요
-        // insertLibraryItems 후 libraryItems에 itemId가 채워짐
+        // route 스냅샷
         List<TripRouteResponse> currentRoutes = tripMapper.findRoutesByPlanId(request.getPlanId());
 
         if (!currentRoutes.isEmpty()) {
-            // trip item id → library item id 매핑
             Map<Long, Long> itemIdMap = new HashMap<>();
             for (int i = 0; i < currentItems.size(); i++) {
                 itemIdMap.put(currentItems.get(i).getItemId(), libraryItems.get(i).getItemId());

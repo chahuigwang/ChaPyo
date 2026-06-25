@@ -1,0 +1,4 @@
+ALTER TABLE travel_library
+    ADD COLUMN day_count INT DEFAULT NULL,
+    ADD COLUMN cost INT DEFAULT NULL,
+    ADD COLUMN member_count INT DEFAULT NULL;

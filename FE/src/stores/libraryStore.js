@@ -131,14 +131,17 @@ export const useLibraryStore = defineStore('library', {
 
     // 내가 게시한 항목 삭제(낙관적)
     async remove(id) {
-      const prev = this.items
+      const prevItems = this.items
+      const prevMineItems = this.mineItems
       this.items = this.items.filter((x) => x.libraryId !== id)
+      this.mineItems = this.mineItems.filter((x) => x.libraryId !== id)
       try {
         await libraryService.remove(id)
         useToastStore().success('게시물을 삭제했습니다.')
         return { ok: true }
       } catch (err) {
-        this.items = prev
+        this.items = prevItems
+        this.mineItems = prevMineItems
         const message = err?.response?.data?.message ?? '삭제에 실패했습니다.'
         useToastStore().error(message)
         return { ok: false, message }

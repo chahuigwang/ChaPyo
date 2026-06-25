@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref, watch, onBeforeUnmount, useTemplateRef } from 'vue'
-import { Eye, Download, Trash2, Loader2 } from 'lucide-vue-next'
+import { Eye, Download, Trash2, Loader2, CalendarDays, Users, Wallet } from 'lucide-vue-next'
 import { colorForUser } from '@/composables/useUserColor'
 
 const props = defineProps({
@@ -73,6 +73,19 @@ onBeforeUnmount(() => { clearRevert(); document.removeEventListener('click', onD
       <p class="text-[13px] text-slate-500 dark:text-slate-400 leading-relaxed line-clamp-2 min-h-[2.5rem]">
         {{ library.description || '설명이 없습니다.' }}
       </p>
+
+      <!-- 기간 / 인원 / 비용 -->
+      <div class="flex items-center gap-3 pt-0.5">
+        <span v-if="library.dayCount" class="inline-flex items-center gap-1 text-[12px] text-slate-500 dark:text-slate-400">
+          <CalendarDays :size="12" class="text-slate-400" />{{ library.dayCount }}일
+        </span>
+        <span v-if="library.memberCount" class="inline-flex items-center gap-1 text-[12px] text-slate-500 dark:text-slate-400">
+          <Users :size="12" class="text-slate-400" />{{ library.memberCount }}명
+        </span>
+        <span v-if="library.cost" class="inline-flex items-center gap-1 text-[12px] text-slate-500 dark:text-slate-400">
+          <Wallet :size="12" class="text-slate-400" />{{ num(library.cost) }}원
+        </span>
+      </div>
     </div>
 
     <!-- 하단: 통계 + 액션 버튼 (배경 대비로 구분) -->

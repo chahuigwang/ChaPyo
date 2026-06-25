@@ -16,4 +16,7 @@ public class TravelLibrary {
     private String description;
     private int viewCount;
     private int importCount;
+    private Integer dayCount;
+    private Integer cost;
+    private Integer memberCount;
 }

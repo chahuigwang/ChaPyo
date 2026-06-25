@@ -26,6 +26,15 @@ public class LibraryResponse {
     @Schema(description = "작성자 닉네임", example = "chapyo")
     private String nickname;
 
+    @Schema(description = "여행 일수", example = "3")
+    private Integer dayCount;
+
+    @Schema(description = "총 비용", example = "300000")
+    private Integer cost;
+
+    @Schema(description = "멤버 수", example = "3")
+    private Integer memberCount;
+
     @Schema(description = "조회수", example = "100")
     private int viewCount;
 

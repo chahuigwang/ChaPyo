@@ -6,8 +6,8 @@
 <mapper namespace="com.chapyo.library.mapper.LibraryMapper">
 
     <insert id="insertLibrary" useGeneratedKeys="true" keyProperty="libraryId">
-        INSERT INTO travel_library (user_id, title, description)
-        VALUES (#{userId}, #{title}, #{description})
+        INSERT INTO travel_library (user_id, title, description, day_count, cost, member_count)
+        VALUES (#{userId}, #{title}, #{description}, #{dayCount}, #{cost}, #{memberCount})
     </insert>
 
     <insert id="insertLibraryItems" useGeneratedKeys="true" keyProperty="itemId">
@@ -28,6 +28,7 @@
 
     <select id="findLibraries" resultType="LibraryResponse">
         SELECT tl.library_id, tl.title, tl.description, u.nickname,
+        tl.day_count, tl.cost, tl.member_count,
         tl.view_count, tl.import_count, tl.created_at,
         false AS is_owner
         FROM travel_library tl
@@ -47,6 +48,7 @@
 
     <select id="findMyLibraries" resultType="LibraryResponse">
         SELECT tl.library_id, tl.title, tl.description, u.nickname,
+        tl.day_count, tl.cost, tl.member_count,
         tl.view_count, tl.import_count, tl.created_at,
         true AS is_owner
         FROM travel_library tl

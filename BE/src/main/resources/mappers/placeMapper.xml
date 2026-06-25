@@ -42,7 +42,13 @@
 			AND p.addr1 IS NOT NULL AND p.addr1 != ''
 		</where>
 		GROUP BY p.place_id
-		ORDER BY like_count DESC, p.place_id
+		ORDER BY
+		<choose>
+			<when test="req.sort == 'RATING'">avg_rating DESC</when>
+			<when test="req.sort == 'REVIEWS'">review_count DESC</when>
+			<otherwise>like_count DESC</otherwise>
+		</choose>
+		, p.place_id
 		LIMIT #{req.limitSize}
 		OFFSET #{req.offset}
 	</select>

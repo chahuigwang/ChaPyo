@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -90,26 +91,31 @@ public class TripServiceImpl implements TripService {
             throw new CustomException(TripErrorCode.FORBIDDEN);
         }
 
-        int order;
-        if (request.getItemOrder() != null) {
-            tripMapper.shiftItemOrders(planId, request.getDayNumber(), request.getItemOrder());
-            order = request.getItemOrder();
-        } else {
-            order = tripMapper.countItemsByDayNumber(planId, request.getDayNumber()) + 1;
+        int maxRetries = 3;
+        for (int attempt = 0; attempt < maxRetries; attempt++) {
+            try {
+                int order = tripMapper.countItemsByDayNumber(planId, request.getDayNumber()) + 1;
+
+                TripPlanItem item = TripPlanItem.builder()
+                        .planId(planId)
+                        .placeId(request.getPlaceId())
+                        .adderId(userId)
+                        .dayNumber(request.getDayNumber())
+                        .itemOrder(order)
+                        .visitTime(request.getVisitTime())
+                        .cost(request.getCost())
+                        .memo(request.getMemo())
+                        .build();
+
+                tripMapper.insertItem(item);
+                return;
+
+            } catch (DuplicateKeyException e) {
+                if (attempt == maxRetries - 1) {
+                    throw new CustomException(TripErrorCode.ITEM_ORDER_CONFLICT);
+                }
+            }
         }
-
-        TripPlanItem item = TripPlanItem.builder()
-                .planId(planId)
-                .placeId(request.getPlaceId())
-                .adderId(userId)
-                .dayNumber(request.getDayNumber())
-                .itemOrder(order)
-                .visitTime(request.getVisitTime())
-                .cost(request.getCost())
-                .memo(request.getMemo())
-                .build();
-
-        tripMapper.insertItem(item);
     }
 
     @Override

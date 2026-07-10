@@ -24,12 +24,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class TripServiceImpl implements TripService {
 
     private final TripMapper tripMapper;
@@ -111,6 +113,7 @@ public class TripServiceImpl implements TripService {
                 return;
 
             } catch (DuplicateKeyException e) {
+                log.warn("item_order 충돌 발생, 재시도 중... (attempt: {})", attempt + 1);
                 if (attempt == maxRetries - 1) {
                     throw new CustomException(TripErrorCode.ITEM_ORDER_CONFLICT);
                 }

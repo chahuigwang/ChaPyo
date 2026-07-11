@@ -151,10 +151,10 @@
 <!--            <scope>compile</scope>-->
 <!--        </dependency>-->
 
-        <!-- Source: https://mvnrepository.com/artifact/org.springframework.ai/spring-ai-google-genai -->
+        <!-- Source: https://mvnrepository.com/artifact/org.springframework.ai/spring-ai-starter-model-google-genai -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
-            <artifactId>spring-ai-google-genai</artifactId>
+            <artifactId>spring-ai-starter-model-google-genai</artifactId>
             <version>1.1.7</version>
             <scope>compile</scope>
         </dependency>

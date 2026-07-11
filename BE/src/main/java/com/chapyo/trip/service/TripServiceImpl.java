@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -96,7 +97,16 @@ public class TripServiceImpl implements TripService {
         int maxRetries = 3;
         for (int attempt = 0; attempt < maxRetries; attempt++) {
             try {
-                int order = tripMapper.countItemsByDayNumber(planId, request.getDayNumber()) + 1;
+                // 비관적 락 획득
+                tripMapper.lockItemsByDayNumber(planId, request.getDayNumber());
+
+                int order;
+                if (request.getItemOrder() != null) {
+                    tripMapper.shiftItemOrders(planId, request.getDayNumber(), request.getItemOrder());
+                    order = request.getItemOrder();
+                } else {
+                    order = tripMapper.countItemsByDayNumber(planId, request.getDayNumber()) + 1;
+                }
 
                 TripPlanItem item = TripPlanItem.builder()
                         .planId(planId)
@@ -112,8 +122,7 @@ public class TripServiceImpl implements TripService {
                 tripMapper.insertItem(item);
                 return;
 
-            } catch (DuplicateKeyException e) {
-                log.warn("item_order 충돌 발생, 재시도 중... (attempt: {})", attempt + 1);
+            } catch (DuplicateKeyException | CannotAcquireLockException e) {
                 if (attempt == maxRetries - 1) {
                     throw new CustomException(TripErrorCode.ITEM_ORDER_CONFLICT);
                 }

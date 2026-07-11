@@ -38,4 +38,5 @@ public interface TripMapper {
     void upsertRoute(TripPlanRoute route);
     void deleteRoutesByItemIds(@Param("itemIds") List<Long> itemIds);
     List<TripRouteResponse> findRoutesByPlanId(Long planId);
+    int lockItemsByDayNumber(@Param("planId") Long planId, @Param("dayNumber") Integer dayNumber);
 }

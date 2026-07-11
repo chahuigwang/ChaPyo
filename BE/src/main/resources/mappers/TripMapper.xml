@@ -41,6 +41,13 @@
         WHERE plan_id = #{planId} AND day_number = #{dayNumber}
     </select>
 
+    <select id="lockItemsByDayNumber" resultType="int">
+        SELECT COUNT(*)
+        FROM trip_plan_items
+        WHERE plan_id = #{planId} AND day_number = #{dayNumber}
+            FOR UPDATE
+    </select>
+
     <insert id="insertItem" useGeneratedKeys="true" keyProperty="itemId">
         INSERT INTO trip_plan_items (plan_id, place_id, adder_id, day_number, item_order, visit_time, cost, memo)
         VALUES (#{planId}, #{placeId}, #{adderId}, #{dayNumber}, #{itemOrder}, #{visitTime}, #{cost}, #{memo})

@@ -37,3 +37,6 @@ application-local.yml
 
 # Prod Configuration
 application-prod.yml
+
+# Shell Scripts
+test.sh

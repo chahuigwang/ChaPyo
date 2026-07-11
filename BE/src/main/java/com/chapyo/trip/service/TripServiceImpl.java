@@ -94,7 +94,7 @@ public class TripServiceImpl implements TripService {
             throw new CustomException(TripErrorCode.FORBIDDEN);
         }
 
-        int maxRetries = 3;
+        int maxRetries = 5;
         for (int attempt = 0; attempt < maxRetries; attempt++) {
             try {
                 tripItemService.addItemInternal(planId, request, userId);

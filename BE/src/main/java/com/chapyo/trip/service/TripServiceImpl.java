@@ -37,6 +37,7 @@ public class TripServiceImpl implements TripService {
 
     private final TripMapper tripMapper;
     private final UserMapper userMapper;
+    private final TripItemService tripItemService;
 
     @Override
     @Transactional
@@ -88,7 +89,6 @@ public class TripServiceImpl implements TripService {
     }
 
     @Override
-    @Transactional
     public void addItem(Long planId, TripPlanItemRequest request, Long userId) {
         if (!tripMapper.existsMember(planId, userId)) {
             throw new CustomException(TripErrorCode.FORBIDDEN);
@@ -97,32 +97,9 @@ public class TripServiceImpl implements TripService {
         int maxRetries = 3;
         for (int attempt = 0; attempt < maxRetries; attempt++) {
             try {
-                // 비관적 락 획득
-                tripMapper.lockItemsByDayNumber(planId, request.getDayNumber());
-
-                int order;
-                if (request.getItemOrder() != null) {
-                    tripMapper.shiftItemOrders(planId, request.getDayNumber(), request.getItemOrder());
-                    order = request.getItemOrder();
-                } else {
-                    order = tripMapper.countItemsByDayNumber(planId, request.getDayNumber()) + 1;
-                }
-
-                TripPlanItem item = TripPlanItem.builder()
-                        .planId(planId)
-                        .placeId(request.getPlaceId())
-                        .adderId(userId)
-                        .dayNumber(request.getDayNumber())
-                        .itemOrder(order)
-                        .visitTime(request.getVisitTime())
-                        .cost(request.getCost())
-                        .memo(request.getMemo())
-                        .build();
-
-                tripMapper.insertItem(item);
+                tripItemService.addItemInternal(planId, request, userId);
                 return;
-
-            } catch (DuplicateKeyException | CannotAcquireLockException e) {
+            } catch (DuplicateKeyException e) {
                 if (attempt == maxRetries - 1) {
                     throw new CustomException(TripErrorCode.ITEM_ORDER_CONFLICT);
                 }

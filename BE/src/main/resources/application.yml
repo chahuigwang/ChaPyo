@@ -28,7 +28,7 @@ spring:
   ai:
     openai:
       api-key:
-      base-url:
+      # base-url:
       embedding:
         options:
           model:
